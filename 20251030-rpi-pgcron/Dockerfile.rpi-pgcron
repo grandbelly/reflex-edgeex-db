@@ -10,8 +10,26 @@ LABEL description="PostgreSQL 17 + TimescaleDB + pg_cron for RPI (Alpine)"
 
 ENV TZ=Asia/Seoul
 
-# Install pg_cron using Alpine package manager
-RUN set -eux;     apk add --no-cache postgresql-pg_cron;     mkdir -p /usr/local/share/postgresql/extension;     ln -sf /usr/share/postgresql17/extension/pg_cron* /usr/local/share/postgresql/extension/;     mkdir -p /usr/local/lib/postgresql;     ln -sf /usr/lib/postgresql17/pg_cron.so /usr/local/lib/postgresql/;     mkdir -p /docker-entrypoint-initdb.d
+# Install pg_cron using Alpine package manager.
+# The TimescaleDB base image uses a bundled postgres at /usr/local/bin/postgres
+# with pkglibdir=/usr/local/lib/postgresql and sharedir=/usr/local/share/postgresql.
+# Alpine's postgresql-pg_cron currently installs into postgresql18 paths
+# (/usr/lib/postgresql18, /usr/share/postgresql18), so we copy the .so and
+# extension files into the bundled postgres dirs.
+RUN set -eux; \
+    apk add --no-cache postgresql-pg_cron; \
+    PGCRON_SO=$(find /usr/lib/postgresql* -name 'pg_cron.so' | head -1); \
+    PGCRON_EXT_DIR=$(dirname "$(find /usr/share/postgresql* -name 'pg_cron.control' | head -1)"); \
+    PG_PKGLIBDIR=$(pg_config --pkglibdir); \
+    PG_SHAREDIR=$(pg_config --sharedir); \
+    echo "Found pg_cron.so at: $PGCRON_SO"; \
+    echo "Found pg_cron extension dir at: $PGCRON_EXT_DIR"; \
+    echo "Target pkglibdir: $PG_PKGLIBDIR"; \
+    echo "Target sharedir: $PG_SHAREDIR/extension"; \
+    mkdir -p "$PG_PKGLIBDIR" "$PG_SHAREDIR/extension"; \
+    cp -f "$PGCRON_SO" "$PG_PKGLIBDIR/pg_cron.so"; \
+    cp -f "$PGCRON_EXT_DIR"/pg_cron* "$PG_SHAREDIR/extension/"; \
+    mkdir -p /docker-entrypoint-initdb.d
 
 # Create pg_cron extension initialization script
 RUN echo 'CREATE EXTENSION IF NOT EXISTS pg_cron CASCADE;' > /docker-entrypoint-initdb.d/01-init-pg-cron.sql &&     echo 'GRANT USAGE ON SCHEMA cron TO postgres;' >> /docker-entrypoint-initdb.d/01-init-pg-cron.sql &&     echo 'SELECT extname, extversion FROM pg_extension WHERE extname = '\''pg_cron'\'';' >> /docker-entrypoint-initdb.d/01-init-pg-cron.sql

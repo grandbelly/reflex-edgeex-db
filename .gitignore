@@ -44,3 +44,8 @@ __pycache__/
 # Backup files
 *.backup
 *.backup-*
+
+# Agentic pipeline runtime artifacts (Stage 2 worktrees, events, reports)
+agentic-runs/
+graphify-out/
+.bkit/

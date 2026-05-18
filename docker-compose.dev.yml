@@ -1,0 +1,47 @@
+# 로컬 개발용 DB 전용 compose
+# 사용:
+#   docker compose -f docker-compose.dev.yml up -d
+#   docker compose -f docker-compose.dev.yml logs -f db
+#   docker compose -f docker-compose.dev.yml down            # 컨테이너만 제거
+#   docker compose -f docker-compose.dev.yml down -v         # 데이터 볼륨까지 삭제
+#
+# DSN (Reflex 앱에 사용):
+#   postgresql://postgres:postgres@localhost:5432/ecoanp
+
+services:
+  db:
+    build:
+      context: ./20251030-rpi-pgcron
+      dockerfile: Dockerfile.rpi-pgcron
+    container_name: ksys-dev-db
+    # Override the Dockerfile CMD to drop pg_cron from shared_preload_libraries.
+    # Alpine's postgresql-pg_cron (1.6.7) is built for PG18 and is ABI-incompatible
+    # with the bundled PG17 in the TimescaleDB base image (missing pqsignal_be symbol).
+    # pg_cron is only needed for the scheduler on RPI prod; not required for local
+    # dev (DB restore + Reflex app work fine without it).
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=timescaledb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      TIMESCALEDB_TELEMETRY: "off"
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - ksys_dev_pgdata:/var/lib/postgresql/data
+      - ./backup:/backup:ro
+      - ./migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  ksys_dev_pgdata:
+    driver: local

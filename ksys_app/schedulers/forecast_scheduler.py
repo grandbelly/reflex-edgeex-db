@@ -603,7 +603,14 @@ class ForecastScheduler:
 
         if pipeline_config_json:
             try:
-                pipeline_config = json.loads(pipeline_config_json)
+                # asyncpg returns jsonb columns as dict already; psycopg + some
+                # SQLAlchemy paths return raw JSON strings. Accept both.
+                if isinstance(pipeline_config_json, (bytes, bytearray)):
+                    pipeline_config = json.loads(pipeline_config_json.decode("utf-8"))
+                elif isinstance(pipeline_config_json, str):
+                    pipeline_config = json.loads(pipeline_config_json)
+                else:
+                    pipeline_config = pipeline_config_json  # already a dict
                 forecast_config = pipeline_config.get("forecast_config", {})
 
                 if forecast_config.get("horizons"):

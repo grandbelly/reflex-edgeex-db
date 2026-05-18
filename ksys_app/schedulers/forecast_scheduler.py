@@ -12,8 +12,10 @@ Architecture Reference: docs/forecast_result/ONLINE_FORECAST_REDESIGN_20251014.m
 """
 
 import asyncio
+import inspect
 import json
 import pickle
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -22,6 +24,25 @@ logger = logging.getLogger(__name__)
 from sqlalchemy import text
 
 from ..db_orm import get_async_session
+
+
+# ---------------------------------------------------------------------------
+# Timeout guards (Bob - H2/H3 fix, agentic-runs/forecast-scheduler-timeout-fix)
+# ---------------------------------------------------------------------------
+# Plugin predict() methods in ksys_app/ml/pipeline_v2_hybrid.py and
+# pipeline_builder.py are declared `async def` but their bodies are 100%
+# synchronous (statsforecast / Prophet are sync libraries). Awaiting them
+# directly blocks the event loop - that is the root cause of the intermittent
+# TimeoutError on the RPi deployment.
+#
+# These timeouts wrap blocking calls in asyncio.wait_for so a stuck model
+# surfaces as a clean asyncio.TimeoutError instead of an unbounded hang.
+PICKLE_LOAD_TIMEOUT_SECONDS = float(
+    __import__("os").environ.get("FORECAST_PICKLE_LOAD_TIMEOUT", "15.0")
+)
+MODEL_PREDICT_TIMEOUT_SECONDS = float(
+    __import__("os").environ.get("FORECAST_MODEL_PREDICT_TIMEOUT", "45.0")
+)
 
 
 class ForecastScheduler:
@@ -85,11 +106,31 @@ class ForecastScheduler:
             # Try BYTEA first (preferred)
             if model_pickle:
                 loop = asyncio.get_event_loop()
-                model = await loop.run_in_executor(
-                    None,
-                    lambda: pickle.loads(model_pickle)
+                t0 = time.perf_counter()
+                try:
+                    model = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            lambda: pickle.loads(model_pickle)
+                        ),
+                        timeout=PICKLE_LOAD_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ pickle.loads timed out after "
+                        f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
+                        f"({len(model_pickle)} bytes) - H3 guard fired"
+                    )
+                    return None
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"✅ Loaded model from PostgreSQL BYTEA "
+                    f"({len(model_pickle)} bytes, {elapsed*1000:.1f}ms)"
                 )
-                logger.info(f"✅ Loaded model from PostgreSQL BYTEA ({len(model_pickle)} bytes)")
+                logger.debug(
+                    "pickle.loads timing: bytes=%d elapsed_ms=%.1f",
+                    len(model_pickle), elapsed * 1000,
+                )
                 return model
 
             # Fallback to file path (legacy)
@@ -100,11 +141,31 @@ class ForecastScheduler:
                     return None
 
                 loop = asyncio.get_event_loop()
-                model = await loop.run_in_executor(
-                    None,
-                    lambda: pickle.load(open(model_file, 'rb'))
+                t0 = time.perf_counter()
+                try:
+                    model = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            lambda: pickle.load(open(model_file, 'rb'))
+                        ),
+                        timeout=PICKLE_LOAD_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ pickle.load(file) timed out after "
+                        f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
+                        f"({model_path}) - H3 guard fired"
+                    )
+                    return None
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"✅ Loaded model from file (legacy): {model_path} "
+                    f"({elapsed*1000:.1f}ms)"
                 )
-                logger.info(f"✅ Loaded model from file (legacy): {model_path}")
+                logger.debug(
+                    "pickle.load timing: path=%s elapsed_ms=%.1f",
+                    model_path, elapsed * 1000,
+                )
                 return model
 
             else:
@@ -114,6 +175,50 @@ class ForecastScheduler:
         except Exception as e:
             logger.error(f"❌ Failed to load model: {e}")
             return None
+
+    async def _invoke_predict(self, model, horizon: int):
+        """
+        Invoke a plugin's predict(horizon) with an event-loop-safe wrapper.
+
+        Plugins declare predict() as `async def` but their bodies are 100%
+        synchronous (statsforecast / Prophet). Awaiting the returned
+        coroutine on the main loop therefore blocks the loop for the full
+        runtime of the model. To prevent that we run predict in the
+        default ThreadPoolExecutor and bound it with asyncio.wait_for.
+
+        Strategy:
+        - If `model.predict` is `async def`, we wrap it in a tiny sync
+          helper that drives the coroutine to completion on a brand-new
+          event loop inside the worker thread. That way the heavy body
+          executes off the main loop entirely.
+        - If `model.predict` is sync, we just dispatch it directly.
+        """
+        loop = asyncio.get_event_loop()
+        predict_attr = getattr(model, "predict", None)
+        if predict_attr is None:
+            raise AttributeError(
+                f"Model {type(model).__name__} has no predict() method"
+            )
+
+        if inspect.iscoroutinefunction(predict_attr):
+            def _run_in_new_loop():
+                worker_loop = asyncio.new_event_loop()
+                try:
+                    return worker_loop.run_until_complete(
+                        predict_attr(horizon)
+                    )
+                finally:
+                    worker_loop.close()
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _run_in_new_loop),
+                timeout=MODEL_PREDICT_TIMEOUT_SECONDS,
+            )
+
+        # Pure sync predict()
+        return await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: predict_attr(horizon)),
+            timeout=MODEL_PREDICT_TIMEOUT_SECONDS,
+        )
 
     async def generate_predictions(
         self,
@@ -145,8 +250,38 @@ class ForecastScheduler:
 
             # statsforecast models (AutoARIMA, AutoETS)
             if model_type in ['AUTO_ARIMA', 'PROPHET']:
-                # Model plugins have async predict() wrapper - await directly
-                forecast_df = await model.predict(len(horizons))
+                # IMPORTANT: model plugins (pipeline_v2_hybrid.py /
+                # pipeline_builder.py) declare predict() as `async def` but
+                # their bodies are 100% synchronous statsforecast / Prophet
+                # calls. Awaiting them directly blocks the Reflex event loop
+                # for the entire predict runtime (see H2 in
+                # agentic-runs/forecast-scheduler-timeout-fix/01-plan.md).
+                # `_invoke_predict` dispatches the work to the default
+                # ThreadPoolExecutor and bounds it with asyncio.wait_for.
+                t0 = time.perf_counter()
+                try:
+                    forecast_df = await self._invoke_predict(model, len(horizons))
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ model.predict() timed out after "
+                        f"{MODEL_PREDICT_TIMEOUT_SECONDS:.1f}s "
+                        f"(model_type={model_type}, horizons={len(horizons)}) "
+                        f"- H2 guard fired, falling back to persistence model"
+                    )
+                    return {
+                        'predictions': [last_value] * len(horizons),
+                        'ci_lower': [last_value * 0.95] * len(horizons),
+                        'ci_upper': [last_value * 1.05] * len(horizons),
+                    }
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"⏱  model.predict({len(horizons)}) for {model_type} "
+                    f"took {elapsed*1000:.1f}ms"
+                )
+                logger.debug(
+                    "model.predict timing: model_type=%s horizons=%d elapsed_ms=%.1f",
+                    model_type, len(horizons), elapsed * 1000,
+                )
 
                 # Extract predictions and confidence intervals
                 # Column names vary by model type:

@@ -5,6 +5,16 @@ WORKDIR /app
 
 ENV DOCKER_CONTAINER=true
 
+# Forecast scheduler tuning (forecast-scheduler-timeout-fix, 2026-05-18)
+# Alice (H5): opt into connection pool + longer timeouts for TimescaleDB INSERT load
+ENV USE_DB_POOLING=true
+ENV DB_POOL_SIZE=10
+ENV DB_COMMAND_TIMEOUT=30
+ENV DB_STATEMENT_TIMEOUT_MS=30000
+# Bob (H2/H3): bound model inference / pickle.loads to detect hangs cleanly
+ENV FORECAST_PICKLE_LOAD_TIMEOUT=15.0
+ENV FORECAST_MODEL_PREDICT_TIMEOUT=45.0
+
 # 시스템 패키지 설치
 RUN apt-get update && apt-get install -y     curl     git     build-essential     && rm -rf /var/lib/apt/lists/*
 

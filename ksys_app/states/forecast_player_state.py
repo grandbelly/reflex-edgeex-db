@@ -40,6 +40,7 @@ class ForecastPlayerState(BaseState):
     is_streaming: bool = False
     update_interval: int = 600  # 10 minutes (600 seconds) - 실시간 10분 갱신
     countdown_seconds: int = 600  # Countdown timer for next refresh (서버에서 계산됨)
+    y_axis_from_zero: bool = True  # ✅ Y축 스케일 옵션: True=0 기준 (기본값), False=데이터 기반
 
     # Step Navigation (Phase 3 Extension - Forecast Playback)
     forecast_steps: List[Dict] = []  # List of all forecast steps
@@ -803,7 +804,11 @@ class ForecastPlayerState(BaseState):
 
     @rx.var
     def y_axis_domain(self) -> List:
-        """Y축 범위 계산 - 실측값, 예측값, CI 상하한 모두 고려하여 ±5% 마진 추가"""
+        """Y축 범위 계산 - 실측값, 예측값, CI 상하한 모두 고려하여 ±5% 마진 추가
+
+        y_axis_from_zero=True: 0 기준 스케일
+        y_axis_from_zero=False: 데이터 기반 동적 스케일 (기본값)
+        """
         if not self.rolling_window_data:
             return [0, 100]  # 기본값
 
@@ -831,12 +836,17 @@ class ForecastPlayerState(BaseState):
         data_min = min(values)
         data_max = max(values)
 
-        # ±5% 마진 추가 (CI 범위까지 포함했으므로 마진은 작게)
-        margin = (data_max - data_min) * 0.05 if data_max != data_min else 10
-        y_min = data_min - margin
-        y_max = data_max + margin
-
-        return [round(y_min, 2), round(y_max, 2)]
+        # ✅ Y축 스케일 옵션: 0 기준 또는 데이터 기반
+        if self.y_axis_from_zero:
+            # 0 기준 스케일 - 최소값 0, 최대값에 5% 마진
+            margin = data_max * 0.05 if data_max != 0 else 10
+            return [0, round(data_max + margin, 2)]
+        else:
+            # 데이터 기반 스케일 - ±5% 마진 추가
+            margin = (data_max - data_min) * 0.05 if data_max != data_min else 10
+            y_min = data_min - margin
+            y_max = data_max + margin
+            return [round(y_min, 2), round(y_max, 2)]
 
     @rx.var
     def forecast_horizon_display(self) -> str:
@@ -1242,6 +1252,11 @@ class ForecastPlayerState(BaseState):
         """Toggle playlist panel visibility"""
         self.show_playlist = not self.show_playlist
         console.info(f"📋 [PLAYLIST] Panel {'opened' if self.show_playlist else 'closed'}")
+
+    def toggle_y_axis_scale(self):
+        """Toggle Y-axis scale between 0-based and data-based"""
+        self.y_axis_from_zero = not self.y_axis_from_zero
+        console.info(f"📊 [Y-AXIS] Scale mode: {'0 기준' if self.y_axis_from_zero else '데이터 기반'}")
 
     def select_from_playlist(self, model_id: int):
         """Select a model from playlist - same as select_model but with int"""

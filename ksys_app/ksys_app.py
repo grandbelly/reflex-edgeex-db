@@ -1108,6 +1108,7 @@ from .pages import training_wizard  # Wizard-style training interface
 
 # Import design system demo
 # from .pages import design_system_demo  # Disabled: spacing token compatibility issue
+from .pages import viewer_tag  # Tag Viewer Engineering page
 
 # ============================================================================
 # Start Forecasting Schedulers (Phase 2 Implementation)

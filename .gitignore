@@ -22,3 +22,25 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# DB backups & dumps (대용량, 운영 산출물)
+backup/
+*.dump
+*.dump.gz
+*.sql.gz
+
+# Certification / operational data exports (대용량 CSV/리포트)
+certification_data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Reflex build artifacts
+.web/
+.states/
+
+# Backup files
+*.backup
+*.backup-*

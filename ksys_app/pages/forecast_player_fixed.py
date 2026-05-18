@@ -207,7 +207,27 @@ def enhanced_forecast_chart() -> rx.Component:
     """Enhanced chart with proper zones and colors - LINE CHARTS ONLY"""
     return rx.card(
         rx.vstack(
-            rx.heading("시계열 트렌드 차트 (Rolling Window)", size="4"),
+            # Chart header with title and Y-axis scale toggle
+            rx.hstack(
+                rx.heading("시계열 트렌드 차트 (Rolling Window)", size="4"),
+                rx.spacer(),
+                # Y축 스케일 토글 버튼
+                rx.tooltip(
+                    rx.button(
+                        rx.cond(
+                            FPS.y_axis_from_zero,
+                            rx.hstack(rx.icon("move-vertical", size=16), rx.text("0 기준", size="1"), spacing="1"),
+                            rx.hstack(rx.icon("zoom-in", size=16), rx.text("자동 스케일", size="1"), spacing="1"),
+                        ),
+                        variant="soft",
+                        size="1",
+                        on_click=FPS.toggle_y_axis_scale,
+                    ),
+                    content="Y축 스케일 전환: 0 기준 ↔ 데이터 기반 자동 스케일",
+                ),
+                width="100%",
+                align="center",
+            ),
             rx.recharts.composed_chart(
                     # Past Zone Background (파란색 영역)
                     rx.recharts.reference_area(
@@ -296,7 +316,10 @@ def enhanced_forecast_chart() -> rx.Component:
 
                     # Y Axis - ✅ 데이터 기반 동적 범위 (실측값 + 예측값, ±5% 마진)
                     rx.recharts.y_axis(
-                        domain=FPS.y_axis_domain
+                        domain=FPS.y_axis_domain,
+                        width=100,  # ✅ Y축 라벨 공간 확보 (5자리 숫자 35265 잘림 방지)
+                        tick_count=6,  # ✅ Y축 눈금 개수 제한 (촘촘함 방지)
+                        tick_formatter="(value) => value.toFixed(1)"  # 소수점 1자리 (정수로만 하면 같은 값이 중복 표시됨)
                     ),
 
                     # Grid
@@ -324,12 +347,19 @@ def enhanced_forecast_chart() -> rx.Component:
 
                 data=FPS.chart_data,
                 width="100%",
-                height=600
+                height=400  # 화면 크기 최적화 (600 → 400)
             ),
             spacing="3",
-            width="100%"
+            width="100%",
+            max_width="100%",
+            style={"overflow": "hidden"}
         ),
-        width="100%"
+        width="100%",
+        max_width="calc(100vw - 320px)",  # ✅ 사이드바(280px) + 패딩(40px) 제외한 최대 너비
+        style={
+            "overflow": "hidden",
+            "boxSizing": "border-box"
+        }
     )
 
 
@@ -515,10 +545,16 @@ def styled_data_table() -> rx.Component:
                 }
             ),
             spacing="3",
-            width="100%"
+            width="100%",
+            max_width="100%",  # ✅ vstack 최대 너비 제한
+            style={"overflow": "hidden"}  # ✅ vstack에도 overflow 적용
         ),
         width="100%",
-        style={"overflow": "hidden"}
+        max_width="calc(100vw - 320px)",  # ✅ 사이드바(280px) + 패딩(40px) 제외한 최대 너비
+        style={
+            "overflow": "hidden",  # ✅ card 레벨 overflow
+            "boxSizing": "border-box"
+        }
     )
 
 
@@ -587,9 +623,9 @@ def model_controls() -> rx.Component:
     ]
 )
 def forecast_player_fixed() -> rx.Component:
-    """Fixed forecast player page with proper styling - CONTAINER CONSTRAINED"""
+    """Fixed forecast player page with proper styling - FULL WIDTH RESPONSIVE"""
     return shell(
-        rx.container(
+        rx.box(
             rx.vstack(
                 # Page Header - AI Model Style
                 page_header(
@@ -650,9 +686,13 @@ def forecast_player_fixed() -> rx.Component:
                 spacing="4",
                 width="100%"
             ),
-            size="4",
-            padding_x="6",
-            padding_y="4"
+            width="100%",
+            max_width="100%",  # ✅ 최대 너비 제한
+            padding="1.5rem",  # 반응형 패딩
+            style={
+                "overflow": "hidden",  # ✅ 넘치는 컨텐츠 숨김 (브라우저 확장 방지)
+                "boxSizing": "border-box"
+            }
         ),
         active_route="/forecast-player-fixed"
     )

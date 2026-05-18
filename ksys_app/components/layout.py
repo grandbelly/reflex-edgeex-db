@@ -28,6 +28,9 @@ AI_MENU = [
     {"icon": "graduation-cap", "name": "모델 훈련", "path": "/training-wizard", "desc": "AI 모델 학습"},
     {"icon": "chart-no-axes-column", "name": "성능 비교", "path": "/model-performance", "desc": "모델 성능 분석"},
     {"icon": "play", "name": "예측 플레이어", "path": "/forecast-player-fixed", "desc": "실시간 예측 모니터링"},
+    {"type": "divider"},
+    {"type": "header", "name": "설정", "hidden": True},  # 설정 헤더도 숨김
+    {"icon": "eye", "name": "태그 뷰어", "path": "/viewer-tag", "desc": "화면별 태그 제어", "hidden": True},  # URL 직접 접근은 가능
 ]
 
 # 버전별 메뉴 구성 정의
@@ -42,6 +45,10 @@ ACTIVE_MENU = MENU_CONFIG.get(APP_VERSION, MENU_CONFIG["FULL"])
 
 def render_menu_item(menu: dict, active: str) -> rx.Component:
     """메뉴 아이템 렌더링 (구분선, 헤더, 일반 메뉴) - 최적화된 클릭 이벤트"""
+    # 숨김 처리된 메뉴는 렌더링하지 않음 (URL 직접 접근은 가능)
+    if menu.get("hidden"):
+        return rx.fragment()
+
     # 구분선
     if menu.get("type") == "divider":
         return rx.divider(margin_top="3", margin_bottom="3")
@@ -93,8 +100,8 @@ def render_menu_item(menu: dict, active: str) -> rx.Component:
 
 def collapsed_sidebar() -> rx.Component:
     """접힌 사이드바 (아이콘만 표시) - Light Mode Only, 최적화된 클릭"""
-    # 구분선과 헤더 제외한 실제 메뉴만 필터링
-    menu_items = [m for m in ACTIVE_MENU if m.get("type") not in ["divider", "header"]]
+    # 구분선, 헤더, 숨김 메뉴 제외한 실제 메뉴만 필터링
+    menu_items = [m for m in ACTIVE_MENU if m.get("type") not in ["divider", "header"] and not m.get("hidden")]
 
     return rx.box(
         # 토글 버튼 (펼치기)

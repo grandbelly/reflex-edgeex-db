@@ -1,5 +1,5 @@
 """
-Tests for H2/H3 fix: model.predict() and pickle.loads timeout guards.
+Tests for model.predict() and pickle.loads timeout guards.
 
 Validates that ForecastScheduler.generate_predictions:
 1. Raises asyncio.TimeoutError cleanly (NOT hang) when a synchronous
@@ -10,8 +10,6 @@ Validates that ForecastScheduler.generate_predictions:
 
 Run:
     pytest tests/schedulers/test_model_inference_timing.py -v
-
-Author: Bob (agentic-runs/forecast-scheduler-timeout-fix/bob-async-model)
 """
 
 from __future__ import annotations
@@ -74,7 +72,6 @@ async def test_predict_timeout_falls_back_to_persistence(monkeypatch):
       - NOT hang
       - NOT raise out of generate_predictions
       - Return a persistence-model fallback dict
-      - Log an H2 guard fired error (we just check the return shape)
     """
     monkeypatch.setattr(fs_mod, "MODEL_PREDICT_TIMEOUT_SECONDS", 0.3)
 

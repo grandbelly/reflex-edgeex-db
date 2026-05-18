@@ -1,21 +1,20 @@
 """
-H1/H5 regression tests for the forecast-scheduler DB layer.
+Regression tests for the forecast-scheduler DB layer.
 
 Goal
 ----
-Catch the two failure modes that the agentic-pipeline diagnosed:
+Catch two failure modes:
 
-    H1 — SQLAlchemy connection-pool exhaustion: the scheduler opens a
-         fresh session for every helper call (get_deployed_models,
-         get_latest_sensor_value, save_predictions,
-         generate_forecast_player_cache). Each must be returned to the
-         pool. A leak shows up as `outstanding_connections > 0` after
-         a run, or as a TimeoutError once max_overflow is consumed.
+    Pool leak — the scheduler opens a fresh session per helper call
+        (get_deployed_models, get_latest_sensor_value, save_predictions,
+        generate_forecast_player_cache). Each must be returned to the
+        pool. A leak surfaces as `outstanding_connections > 0` after a
+        run, or as a TimeoutError once max_overflow is consumed.
 
-    H5 — PG statement_timeout / asyncpg command_timeout firing because
-         the hard-coded 10s ceiling was too tight for TimescaleDB
-         hypertable inserts. The configured value must now be reachable
-         from the engine without monkey-patching.
+    Configurable command_timeout — asyncpg's command_timeout used to be
+        hardcoded to 10s, which was tighter than legitimate TimescaleDB
+        hypertable inserts. The configured value must now be reachable
+        from the engine without monkey-patching.
 
 These tests do **not** require a live database. They drive the engine
 manager and its SQLAlchemy event hooks directly. The scheduler logic
@@ -80,7 +79,7 @@ def _reload_db_orm(env: dict[str, str]):
 
 
 # ---------------------------------------------------------------------------
-# H1 — connection lifecycle / pool exhaustion
+# Connection lifecycle / pool exhaustion
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -211,7 +210,7 @@ async def test_h1_pool_exhaustion_raises_timeout(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# H5 — command/statement timeout is wired through env
+# Command/statement timeout is wired through env
 # ---------------------------------------------------------------------------
 
 def test_h5_command_timeout_is_configurable():

@@ -8,17 +8,13 @@ This scheduler:
 4. Inserts predictions into predictions table (NOT training_evaluation)
 5. Predictions have target_time in the FUTURE (not past)
 
-NOTE: Cycle changed from 5min→10min in charlie-timing fix. forecast_time is
-rounded to a 10-min floor for T0 stability, so 5-min cycles wrote duplicates
-that ON CONFLICT DO NOTHING silently dropped. Cycle now matches the
-scheduler_manager x:00,x:10,...,x:50 alignment.
-
 Architecture Reference: docs/forecast_result/ONLINE_FORECAST_REDESIGN_20251014.md
 """
 
 import asyncio
 import inspect
 import json
+import os
 import pickle
 import time
 from datetime import datetime, timedelta
@@ -31,29 +27,16 @@ from sqlalchemy import text
 from ..db_orm import get_async_session
 
 
-# ---------------------------------------------------------------------------
-# Timeout guards (Bob - H2/H3 fix, agentic-runs/forecast-scheduler-timeout-fix)
-# ---------------------------------------------------------------------------
-# Plugin predict() methods in ksys_app/ml/pipeline_v2_hybrid.py and
-# pipeline_builder.py are declared `async def` but their bodies are 100%
-# synchronous (statsforecast / Prophet are sync libraries). Awaiting them
-# directly blocks the event loop - that is the root cause of the intermittent
-# TimeoutError on the RPi deployment.
-#
-# These timeouts wrap blocking calls in asyncio.wait_for so a stuck model
-# surfaces as a clean asyncio.TimeoutError instead of an unbounded hang.
-PICKLE_LOAD_TIMEOUT_SECONDS = float(
-    __import__("os").environ.get("FORECAST_PICKLE_LOAD_TIMEOUT", "15.0")
-)
-MODEL_PREDICT_TIMEOUT_SECONDS = float(
-    __import__("os").environ.get("FORECAST_MODEL_PREDICT_TIMEOUT", "45.0")
-)
+# Plugin predict() methods are declared `async def` but their bodies are 100%
+# synchronous (statsforecast / Prophet). Bound them with asyncio.wait_for so
+# a stuck model surfaces as TimeoutError instead of an unbounded hang.
+PICKLE_LOAD_TIMEOUT_SECONDS = float(os.environ.get("FORECAST_PICKLE_LOAD_TIMEOUT", "15.0"))
+MODEL_PREDICT_TIMEOUT_SECONDS = float(os.environ.get("FORECAST_MODEL_PREDICT_TIMEOUT", "45.0"))
 
 
 class _ModelSkipped(Exception):
-    """Sentinel raised by _process_model to signal a controlled per-model
-    skip (no sensor data, model load failed, etc.) without poisoning the
-    cycle. Treated as outcome=skipped in the per-model log line."""
+    """Controlled per-model skip (no sensor data, model load failed).
+    Mapped to outcome=skipped instead of poisoning the cycle."""
     pass
 
 
@@ -131,17 +114,13 @@ class ForecastScheduler:
                     logger.error(
                         f"❌ pickle.loads timed out after "
                         f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
-                        f"({len(model_pickle)} bytes) - H3 guard fired"
+                        f"({len(model_pickle)} bytes)"
                     )
                     return None
                 elapsed = time.perf_counter() - t0
                 logger.info(
                     f"✅ Loaded model from PostgreSQL BYTEA "
                     f"({len(model_pickle)} bytes, {elapsed*1000:.1f}ms)"
-                )
-                logger.debug(
-                    "pickle.loads timing: bytes=%d elapsed_ms=%.1f",
-                    len(model_pickle), elapsed * 1000,
                 )
                 return model
 
@@ -166,17 +145,13 @@ class ForecastScheduler:
                     logger.error(
                         f"❌ pickle.load(file) timed out after "
                         f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
-                        f"({model_path}) - H3 guard fired"
+                        f"({model_path})"
                     )
                     return None
                 elapsed = time.perf_counter() - t0
                 logger.info(
                     f"✅ Loaded model from file (legacy): {model_path} "
                     f"({elapsed*1000:.1f}ms)"
-                )
-                logger.debug(
-                    "pickle.load timing: path=%s elapsed_ms=%.1f",
-                    model_path, elapsed * 1000,
                 )
                 return model
 
@@ -262,14 +237,6 @@ class ForecastScheduler:
 
             # statsforecast models (AutoARIMA, AutoETS)
             if model_type in ['AUTO_ARIMA', 'PROPHET']:
-                # IMPORTANT: model plugins (pipeline_v2_hybrid.py /
-                # pipeline_builder.py) declare predict() as `async def` but
-                # their bodies are 100% synchronous statsforecast / Prophet
-                # calls. Awaiting them directly blocks the Reflex event loop
-                # for the entire predict runtime (see H2 in
-                # agentic-runs/forecast-scheduler-timeout-fix/01-plan.md).
-                # `_invoke_predict` dispatches the work to the default
-                # ThreadPoolExecutor and bounds it with asyncio.wait_for.
                 t0 = time.perf_counter()
                 try:
                     forecast_df = await self._invoke_predict(model, len(horizons))
@@ -278,7 +245,7 @@ class ForecastScheduler:
                         f"❌ model.predict() timed out after "
                         f"{MODEL_PREDICT_TIMEOUT_SECONDS:.1f}s "
                         f"(model_type={model_type}, horizons={len(horizons)}) "
-                        f"- H2 guard fired, falling back to persistence model"
+                        f"- falling back to persistence model"
                     )
                     return {
                         'predictions': [last_value] * len(horizons),
@@ -289,10 +256,6 @@ class ForecastScheduler:
                 logger.info(
                     f"⏱  model.predict({len(horizons)}) for {model_type} "
                     f"took {elapsed*1000:.1f}ms"
-                )
-                logger.debug(
-                    "model.predict timing: model_type=%s horizons=%d elapsed_ms=%.1f",
-                    model_type, len(horizons), elapsed * 1000,
                 )
 
                 # Extract predictions and confidence intervals
@@ -637,8 +600,6 @@ class ForecastScheduler:
 
         # Extract horizons from pipeline_config (offline/online sync)
         horizons = self.horizons  # Default fallback
-        forecast_interval = 10
-        forecast_horizon_hours = 1
 
         if pipeline_config_json:
             try:
@@ -647,11 +608,11 @@ class ForecastScheduler:
 
                 if forecast_config.get("horizons"):
                     horizons = forecast_config["horizons"]
-                    forecast_interval = forecast_config.get("forecast_interval_minutes", 10)
-                    forecast_horizon_hours = forecast_config.get("forecast_horizon_hours", 1)
+                    interval_min = forecast_config.get("forecast_interval_minutes", 10)
+                    horizon_hours = forecast_config.get("forecast_horizon_hours", 1)
                     logger.info(
-                        f"📊 Using horizons from pipeline_config: {forecast_interval}분 단위 "
-                        f"{forecast_horizon_hours}시간 예측 ({len(horizons)}개 스텝)"
+                        f"📊 Using horizons from pipeline_config: {interval_min}분 단위 "
+                        f"{horizon_hours}시간 예측 ({len(horizons)}개 스텝)"
                     )
                     logger.info(f"   First 5 steps: {horizons[:5]}")
                 else:
@@ -717,7 +678,6 @@ class ForecastScheduler:
 
         outcome ∈ {ok, timeout, error, skipped}
         """
-        import time
         start = time.monotonic()
         model_id = model_info.get("model_id")
         tag_name = model_info.get("tag_name")
@@ -829,11 +789,6 @@ class ForecastScheduler:
 
         IMPORTANT: Aligns execution to exact clock times (00 seconds of 00, 10, 20, 30, 40, 50 minutes).
         This ensures T0 (reference time) is stable and consistent across all forecast cycles.
-
-        Default changed 300→600 (charlie-timing fix): forecast_time is rounded to
-        a 10-minute floor inside run_once, so a 5-minute cycle wrote duplicates
-        that the DB silently dropped via ON CONFLICT DO NOTHING. 10-min matches
-        the scheduler_manager target minutes and ActualValueUpdater cadence.
 
         Args:
             interval_seconds: Interval in seconds (600 = 10 minutes)

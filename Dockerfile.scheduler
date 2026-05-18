@@ -5,13 +5,14 @@ WORKDIR /app
 
 ENV DOCKER_CONTAINER=true
 
-# Forecast scheduler tuning (forecast-scheduler-timeout-fix, 2026-05-18)
-# Alice (H5): opt into connection pool + longer timeouts for TimescaleDB INSERT load
+# Scheduler-only DB knobs — opt into the connection pool with longer
+# timeouts for TimescaleDB hypertable INSERT load. Reflex web image keeps
+# the NullPool default since each background event opens a fresh connection.
 ENV USE_DB_POOLING=true
 ENV DB_POOL_SIZE=10
 ENV DB_COMMAND_TIMEOUT=30
 ENV DB_STATEMENT_TIMEOUT_MS=30000
-# Bob (H2/H3): bound model inference / pickle.loads to detect hangs cleanly
+# Bound model inference / pickle.loads so a stuck model surfaces cleanly.
 ENV FORECAST_PICKLE_LOAD_TIMEOUT=15.0
 ENV FORECAST_MODEL_PREDICT_TIMEOUT=45.0
 

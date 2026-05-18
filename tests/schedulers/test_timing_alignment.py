@@ -1,15 +1,15 @@
 """
-Tests for charlie-timing fixes in ksys_app.schedulers.forecast_scheduler.
+Tests for timing alignment + per-model isolation in forecast_scheduler.
 
 Covers two contracts:
   1. test_alignment_consistent
        Simulated 5 consecutive cycles must land on the canonical 10-minute
-       boundary with sub-second drift. Verifies H4 fix (5min→10min).
+       boundary with sub-second drift.
   2. test_partial_failure_isolation
        In a 3-model cycle where model[1] raises TimeoutError, models [0]
        and [2] must still complete with outcome=ok and the cycle must
-       finish (not be poisoned). Verifies H7 fix (per-model wait_for +
-       gather(..., return_exceptions=True)).
+       finish (not be poisoned). Verifies per-model wait_for + gather
+       with return_exceptions=True.
 
 These tests deliberately avoid importing the full module (which pulls in
 DB drivers); they stub the heavy dependencies by patching attributes on

@@ -85,13 +85,9 @@ class SchedulerManager:
             logger.info(f"⏰ ActualValueUpdater will start in {updater_delay}s (at x:{next_updater_minute%60:02d})")
             logger.info(f"⏰ PerformanceAggregator will start in {aggregator_delay}s (at x:{next_aggregator_minute%60:02d})")
 
-            # Start ForecastScheduler (every 10 minutes, at x:00)
-            # NOTE (charlie-timing fix): reconciled interval from 300s → 600s.
-            #   forecast_time is rounded to a 10-minute floor (see
-            #   forecast_scheduler.run_once), so a 5-minute cycle wrote duplicates
-            #   that the DB silently dropped via ON CONFLICT DO NOTHING. 10-min
-            #   matches forecast_target_minutes=[0,10,20,30,40,50] above and the
-            #   ActualValueUpdater cadence at x:01.
+            # Start ForecastScheduler (every 10 minutes, at x:00).
+            # 10-min cycle matches the forecast_time 10-min floor and the
+            # ActualValueUpdater cadence at x:01.
             async def start_forecast_with_delay():
                 await asyncio.sleep(forecast_delay)
                 await forecast_scheduler.start(interval_seconds=600)  # 10 minutes

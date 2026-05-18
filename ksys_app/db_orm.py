@@ -35,32 +35,24 @@ RAW_DSN = os.getenv(
     "postgresql://postgres:postgres@pgai-db:5432/ecoanp?sslmode=disable"
 )
 
-# Pool configuration
-# USE_DB_POOLING=false (default) keeps the legacy NullPool behavior used by
-# Reflex background events (each session opens a fresh asyncpg connection).
-# Long-running schedulers should set USE_DB_POOLING=true to avoid the
-# repeated connection-setup latency that pushes individual queries past
-# COMMAND_TIMEOUT and produces the intermittent TimeoutError described in
-# the H1/H5 hypotheses.
+# USE_DB_POOLING=false keeps NullPool (default, for Reflex background events
+# which each open a fresh asyncpg connection). Long-running schedulers should
+# opt in via USE_DB_POOLING=true to avoid per-query connection-setup latency.
 USE_POOLING = os.getenv("USE_DB_POOLING", "false").lower() == "true"
 POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
 MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
 POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
 POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "1800"))
 
-# H5: asyncpg command_timeout used to be hardcoded to 10s, which is shorter
-# than legitimate TimescaleDB hypertable inserts (chunk creation + many
-# horizons in one session). Make it configurable; default 30s.
+# asyncpg command_timeout was previously hardcoded to 10s — too tight for
+# TimescaleDB hypertable inserts (chunk creation + many horizons per session).
 COMMAND_TIMEOUT = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
 CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
 
-# PostgreSQL session-level statement_timeout (milliseconds). Set to 0 to
-# disable. This is enforced by the server, independently of asyncpg's
-# command_timeout, and lets us bound long-running queries from the DB side.
+# Server-side statement_timeout in ms (set 0 to disable). Independent of
+# asyncpg's command_timeout — enforced by Postgres, bounds the query DB-side.
 STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "30000"))
 
-# Diagnostics: when DB_POOL_TRACE=true, log every checkout/checkin so we can
-# verify in tests that the scheduler is not leaking connections.
 POOL_TRACE = os.getenv("DB_POOL_TRACE", "false").lower() == "true"
 
 def normalize_asyncpg_url(raw: str) -> str:
@@ -166,8 +158,8 @@ class EngineManager:
                     connect_args=connect_args,
                 )
 
-            # Instrumentation — pool checkout/checkin counters. Used by the
-            # H1 unit test and (optionally) by ops logs when DB_POOL_TRACE=true.
+            # Pool checkout/checkin counters — drive the connection-leak
+            # regression tests; opt-in trace logging via DB_POOL_TRACE=true.
             sync_engine = self._engine.sync_engine
 
             @event.listens_for(sync_engine, "connect")

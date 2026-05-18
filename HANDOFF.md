@@ -1,10 +1,32 @@
-# Session Handoff — 2026-05-18 (Round 2)
+# Session Handoff — 2026-05-18 (Round 3)
 
 다음 Claude Code 세션에게 전달하는 작업 인계서. 이 폴더에서 새 세션 시작 시 가장 먼저 읽을 것.
 
 ---
 
-## 한 줄 요약
+## 🎯 Round 3 한 줄 요약 (가장 최근)
+
+**`/agentic-pipeline forecast-scheduler-timeout-fix` 4-stage 완료 + master에 머지.** Karpathy 4-stage 시운전 끝. Alice(H5 DB timeout) + Bob(H2/H3 fake-async predict) + Charlie(H4/H7 timing + isolation) 세 패치가 master에 commit `6a9f989`, `52668e9`, `1f8f7fd`, `12f0914` 4건으로 안착. 9/9 unit 테스트 통과 (5.77s). worktree 4개 + branch 4개 + team config 정리 완료.
+
+### 최종 결과 위치
+- 종합 보고서: `agentic-runs/forecast-scheduler-timeout-fix/REPORT.md`
+- Stage 2 합본: `agentic-runs/forecast-scheduler-timeout-fix/STAGE_2_REPORT.md`
+- Stage 3 검증: `agentic-runs/forecast-scheduler-timeout-fix/wt/verifier/REPORT_verifier.md` (worktree 삭제됐지만 보고서 디렉터리는 남김)
+- 이벤트 로그: `agentic-runs/forecast-scheduler-timeout-fix/events.jsonl` (49 events)
+
+### 다음 세션이 알아야 할 것
+1. **Agent Teams env var는 settings.json에 영구 등록됨** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). 다음 세션 부팅 시 `Agent(team_name, name)` 호출 경로가 노출되면 진짜 Teams 패턴으로 동작 가능. 이번 세션에서는 `SendMessage`/`TeamCreate`/`TeamDelete`만 deferred로 보였고 spawn은 일반 subagent로 떨어졌음 — `REPORT.md` "Honest notes on Agent Teams integration" 참조.
+2. **Forecast-scheduler 배포 시점에 env 변수 자동 적용** — `Dockerfile.scheduler`에 `USE_DB_POOLING=true`, `DB_COMMAND_TIMEOUT=30`, `DB_STATEMENT_TIMEOUT_MS=30000`, `FORECAST_PICKLE_LOAD_TIMEOUT=15.0`, `FORECAST_MODEL_PREDICT_TIMEOUT=45.0` 박혀 있음. Reflex 웹 이미지는 기존 default 그대로 (NullPool).
+3. **로컬 풍도 코드 ↔ RPI 동기화 필요** — master는 풍도 폴더 기준. RPI(`/home/tion/deployment/20251030-rpi-finished/`)는 아직 patch 안 들어감. `scp`로 `ksys_app/schedulers/forecast_scheduler.py`, `ksys_app/db_orm.py`, `ksys_app/schedulers/scheduler_manager.py`, `Dockerfile.scheduler` 4개 동기화 후 `docker compose up -d --build scheduler` 필요.
+4. **남은 follow-up** (블로커 아님):
+   - `save_predictions` 36-row INSERT 배치화 (Alice's note)
+   - `README.md:97` "5-min intervals" 텍스트 갱신 (Charlie's note) — `/document-release`
+   - 전용 ThreadPoolExecutor + env-var clamp (Verifier L1/L2)
+5. **graphify --update는 아직 미실행** — 코드 변경분 그래프 반영하려면 다음 세션에서 `/graphify --update` (graphify-out/ 비어 있음, 첫 풀빌드부터 시작해야 함). 이번 세션에서 미수행. 시간/토큰 예산 큼 — 별도 세션 권장.
+
+---
+
+## Round 2 한 줄 요약 (배경)
 
 **풍도 로컬 개발 환경 셋업 완료.** Docker Desktop 4.73.1 재설치 → DB 컨테이너 + ecoanp 복원 (294K rows 시계열 데이터) → Reflex 0.8.16 정상 실행 (frontend :14000, backend :14001).
 

@@ -1,53 +1,22 @@
-﻿"""
-Training State - Complete Integration
+"""Training State — TrainingState class (Reflex).
 
-Pipeline V2 + Feature Config + Model Config 완전 통합
+This module contains the Reflex State class for the /training-wizard page.
+Module-level non-serializable cache lives in `cache.py`; backward-compat
+underscore aliases below preserve any existing references in the class body.
 """
 
 import reflex as rx
 from typing import Dict, List, Any, Optional
 from reflex.utils import console
 
-from ..db_orm import get_async_session
-from ..services.feature_config_service_final import FeatureConfigService
-
-# ========================================================================
-# Module-level cache for trained models
-# Reflex State cannot store non-serializable objects like model instances
-# ========================================================================
-_training_cache: Dict[str, Dict[str, Any]] = {}
-
-def _cache_training_result(tag_name: str, result: Dict[str, Any], model):
-    """Store training result and model object in module-level cache"""
-    from datetime import datetime
-    global _training_cache
-    _training_cache[tag_name] = {
-        'result': result,
-        'model': model,
-        'timestamp': datetime.now()
-    }
-    console.info(f"✅ Cached training result for {tag_name}")
-
-def _get_cached_model(tag_name: str):
-    """Retrieve cached model object"""
-    global _training_cache
-    cached = _training_cache.get(tag_name)
-    if cached:
-        console.info(f"✅ Retrieved cached model for {tag_name}")
-        return cached.get('model')
-    console.warn(f"⚠️ No cached model found for {tag_name}")
-    return None
-
-def _clear_cache(tag_name: str = None):
-    """Clear training cache for specific tag or all"""
-    global _training_cache
-    if tag_name:
-        if tag_name in _training_cache:
-            del _training_cache[tag_name]
-            console.info(f"Cleared cache for {tag_name}")
-    else:
-        _training_cache.clear()
-        console.info("Cleared all training cache")
+from ...db_orm import get_async_session
+from ...services.feature_config_service_final import FeatureConfigService
+from .cache import (
+    _cache_training_result,
+    _get_cached_model,
+    _clear_cache,
+    _training_cache,
+)
 
 
 class TrainingState(rx.State):

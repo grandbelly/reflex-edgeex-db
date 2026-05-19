@@ -35,7 +35,7 @@ class SensorService:
                   q.critical_low,
                   q.critical_high,
                   COALESCE(t.description, t.meta->>'description', '') AS description,
-                  COALESCE(t.unit, t.meta->>'unit', '') AS unit,
+                  COALESCE(q.unit, t.unit, t.meta->>'unit', '') AS unit,
                   CASE
                     WHEN l.value IS NULL OR q.min_val IS NULL THEN 0
                     WHEN l.value < q.min_val OR l.value > q.max_val THEN 2
@@ -109,6 +109,7 @@ class SensorService:
                     row_number() OVER (PARTITION BY tag_name ORDER BY bucket DESC) AS rn
                   FROM influx_agg_1m
                   WHERE tag_name = ANY(:tags)
+                    AND bucket >= NOW() - INTERVAL '6 hours'
                 )
                 SELECT tag_name, time, value
                 FROM ranked
@@ -229,6 +230,7 @@ class SensorService:
                             row_number() OVER (ORDER BY bucket DESC) as rn
                         FROM influx_agg_1m
                         WHERE tag_name = :tag_name
+                          AND bucket >= NOW() - INTERVAL '2 hours'
                     )
                     SELECT timestamp, value
                     FROM ranked
@@ -267,16 +269,24 @@ class SensorService:
         Enhanced version that includes chart_points for each sensor
         """
         try:
-            # Get basic sensor data
+            # 1. Get basic sensor data
             sensors = await self.get_all_sensors_with_latest()
+            if not sensors:
+                return []
 
-            # Fetch chart data for each sensor
+            # 2. Get chart data for all sensors in ONE roundtrip
+            tag_names = [s["tag_name"] for s in sensors]
+            all_charts = await self.get_aggregated_chart_data(tag_names)
+
+            # 3. Combine them
             for sensor in sensors:
-                chart_data = await self.get_sensor_chart_data(sensor["tag_name"])
-                sensor["chart_points"] = chart_data
+                tag_name = sensor["tag_name"]
+                
+                # Get chart data from the batch result
+                chart_points = all_charts.get(tag_name, [])
+                sensor["chart_points"] = chart_points
 
                 # Determine chart color based on status (0=normal, 1=warning, 2=critical)
-                # Map to level (1=normal, 2-3=warning, 4-5=critical)
                 status = sensor.get("status", 0)
                 level = 1 if status == 0 else 2 if status == 1 else 4
                 sensor["chart_color"] = self._get_chart_color(level)
@@ -455,7 +465,7 @@ class SensorService:
                     UPDATE influx_qc_rule
                     SET min_val = :min_val, max_val = :max_val,
                         warning_low = :warning_low, warning_high = :warning_high,
-                        critical_low = :critical_low, critical_high = :critical_high
+                        critical_low = :critical_low, critical_high = :critical_high, unit = :unit
                     WHERE tag_name = :tag_name
                 """).bindparams(
                     bindparam('min_val', value=min_val),
@@ -464,14 +474,15 @@ class SensorService:
                     bindparam('warning_high', value=warning_high),
                     bindparam('critical_low', value=critical_low),
                     bindparam('critical_high', value=critical_high),
+                    bindparam('unit', value=unit),
                     bindparam('tag_name', value=tag_name)
                 )
                 await self.session.execute(stmt)
             else:
                 # Insert new rule
                 stmt = text("""
-                    INSERT INTO influx_qc_rule (tag_name, min_val, max_val, warning_low, warning_high, critical_low, critical_high)
-                    VALUES (:tag_name, :min_val, :max_val, :warning_low, :warning_high, :critical_low, :critical_high)
+                    INSERT INTO influx_qc_rule (tag_name, min_val, max_val, warning_low, warning_high, critical_low, critical_high, unit)
+                    VALUES (:tag_name, :min_val, :max_val, :warning_low, :warning_high, :critical_low, :critical_high, :unit)
                 """).bindparams(
                     bindparam('tag_name', value=tag_name),
                     bindparam('min_val', value=min_val),
@@ -479,7 +490,8 @@ class SensorService:
                     bindparam('warning_low', value=warning_low),
                     bindparam('warning_high', value=warning_high),
                     bindparam('critical_low', value=critical_low),
-                    bindparam('critical_high', value=critical_high)
+                    bindparam('critical_high', value=critical_high),
+                    bindparam('unit', value=unit)
                 )
                 await self.session.execute(stmt)
 

@@ -41,7 +41,7 @@ class DashboardRealtimeState(BaseState):
     # UI State
     last_update: str = ""
     is_streaming: bool = False
-    update_interval: int = 15  # 15 seconds
+    update_interval: int = 30  # 15 seconds
 
     # Edit Dialog State
     show_edit_dialog: bool = False

@@ -48,7 +48,7 @@ def metrics_header() -> rx.Component:
 
         # R² Score Card - Purple
         metric_card(
-            "모델 설명력 (R²)",
+            "NRMSE",
             FPS.r2_display,
             "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
             "bar-chart-2"
@@ -68,9 +68,266 @@ def metrics_header() -> rx.Component:
     )
 
 
-# =========================================================================
-# SYSTEM STATUS CARDS (좌측 패널)
-# =========================================================================
+def formula_display_section() -> rx.Component:
+    """Display NRMSE/Accuracy calculation process with visual cards"""
+
+    return rx.cond(
+        FPS.cached_rmse > 0,
+        rx.card(
+            rx.vstack(
+                # Header with formula
+                rx.hstack(
+                    rx.icon("calculator", size=18, color=rx.color("blue", 9)),
+                    rx.text("정확도 계산 과정", weight="bold", size="3"),
+                    spacing="2",
+                    align="center",
+                ),
+                # Formula display
+                rx.box(
+                    rx.text(
+                        "정확도 = 1 - CV-RMSE = 1 - RMSE / Mean",
+                        size="2",
+                        color=rx.color("gray", 11),
+                        style={"font-family": "monospace"},
+                    ),
+                    background=rx.color("gray", 3),
+                    padding="2",
+                    border_radius="md",
+                    width="100%",
+                ),
+                rx.divider(),
+                # Step cards in a row
+                rx.hstack(
+                    # Step 1: RMSE
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Step 1", size="1", color=rx.color("gray", 10)),
+                            rx.text("RMSE", size="2", weight="bold"),
+                            rx.text("(평균 제곱근 오차)", size="1", color=rx.color("gray", 10)),
+                            rx.text(
+                                FPS.fmt_rmse,
+                                size="4",
+                                weight="bold",
+                                color=rx.color("blue", 11),
+                            ),
+                            spacing="1",
+                            align="center",
+                        ),
+                        padding="3",
+                        background=rx.color("gray", 2),
+                        border_radius="lg",
+                        border=f"1px solid {rx.color('gray', 5)}",
+                        flex="1",
+                        min_width="100px",
+                    ),
+                    # Arrow
+                    rx.icon("arrow-right", size=16, color=rx.color("gray", 8)),
+                    # Step 2: Data Range
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Step 2", size="1", color=rx.color("gray", 10)),
+                            rx.text("훈련 평균", size="2", weight="bold"),
+                            rx.hstack(
+                                rx.text(
+                                    FPS.fmt_data_mean,
+                                    size="4",
+                                    weight="bold",
+                                    color=rx.color("green", 11),
+                                ),
+                                spacing="1",
+                                align="center",
+                            ),
+                            rx.text(
+                                f"(Mean)",
+                                size="1",
+                                color=rx.color("gray", 10),
+                            ),
+                            spacing="1",
+                            align="center",
+                        ),
+                        padding="3",
+                        background=rx.color("gray", 2),
+                        border_radius="lg",
+                        border=f"1px solid {rx.color('gray', 5)}",
+                        flex="1",
+                        min_width="100px",
+                    ),
+                    # Arrow
+                    rx.icon("arrow-right", size=16, color=rx.color("gray", 8)),
+                    # Step 3: NRMSE
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Step 3", size="1", color=rx.color("gray", 10)),
+                            rx.text("CV-RMSE", size="2", weight="bold"),
+                            rx.text("(정규화 오차)", size="1", color=rx.color("gray", 10)),
+                            rx.text(
+                                FPS.fmt_nrmse,
+                                size="4",
+                                weight="bold",
+                                color=rx.color("orange", 11),
+                            ),
+                            spacing="1",
+                            align="center",
+                        ),
+                        padding="3",
+                        background=rx.color("gray", 2),
+                        border_radius="lg",
+                        border=f"1px solid {rx.color('gray', 5)}",
+                        flex="1",
+                        min_width="100px",
+                    ),
+                    # Arrow
+                    rx.icon("arrow-right", size=16, color=rx.color("gray", 8)),
+                    # Result: Accuracy
+                    rx.box(
+                        rx.vstack(
+                            rx.text("Result", size="1", color=rx.color("gray", 10)),
+                            rx.text("예측 정확도", size="2", weight="bold"),
+                            rx.hstack(
+                                rx.text(
+                                    FPS.fmt_accuracy,
+                                    size="5",
+                                    weight="bold",
+                                    color=rx.color("green", 11),
+                                ),
+                                rx.text("%", size="3", weight="bold", color=rx.color("green", 11)),
+                                spacing="1",
+                                align="baseline",
+                            ),
+                            spacing="1",
+                            align="center",
+                        ),
+                        padding="3",
+                        background=rx.color("green", 2),
+                        border_radius="lg",
+                        border=f"1px solid {rx.color('green', 5)}",
+                        flex="1",
+                        min_width="100px",
+                    ),
+                    spacing="2",
+                    wrap="wrap",
+                    justify="center",
+                    align="center",
+                    width="100%",
+                ),
+                # Calculation formula line
+                rx.box(
+                    rx.hstack(
+                        rx.text(FPS.fmt_rmse, size="1", weight="medium"),
+                        rx.text(" / ", size="1", color=rx.color("gray", 10)),
+                        rx.text(FPS.fmt_data_mean, size="1", weight="medium"),
+                        rx.text(" = ", size="1", color=rx.color("gray", 10)),
+                        rx.text(FPS.fmt_nrmse, size="1", weight="medium"),
+                        rx.text(" => 1 - ", size="1", color=rx.color("gray", 10)),
+                        rx.text(FPS.fmt_nrmse, size="1", weight="medium"),
+                        rx.text(" = ", size="1", color=rx.color("gray", 10)),
+                        rx.text(
+                            FPS.fmt_accuracy_ratio,
+                            size="1",
+                            weight="bold",
+                            color=rx.color("green", 11),
+                        ),
+                        rx.text(" = ", size="1", color=rx.color("gray", 10)),
+                        rx.text(
+                            FPS.fmt_accuracy,
+                            size="1",
+                            weight="bold",
+                            color=rx.color("green", 11),
+                        ),
+                        rx.text("%", size="1", color=rx.color("green", 11)),
+                        spacing="1",
+                        align="center",
+                        justify="center",
+                        style={"font-family": "monospace"},
+                    ),
+                    background=rx.color("gray", 3),
+                    padding="2",
+                    border_radius="md",
+                    width="100%",
+                ),
+                # Additional metrics section
+                rx.divider(),
+                rx.hstack(
+                    rx.vstack(
+                        rx.text("MAPE", size="1", color=rx.color("gray", 10)),
+                        rx.hstack(
+                            rx.text(FPS.fmt_mape, size="2", weight="bold"),
+                            rx.text("%", size="1", color=rx.color("gray", 10)),
+                            spacing="1",
+                        ),
+                        spacing="1",
+                        align="center",
+                    ),
+                    rx.separator(orientation="vertical", size="2"),
+                    rx.vstack(
+                        rx.text("RMSE", size="1", color=rx.color("gray", 10)),
+                        rx.text(FPS.fmt_rmse, size="2", weight="bold"),
+                        spacing="1",
+                        align="center",
+                    ),
+                    rx.separator(orientation="vertical", size="2"),
+                    rx.vstack(
+                        rx.text("데이터 포인트", size="1", color=rx.color("gray", 10)),
+                        rx.text(FPS.total_predictions_count, size="2", weight="bold"),
+                        spacing="1",
+                        align="center",
+                    ),
+                    rx.separator(orientation="vertical", size="2"),
+                    rx.vstack(
+                        rx.text("데이터 범위", size="1", color=rx.color("gray", 10)),
+                        rx.hstack(
+                            rx.text(FPS.fmt_data_min, size="2"),
+                            rx.text("~", size="1", color=rx.color("gray", 10)),
+                            rx.text(FPS.fmt_data_max, size="2"),
+                            spacing="1",
+                        ),
+                        spacing="1",
+                        align="center",
+                    ),
+                    spacing="4",
+                    justify="center",
+                    width="100%",
+                ),
+                # Terminology section
+                rx.divider(),
+                rx.box(
+                    rx.vstack(
+                        rx.hstack(
+                            rx.icon("info", size=14, color=rx.color("gray", 10)),
+                            rx.text("용어 설명", size="1", weight="medium", color=rx.color("gray", 11)),
+                            spacing="1",
+                            align="center",
+                        ),
+                        rx.hstack(
+                            rx.text("RMSE", size="1", weight="bold"),
+                            rx.text(": 실제값과 예측값 차이의 제곱평균의 제곱근", size="1", color=rx.color("gray", 10)),
+                            rx.text("|", size="1", color=rx.color("gray", 6)),
+                            rx.text("CV-RMSE", size="1", weight="bold"),
+                            rx.text(": RMSE를 평균값으로 정규화한 값 (Coefficient of Variation)", size="1", color=rx.color("gray", 10)),
+                            rx.text("|", size="1", color=rx.color("gray", 6)),
+                            rx.text("MAPE", size="1", weight="bold"),
+                            rx.text(": 평균 절대 백분율 오차", size="1", color=rx.color("gray", 10)),
+                            spacing="2",
+                            wrap="wrap",
+                            justify="center",
+                        ),
+                        spacing="1",
+                        align="center",
+                        width="100%",
+                    ),
+                    background=rx.color("gray", 2),
+                    padding="2",
+                    border_radius="md",
+                    width="100%",
+                ),
+                spacing="3",
+                width="100%",
+            ),
+            size="2",
+        ),
+        rx.fragment(),
+    )
+
 
 def system_status_panel() -> rx.Component:
     """System status information panel"""
@@ -636,6 +893,9 @@ def forecast_player_fixed() -> rx.Component:
 
                 # Top Metrics (3 Cards)
                 metrics_header(),
+
+                # Calculation Formula Display
+                formula_display_section(),
 
                 # Model Controls
                 model_controls(),

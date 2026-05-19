@@ -28,8 +28,23 @@ class ForecastPlayerState(BaseState):
     cached_mape: Optional[float] = None
     cached_rmse: Optional[float] = None
     cached_mae: Optional[float] = None
-    cached_r2: Optional[float] = None  # ✅ FIX: Real R² score (not approximation)
+    cached_nrmse: Optional[float] = None  # NRMSE = RMSE / (y_max - y_min)
     cached_accuracy: Optional[float] = None
+    # NRMSE calculation components for visual display
+    data_min: Optional[float] = None  # Min value from 30-day history
+    data_max: Optional[float] = None  # Max value from 30-day history
+    data_range: Optional[float] = None  # data_max - data_min
+    data_mean: Optional[float] = None  # Mean value from training data (for CV-RMSE)
+    # Formatted strings for display (2 decimal places)
+    fmt_rmse: str = ""
+    fmt_nrmse: str = ""
+    fmt_accuracy: str = ""
+    fmt_mape: str = ""
+    fmt_data_min: str = ""
+    fmt_data_max: str = ""
+    fmt_data_mean: str = ""
+    fmt_data_range: str = ""
+    fmt_accuracy_ratio: str = ""  # (1 - NRMSE) as decimal (e.g., 0.9973)
 
     # Playlist - 실시간 예측 중인 모든 태그 목록
     playlist_items: List[Dict] = []  # [{"model_id": 67, "tag_name": "INLET_PRESSURE", "next_forecast_at": datetime, "countdown": 120}, ...]
@@ -40,7 +55,7 @@ class ForecastPlayerState(BaseState):
     is_streaming: bool = False
     update_interval: int = 600  # 10 minutes (600 seconds) - 실시간 10분 갱신
     countdown_seconds: int = 600  # Countdown timer for next refresh (서버에서 계산됨)
-    y_axis_from_zero: bool = True  # ✅ Y축 스케일 옵션: True=0 기준 (기본값), False=데이터 기반
+    y_axis_from_zero: bool = True  # ✅ Y축 스케일 옵션: True=0 기준, False=데이터 기반
 
     # Step Navigation (Phase 3 Extension - Forecast Playback)
     forecast_steps: List[Dict] = []  # List of all forecast steps
@@ -86,7 +101,7 @@ class ForecastPlayerState(BaseState):
                 "mae": round(self.cached_mae, 2) if self.cached_mae is not None else None,
                 "mape": round(self.cached_mape, 2) if self.cached_mape is not None else None,
                 "rmse": round(self.cached_rmse, 2) if self.cached_rmse is not None else None,
-                "r2": round(self.cached_r2, 4) if self.cached_r2 is not None else None,  # ✅ FIX: Use real R² score
+                "nrmse": round(self.cached_nrmse, 4) if self.cached_nrmse is not None else None,  # ✅ FIX: Use real R² score
                 "count": len([p for p in self.predictions if p.get("has_actual")]) if self.predictions else 0
             }
 
@@ -204,8 +219,8 @@ class ForecastPlayerState(BaseState):
     def r2_display(self) -> str:
         """Display R² value - use real statistical R² score"""
         # Use cached R² if available
-        if self.cached_r2 is not None:
-            return f"{self.cached_r2:.3f}"
+        if self.cached_nrmse is not None:
+            return f"{self.cached_nrmse:.3f}"
 
         if self.accuracy_metrics and 'r2' in self.accuracy_metrics:
             r2_val = self.accuracy_metrics['r2']
@@ -995,7 +1010,12 @@ class ForecastPlayerState(BaseState):
                         m.model_name,
                         c.next_forecast_at,
                         c.latest_value,
-                        c.forecast_time
+                        c.forecast_time,
+                        c.mape,
+                        c.rmse,
+                        c.mae,
+                        c.accuracy,
+                        c.nrmse
                     FROM forecast_player_cache c
                     INNER JOIN model_registry m ON c.model_id = m.model_id
                     WHERE m.is_deployed = TRUE
@@ -1023,7 +1043,12 @@ class ForecastPlayerState(BaseState):
                         "next_forecast_at": next_forecast,
                         "countdown_seconds": countdown,
                         "latest_value": float(row["latest_value"]) if row["latest_value"] else None,
-                        "forecast_time": row["forecast_time"]
+                        "forecast_time": row["forecast_time"],
+                        "mape": float(row["mape"]) if row.get("mape") else None,
+                        "rmse": float(row["rmse"]) if row.get("rmse") else None,
+                        "mae": float(row["mae"]) if row.get("mae") else None,
+                        "accuracy": float(row["accuracy"]) if row.get("accuracy") else None,
+                        "r2_score": float(row["r2_score"]) if row.get("r2_score") else None
                     })
 
                 console.info(f"✅ [PLAYLIST] Loaded {len(playlist)} active forecast(s)")
@@ -1031,6 +1056,18 @@ class ForecastPlayerState(BaseState):
             # Update state
             async with self:
                 self.playlist_items = playlist
+                
+                # ✅ Update cached metrics from playlist for selected model
+                if self.selected_model_id:
+                    for item in playlist:
+                        if item.get("model_id") == self.selected_model_id:
+                            self.cached_mape = item.get("mape")
+                            self.cached_rmse = item.get("rmse")
+                            self.cached_mae = item.get("mae")
+                            self.cached_accuracy = item.get("accuracy")
+                            self.cached_nrmse = item.get("nrmse")
+                            console.debug(f"📊 [METRICS] Loaded from cache: MAPE={self.cached_mape}, NRMSE={self.cached_nrmse}, Accuracy={self.cached_accuracy}")
+                            break
 
         except Exception as e:
             console.error(f"❌ [PLAYLIST] Error loading playlist: {e}")
@@ -1111,27 +1148,46 @@ class ForecastPlayerState(BaseState):
                 cached_mape = sum(mape_values) / len(mape_values) if mape_values else None
                 cached_mae = sum(mae_values) / len(mae_values) if mae_values else None
                 cached_rmse = (sum(squared_errors) / len(squared_errors)) ** 0.5 if squared_errors else None
-                cached_accuracy = (100 - cached_mape) if cached_mape is not None else None
+                # ✅ Accuracy = 1 - NRMSE (NRMSE = RMSE / (y_max - y_min))
+                # Get FULL data range from influx_hist (last 30 days) for proper normalization
+                cached_nrmse = None
+                cached_accuracy = None
+                formula_str = ""
+                if cached_rmse is not None:
+                    # Query data range from influx_hist using training data period
+                    range_query = text("""
+                        SELECT MIN(ih.value) as data_min, MAX(ih.value) as data_max, AVG(ih.value) as data_mean
+                        FROM influx_hist ih
+                        JOIN model_registry mr ON ih.tag_name = mr.tag_name
+                        WHERE ih.tag_name = :tag_name
+                          AND mr.model_id = :model_id
+                          AND ih.ts >= mr.training_data_start
+                          AND ih.ts <= mr.training_data_end
+                          AND ih.quality = 0
+                    """)
+                    range_result = await session.execute(range_query, {"tag_name": self.selected_tag_name, "model_id": self.selected_model_id})
+                    range_row = range_result.mappings().first()
 
-                # ✅ FIX: Calculate R² score using proper statistical formula
-                # R² = 1 - (SS_res / SS_tot)
-                # where SS_res = Σ(y_actual - y_predicted)²
-                #       SS_tot = Σ(y_actual - y_mean)²
-                cached_r2 = None
-                if len(actual_values) >= 2:  # Need at least 2 points for meaningful R²
-                    y_mean = sum(actual_values) / len(actual_values)
-                    ss_res = sum((a - p) ** 2 for a, p in zip(actual_values, predicted_values))
-                    ss_tot = sum((a - y_mean) ** 2 for a in actual_values)
-                    if ss_tot > 0:  # Avoid division by zero
-                        cached_r2 = 1 - (ss_res / ss_tot)
-                        # Clamp R² to [-∞, 1] range (negative R² means worse than mean)
-                        # But for display, we'll show it as-is
+                    if range_row and range_row["data_min"] is not None and range_row["data_max"] is not None:
+                        data_min = float(range_row["data_min"])
+                        data_max = float(range_row["data_max"])
+                        data_mean = float(range_row["data_mean"]) if range_row["data_mean"] is not None else (data_min + data_max) / 2
+                        data_range = data_max - data_min  # Keep for display
+
+                        # CV-RMSE: Normalize by mean instead of range (more fair for high-value, low-variance data)
+                        if data_mean > 0:
+                            cached_nrmse = cached_rmse / data_mean  # CV-RMSE = RMSE / mean
+                            cached_accuracy = (1 - cached_nrmse) * 100  # Convert to percentage
+                            # Build formula string for UI display
+                            formula_str = f"CV-RMSE = RMSE / Mean = {cached_rmse:.2f} / {data_mean:.2f} = {cached_nrmse:.4f}; Accuracy = (1 - CV-RMSE) x 100 = (1 - {cached_nrmse:.4f}) x 100 = {cached_accuracy:.2f}"
+                            now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            console.debug(f"📏 [{now_ts}] [CV-RMSE] tag={self.selected_tag_name}, model_id={self.selected_model_id}, mean={data_mean:.2f} (min={data_min:.2f}, max={data_max:.2f}), RMSE={cached_rmse:.2f}, CV-RMSE={cached_nrmse:.4f}, Accuracy={cached_accuracy:.2f}%")
 
                 mape_str = f"{cached_mape:.2f}" if cached_mape is not None else "N/A"
                 mae_str = f"{cached_mae:.2f}" if cached_mae is not None else "N/A"
                 rmse_str = f"{cached_rmse:.2f}" if cached_rmse is not None else "N/A"
-                r2_str = f"{cached_r2:.4f}" if cached_r2 is not None else "N/A"
-                console.debug(f"📈 [CALCULATED] MAPE={mape_str}%, MAE={mae_str}, RMSE={rmse_str}, R²={r2_str}")
+                nrmse_str = f"{cached_nrmse:.4f}" if cached_nrmse is not None else "N/A"
+                console.debug(f"📈 [CALCULATED] MAPE={mape_str}%, MAE={mae_str}, RMSE={rmse_str}, NRMSE={nrmse_str}")
 
             # Update state (NO yield here - caller will yield)
             async with self:
@@ -1146,8 +1202,26 @@ class ForecastPlayerState(BaseState):
                 self.cached_mape = cached_mape
                 self.cached_rmse = cached_rmse
                 self.cached_mae = cached_mae
-                self.cached_r2 = cached_r2  # ✅ FIX: Store real R² score
+                self.cached_nrmse = cached_nrmse  # ✅ FIX: Store real R² score
                 self.cached_accuracy = cached_accuracy
+                # Store calculation components for visual display
+                self.data_min = data_min if 'data_min' in locals() else None
+                self.data_max = data_max if 'data_max' in locals() else None
+                self.data_mean = data_mean if 'data_mean' in locals() else None
+                self.data_range = data_range if 'data_range' in locals() else None
+                # Set formatted strings for UI display (2 decimal places)
+                self.fmt_rmse = f"{self.cached_rmse:.2f}" if self.cached_rmse else ""
+                self.fmt_nrmse = f"{self.cached_nrmse:.4f}" if self.cached_nrmse else ""
+                self.fmt_accuracy = f"{self.cached_accuracy:.2f}" if self.cached_accuracy else ""
+                self.fmt_mape = f"{self.cached_mape:.2f}" if self.cached_mape else ""
+                self.fmt_data_min = f"{self.data_min:.2f}" if self.data_min else ""
+                self.fmt_data_max = f"{self.data_max:.2f}" if self.data_max else ""
+                self.fmt_data_mean = f"{self.data_mean:.2f}" if self.data_mean else ""
+                self.fmt_data_range = f"{self.data_range:.2f}" if self.data_range else ""
+                if self.cached_accuracy:
+                    self.fmt_accuracy_ratio = f"{self.cached_accuracy / 100:.4f}"
+                else:
+                    self.fmt_accuracy_ratio = ""
 
                 # Calculate countdown (next forecast in 10 minutes from latest forecast_time)
                 # Assume 10-minute interval

@@ -1,4 +1,0 @@
-"""KSYS App models."""
-
-
-

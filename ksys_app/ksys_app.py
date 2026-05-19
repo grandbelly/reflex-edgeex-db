@@ -120,9 +120,6 @@ from .components.features_table import features_table
 from .components.indicators_table import indicators_table
 from .components.trend_enhanced import clean_area_chart, metric_card, time_range_pills, sensor_info_header
 from .states.dashboard import DashboardState as D
-# from .pages.ai_insights import ai_insights_page
-from .pages.communication import communication_page
-from .states.communication_state import CommunicationState
 
 # 보안 기능 추가 (충돌 해결)
 try:
@@ -585,11 +582,6 @@ def index_old() -> rx.Component:
     )
 
 
-# Import enhanced trend page v2
-from .pages.trend_enhanced_v2 import trend_page_enhanced_v2
-from .states.trend_state import TrendState
-# Removed old dashboard imports - using new unified dashboard
-
 app = rx.App(
     theme=rx.theme(
         appearance="light",
@@ -623,12 +615,7 @@ app = rx.App(
 #   docker exec reflex-ksys-app python ksys_app/schedulers/virtual_tag_scheduler.py
 # Or set up as a systemd service or cron job for production
 # Main dashboard is loaded via @rx.page decorator in pages/dashboard.py
-# app.add_page(dashboard_mvp_main)  # Removed - using new unified dashboard
-# 테스트 페이지 추가
-# app.add_page(dashboard_test_page, route="/test", title="Dashboard Test")  # Removed old test page
-
-# Enhanced Trend page (메인 트렌드 페이지)
-app.add_page(trend_page_enhanced_v2, route="/trend", title="Trend Analysis", on_load=TrendState.load)
+# Enhanced Trend page (/trend) — registered via @rx.page in pages/trend_enhanced_v2.py
 
 # Original Trend page (moved controls + series chart + measurement table)
 def trend_page() -> rx.Component:
@@ -1046,69 +1033,30 @@ def tech_page_original() -> rx.Component:
     )
 '''  # END OF ORIGINAL TECH PAGE
 
-# Tech page removed from menu - route disabled
-# app.add_page(tech_page, route="/tech")
-
 # AI features - controlled by ENABLE_AI_FEATURES environment variable
 ENABLE_AI_FEATURES = os.getenv('ENABLE_AI_FEATURES', 'true').lower() == 'true'
 logger.info(f"AI Features: {'ENABLED' if ENABLE_AI_FEATURES else 'DISABLED'}")
 
-if ENABLE_AI_FEATURES:
-#     app.add_page(ai_insights_page, route="/ai")  # AI Chat interface
-    logger.info("✅ AI Insights page registered")
-else:
-    logger.info("❌ AI Insights page skipped (ENABLE_AI_FEATURES=false)")
-
-app.add_page(communication_page, route="/comm", on_load=CommunicationState.initialize)
-
-# Unified Alarms page - Rule-based alarms with service pattern
-from .pages.alarms import alarms_page
-from .states.alarms import AlarmsState
-from .states.dashboard_realtime import DashboardRealtimeState
-app.add_page(alarms_page, route="/alarms", title="Alarms", on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming])
-
-# Real-time monitoring page
-
-# SCADA Alarm viewer page (table-based real-time logging)
-from .pages.scada_alarm_viewer import scada_alarm_viewer
-app.add_page(scada_alarm_viewer, route="/scada-alarms", title="SCADA 알람 로그")
-
-# SCADA Alarm comparison page (Rule-based vs AI-based)
-from .pages.scada_alarm_comparison import scada_alarm_comparison
-app.add_page(scada_alarm_comparison, route="/scada-alarm-comparison", title="알람 비교 분석")
-
-# NEW: Realtime Alarm Status page (태그별 현재 상태) - 2025-09-26
-# Page registered via @rx.page decorator in alarms_rt_simple.py
-from .pages import alarms_rt_simple  # Import to trigger @rx.page decorator
-
-# NEW: Alarm History page (시계열 이력) - 2025-09-26
-from .pages.alarms_hist_simple import alarms_hist_page
-app.add_page(alarms_hist_page, route='/alarms_hist', title='알람 이력 분석')
-
-# NEW: Improved alarm pages - 2025-09-26
-from .pages.alarms_rt_new import alarms_rt_page as alarms_rt_new
-from .pages.alarms_hist_new import alarms_hist_page as alarms_hist_new
-app.add_page(alarms_rt_new, route='/alarms_rt_new', title='실시간 알람 (개선)')
-app.add_page(alarms_hist_new, route='/alarms_hist_new', title='알람 이력 (개선)')
-
-# New redesigned trend page
-# trends_new page removed (file doesn't exist)
-
-# Import unified dashboard
-from .pages import dashboard
-
-# Import model performance page (ML model monitoring)
-from .pages import model_performance
-
-# Import forecast player page (Online prediction monitoring) - Using fixed version
-from .pages import forecast_player_fixed as forecast_player
-
-# Import training pages
-from .pages import training_wizard  # Wizard-style training interface
-
-# Import design system demo
-# from .pages import design_system_demo  # Disabled: spacing token compatibility issue
-from .pages import viewer_tag  # Tag Viewer Engineering page
+# ============================================================================
+# Page registration — every page uses @rx.page decorator inside its module.
+# Import alone triggers registration; no app.add_page() calls needed.
+# ============================================================================
+from .pages import (
+    alarms,                  # /alarms
+    alarms_hist_new,         # /alarms_hist_new
+    alarms_hist_simple,      # /alarms_hist
+    alarms_rt_new,           # /alarms_rt_new
+    alarms_rt_simple,        # /alarms_rt (@rx.page in module)
+    communication,           # /comm
+    dashboard,               # / (@rx.page in module)
+    forecast_player_fixed as forecast_player,  # /forecast (TODO Stage 3.3: rename)
+    model_performance,       # /model-performance (@rx.page in module)
+    scada_alarm_comparison,  # /scada-alarm-comparison
+    scada_alarm_viewer,      # /scada-alarms
+    training_wizard,         # /training-wizard (@rx.page in module)
+    trend_enhanced_v2,       # /trend
+    viewer_tag,              # /viewer-tag (@rx.page in module)
+)
 
 # ============================================================================
 # Start Forecasting Schedulers (Phase 2 Implementation)

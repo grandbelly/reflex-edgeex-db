@@ -230,6 +230,11 @@ def history_alarms_view() -> rx.Component:
             spacing="3", align="center"), padding="12"))
 
 
+@rx.page(
+    route="/alarms",
+    title="Alarms",
+    on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming],
+)
 def alarms_page() -> rx.Component:
     """
     Main alarms page - Light Mode

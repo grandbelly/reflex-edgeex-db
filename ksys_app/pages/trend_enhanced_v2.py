@@ -422,6 +422,7 @@ def trend_chart_area() -> rx.Component:
     )
 
 
+@rx.page(route="/trend", title="Trend Analysis", on_load=T.load)
 def trend_page_enhanced_v2() -> rx.Component:
     """개선된 트렌드 페이지 v2"""
     return shell(

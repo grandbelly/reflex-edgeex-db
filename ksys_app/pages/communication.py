@@ -86,6 +86,7 @@ def daily_trend_chart() -> rx.Component:
     )
 
 
+@rx.page(route="/comm", on_load=CommunicationState.initialize)
 def communication_page() -> rx.Component:
     """Main communication monitoring page - Light Mode"""
 

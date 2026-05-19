@@ -14,10 +14,10 @@ services:
       dockerfile: Dockerfile
     container_name: ksys-local-reflex-app
     ports:
-      # Host ports 14020/14021 are clean — 14000/14001/14002/14010/14011 all
-      # accumulated Windows TCP listen-state zombie sockets during host iteration.
-      - "14020:14020"
-      - "14021:14021"
+      # Canonical RPI deployment ports. Zombies on 14001 were cleared once we
+      # killed the orphan uvicorn child workers that inherited the listener FD.
+      - "14000:14000"
+      - "14001:14001"
     environment:
       - DOCKER_ENV=true
       - DB_TARGET=pgai
@@ -30,7 +30,7 @@ services:
       # In-app scheduler off — the dedicated forecast-scheduler container handles it.
       - DISABLE_INAPP_SCHEDULER=true
       # API_URL is baked into the frontend bundle by `reflex export` / prod build.
-      - API_URL=http://localhost:14021
+      - API_URL=http://localhost:14001
     volumes:
       - ./ksys_app:/app/ksys_app
       - ./rxconfig.py:/app/rxconfig.py
@@ -51,9 +51,9 @@ services:
       - --backend-host
       - 0.0.0.0
       - --frontend-port
-      - "14020"
+      - "14000"
       - --backend-port
-      - "14021"
+      - "14001"
       - --loglevel
       - info
 

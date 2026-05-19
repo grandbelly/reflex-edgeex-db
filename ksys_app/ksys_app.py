@@ -1049,7 +1049,7 @@ from .pages import (
     alarms_rt_simple,        # /alarms_rt (@rx.page in module)
     communication,           # /comm
     dashboard,               # / (@rx.page in module)
-    forecast_player_fixed as forecast_player,  # /forecast (TODO Stage 3.3: rename)
+    forecast_player,         # /forecast
     model_performance,       # /model-performance (@rx.page in module)
     scada_alarm_comparison,  # /scada-alarm-comparison
     scada_alarm_viewer,      # /scada-alarms

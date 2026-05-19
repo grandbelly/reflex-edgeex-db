@@ -872,15 +872,15 @@ def model_controls() -> rx.Component:
 # =========================================================================
 
 @rx.page(
-    route="/forecast-player-fixed",
+    route="/forecast",
     title="예측 플레이어 | KSYS",
     on_load=[
         FPS.load_deployed_models,
         FPS.start_countdown_monitor  # Start real-time countdown
     ]
 )
-def forecast_player_fixed() -> rx.Component:
-    """Fixed forecast player page with proper styling - FULL WIDTH RESPONSIVE"""
+def forecast_player() -> rx.Component:
+    """Forecast player page — online prediction monitoring (FULL WIDTH RESPONSIVE)."""
     return shell(
         rx.box(
             rx.vstack(
@@ -954,5 +954,5 @@ def forecast_player_fixed() -> rx.Component:
                 "boxSizing": "border-box"
             }
         ),
-        active_route="/forecast-player-fixed"
+        active_route="/forecast"
     )

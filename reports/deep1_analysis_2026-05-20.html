@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>DEEP-1 Analysis — training_state/state.py</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 32px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+  h2 { font-size: 22px; color: #d29922; margin-top: 36px; border-left: 4px solid #d29922; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; overflow-x: auto; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #d29922; }
+  tr:nth-child(odd) { background: #131923; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 16px; }
+  .kpi .v { font-size: 26px; font-weight: 700; color: #d29922; }
+  .kpi .l { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .kpi.green .v { color: #3fb950; }
+  .kpi.orange .v { color: #ffa657; }
+  .kpi.red .v { color: #f85149; }
+  .callout { background: #1c2128; border-left: 4px solid #d29922; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; }
+  .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .callout.partial { border-left-color: #d29922; background: #2a1f08; }
+  .status-pass { background: #2ea043; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 11.5px; }
+  .status-partial { background: #d29922; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 11.5px; }
+  .status-warn { background: #ffa657; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 11.5px; }
+  .status-high { background: #f85149; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 11.5px; }
+  .status-low { background: #1f6feb; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 11.5px; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .question { background: #1b1530; border-left: 4px solid #a371f7; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .question h4 { color: #d2a8ff; margin-top: 0; }
+  .question .options { margin: 10px 0; }
+  .question .options li { margin-bottom: 6px; }
+  .recommend { color: #3fb950; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="callout partial">
+<strong>전체 결과:</strong> <span class="status-partial">PARTIAL</span> — DEEP-1 분석 완료 (read-only). 7개 @rx.event + 5개 @rx.var + 8개 setter 분류 끝. Helper extraction (Step 5-8) 사용자 컨펌 대기.
+</div>
+
+<h1>🔍 DEEP-1 Analysis — training_state/state.py</h1>
+<p class="subtitle">
+  Plan: <code>docs/01-plan/features/rpi-stage5-7-mcp-integration.plan.html</code> §DEEP-1 ·
+  Branch <code>refactor/rpi-baseline-sync</code> · HEAD <code>6106566</code> ·
+  분석 일시 2026-05-20 00:30 KST · <strong>READ-ONLY — 코드 수정 0</strong>
+</p>
+
+<h2>📊 Headline</h2>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">1,077</div><div class="l">현재 LoC</div></div>
+  <div class="kpi"><div class="v">7</div><div class="l">@rx.event 메서드</div></div>
+  <div class="kpi"><div class="v">5</div><div class="l">@rx.var computed</div></div>
+  <div class="kpi"><div class="v">8</div><div class="l">simple setter</div></div>
+  <div class="kpi orange"><div class="v">2</div><div class="l">고위험 메서드 (300+ LoC)</div></div>
+  <div class="kpi green"><div class="v">~600</div><div class="l">예상 잔여 (분리 후, Plan AC 통과)</div></div>
+</div>
+
+<h2>🧭 Method-by-Method 분석</h2>
+
+<h3>@rx.var (5개) — 모두 state.py 유지 권장</h3>
+<table>
+  <tr><th>이름</th><th>LoC</th><th>의존 var</th><th>추출 가능</th><th>판단</th></tr>
+  <tr><td><code>horizons</code> (L86)</td><td>18</td><td>forecast_interval_minutes, forecast_horizon_hours</td><td>utils.py 가능 (pure 계산)</td><td>computed wrapper로 유지 — 분리 가치 낮음</td></tr>
+  <tr><td><code>forecast_summary</code> (L106)</td><td>7</td><td>horizons, 2 vars</td><td>가능</td><td>유지</td></tr>
+  <tr><td><code>residuals_stats</code> (L115)</td><td>3</td><td>residuals_analysis dict</td><td>trivial</td><td>유지</td></tr>
+  <tr><td><code>config_name_validation_message</code> (L239)</td><td>7</td><td>new_config_name, config_name_exists, selected_tag</td><td>가능</td><td>유지</td></tr>
+  <tr><td><code>can_create_config</code> (L248)</td><td>3</td><td>new_config_name, config_name_exists</td><td>trivial</td><td>유지</td></tr>
+</table>
+
+<h3>@rx.event 메서드 (7개) — 4개 분리 적합, 2개 고위험</h3>
+
+<table>
+  <tr><th>메서드</th><th>라인</th><th>LoC</th><th>추출 가능 부분</th><th>대상 파일</th><th>위험도</th></tr>
+  <tr>
+    <td><code>initialize</code></td><td>L120</td><td>25</td>
+    <td>DB 쿼리 <code>service.list_configs()</code> + 결과 변환</td>
+    <td><code>queries.py</code></td>
+    <td><span class="status-low">LOW</span></td>
+  </tr>
+  <tr>
+    <td><code>filter_configs_for_tag</code></td><td>L156</td><td>15</td>
+    <td>DB 쿼리 <code>service.list_configs(tag_name)</code></td>
+    <td><code>queries.py</code></td>
+    <td><span class="status-low">LOW</span></td>
+  </tr>
+  <tr>
+    <td><code>load_feature_config</code></td><td>L191</td><td>28</td>
+    <td>DB 쿼리 <code>service.get_enabled_features()</code> + dict→counts 변환</td>
+    <td><code>queries.py</code></td>
+    <td><span class="status-low">LOW</span></td>
+  </tr>
+  <tr>
+    <td><code>set_new_config_name</code></td><td>L253</td><td>34</td>
+    <td>raw SQL (COUNT) — duplicate check</td>
+    <td><code>queries.py</code></td>
+    <td><span class="status-low">LOW</span></td>
+  </tr>
+  <tr>
+    <td><code>create_feature_config</code></td><td>L303</td><td>59</td>
+    <td>validation (name + tag) + 3 DB ops (create + list + get_enabled)</td>
+    <td><code>validators.py</code> + <code>queries.py</code></td>
+    <td><span class="status-warn">MED</span></td>
+  </tr>
+  <tr>
+    <td><code>start_training</code></td><td>L364</td><td><strong>337</strong></td>
+    <td>validation + pipeline build (~100 LoC) + diagnostics 추출 (~50 LoC) + forecast 추출 (~50 LoC) + metadata build (~40 LoC)</td>
+    <td><code>validators.py</code> + <code>pipeline_builder.py</code> + <code>view_helpers.py</code></td>
+    <td><span class="status-high">HIGH</span></td>
+  </tr>
+  <tr>
+    <td><code>view_predictions</code></td><td>L702</td><td>9</td>
+    <td>(추출 불요 — 단순 dialog trigger)</td>
+    <td>—</td>
+    <td><span class="status-low">N/A</span></td>
+  </tr>
+  <tr>
+    <td><code>save_model</code></td><td>L713</td><td><strong>309</strong></td>
+    <td>pickle 직렬화 (~10 LoC) + datetime 파싱 (~25 LoC) + pipeline_config build (~50 LoC) + ORM insert (~30 LoC) + evaluation bulk insert (~50 LoC) + verification query (~40 LoC)</td>
+    <td><code>view_helpers.py</code> + <code>queries.py</code></td>
+    <td><span class="status-high">HIGH</span></td>
+  </tr>
+</table>
+
+<h3>일반 sync setter (8개) — 모두 state.py 유지</h3>
+<ul>
+<li><code>set_selected_tag</code>, <code>set_selected_model</code> (모델 type별 자동 조정 로직 포함, 13 LoC)</li>
+<li><code>toggle_skip_features</code>, <code>toggle_feature_creator</code>, <code>toggle_rolling_feature</code>, <code>toggle_temporal_feature</code></li>
+<li><code>reset_form</code></li>
+<li>type 변환 setter 6개: <code>set_training_days</code>, <code>set_forecast_horizon</code>, <code>set_enable_preprocessing</code>, <code>set_outlier_threshold</code>, <code>set_forecast_interval_minutes</code>, <code>set_forecast_horizon_hours</code>, <code>set_season_length</code></li>
+</ul>
+<p class="meta">합계 ~60 LoC. 단순 self.* mutation — 분리 가치 없음.</p>
+
+<h2>📁 분리 후 파일 구조 (제안)</h2>
+
+<pre><code>ksys_app/states/training_state/
+├── __init__.py        (23L, 그대로 — backward compat)
+├── cache.py           (48L, 그대로 — module-level cache)
+├── state.py           (~600L, was 1,077) — class TrainingState (vars + thin handlers)
+├── queries.py         (~180L NEW) — async DB functions
+├── view_helpers.py    (~170L NEW) — pure data transformation
+├── validators.py      (~30L  NEW) — input validation
+└── pipeline_builder.py (~100L NEW) — TrainingPipelineV2 빌드 wrapper</code></pre>
+
+<p class="meta">합계 약 1,150L (현재 1,077L). +73L 헤더/시그니처 오버헤드 (Sprint 2 pipeline 분할과 유사 trade-off).
+하지만 <strong>가장 큰 sub-file이 ~600L</strong>로 plan §AC2 "1,000+ LoC 0개" 목표 진입.</p>
+
+<h2>🧪 추출 함수 시그니처 (제안)</h2>
+
+<h3>queries.py</h3>
+<pre><code>async def fetch_feature_configs(session, tag_name: str | None = None) -&gt; list[dict]: ...
+async def fetch_enabled_features(session, tag: str, config_name: str) -&gt; dict: ...
+async def check_config_name_exists(session, tag: str, config_name: str) -&gt; bool: ...
+async def create_feature_config_full(session, tag, name, rolling, temporal) -&gt; tuple[list[dict], dict]: ...
+async def insert_model_registry(session, model_data: dict) -&gt; ModelRegistry: ...
+async def insert_training_evaluations(session, model_id, forecast_values, horizons, base_time, model_type, sensor_tag) -&gt; int: ...
+async def fetch_saved_model_and_predictions(session, model_id: int) -&gt; tuple[dict | None, list[dict]]: ...</code></pre>
+
+<h3>view_helpers.py</h3>
+<pre><code>def extract_diagnostics(model, model_name: str) -&gt; dict: ...
+def extract_forecast_with_intervals(forecast_df, fallback_model_col: str) -&gt; tuple[list[dict], list[float], str]: ...
+def build_result_metadata(metadata) -&gt; dict: ...
+def serialize_model_to_pickle(model) -&gt; tuple[bytes | None, int]: ...
+def parse_iso_datetimes(start_iso: str | None, end_iso: str | None) -&gt; tuple[datetime | None, datetime | None]: ...
+def build_pipeline_config_dict(*, horizons, forecast_interval, forecast_horizon_hours, evaluation_metrics, result_metadata, hyperparams) -&gt; dict: ...
+def build_historical_data(raw_df, tail: int = 48) -&gt; list[dict]: ...</code></pre>
+
+<h3>validators.py</h3>
+<pre><code>def validate_new_config(name: str, selected_tag: str) -&gt; tuple[bool, str]: ...
+def validate_training_inputs(*, selected_tag: str, selected_model: str, skip_feature_engineering: bool, selected_feature_config: str) -&gt; tuple[bool, str]: ...</code></pre>
+
+<h3>pipeline_builder.py</h3>
+<pre><code>async def build_training_pipeline(
+    session,
+    *, tag: str, training_days: int,
+    enable_preprocessing: bool, outlier_threshold: float,
+    skip_feature_engineering: bool, feature_config: dict,
+    model_name: str, model_params: dict,
+    forecast_interval_minutes: int, forecast_horizon_hours: int,
+    progress_callback,  # async (progress: int, status: str) -&gt; None
+) -&gt; TrainingPipelineV2:
+    ...</code></pre>
+
+<p class="meta">⚠️ <code>pipeline_builder.py</code> 가 가장 까다로움 — <code>start_training</code> 의 progress yield 흐름을 보존하려면
+<code>progress_callback</code> 으로 외부에서 받기. 또는 builder를 generator로 만들어 yield 흐름 유지.</p>
+
+<h2>⚠️ 위험 평가 (HIGH 메서드 2개)</h2>
+
+<div class="callout danger">
+<strong><code>start_training</code> (337 LoC)</strong> — 가장 위험.
+<ul>
+  <li>progress / status / error_message / training_progress 등 <strong>~30회 self.* mutation</strong> + <strong>~12회 yield</strong></li>
+  <li>외부 추출 시 yield 흐름 보존 어려움 → progress_callback 패턴 필수</li>
+  <li>pipeline build 부분 (~100 LoC) 만 추출하고 나머지는 state.py 유지하는 conservative 접근 권장</li>
+  <li>diagnostics / forecast / metadata 추출 부분은 분리 가능 (yield 없음)</li>
+</ul>
+</div>
+
+<div class="callout danger">
+<strong><code>save_model</code> (309 LoC)</strong> — 두 번째로 위험.
+<ul>
+  <li>SQLAlchemy ORM 직접 사용 (model_entry.model_id 참조 등) — session 객체 노출</li>
+  <li>pipeline_config build (~50 LoC) 와 datetime parsing은 깔끔 분리 가능</li>
+  <li>insert + verification query 부분도 분리 가능 — 단 session 인자 전달 필요</li>
+</ul>
+</div>
+
+<h2>📋 Acceptance Criteria 예상</h2>
+
+<table>
+<tr><th>AC</th><th>목표</th><th>예상 달성</th><th>비고</th></tr>
+<tr><td>AC-1</td><td><code>training_state/state.py</code> ≤ 600 LoC</td><td>✅ 가능 (~600L)</td><td>start_training 일부 + save_model 일부 추출 시</td></tr>
+<tr><td>AC-2</td><td>외부 import 7곳 그대로 동작</td><td>✅ 가능</td><td><code>__init__.py</code> 그대로 유지, queries/view_helpers는 state.py 내부에서만 사용</td></tr>
+<tr><td>AC-3</td><td>Docker build 통과</td><td>가능</td><td>분리 후 import 정확하면 OK</td></tr>
+<tr><td>AC-4</td><td><code>/training-wizard</code> 라우트 200 + 화면 렌더</td><td>가능</td><td>regression 위험은 start_training 흐름에 집중</td></tr>
+</table>
+
+<h2>❓ Questions for User</h2>
+
+<div class="question">
+<h4>Q1. 분리 깊이</h4>
+<p>위험도 LOW 4개 + MED 1개만 분리 vs HIGH 2개도 포함?</p>
+<ul class="options">
+<li><strong>A.</strong> LOW + MED만 (5 메서드 / queries.py + validators.py만 신규) — 안전, state.py 약 850L (목표 미달)</li>
+<li><strong>B.</strong> LOW + MED + HIGH 부분 추출 (위 제안대로) — <span class="recommend">추천</span> — state.py ~600L (AC 통과), HIGH 메서드는 conservative하게 일부만</li>
+<li><strong>C.</strong> HIGH 메서드 전체 분해 — 가장 깊지만 regression 위험 큼 (progress_callback 패턴 도입)</li>
+</ul>
+<p class="meta">추천 <strong>B</strong> — Plan AC2 통과 + regression 위험 controlled. yield 흐름은 state.py에 남기고 pure 부분만 외부로.</p>
+</div>
+
+<div class="question">
+<h4>Q2. pipeline_builder.py 도입 여부</h4>
+<p>start_training 의 pipeline build 부분(~100 LoC)을 별도 파일로 빼는 게 가치 있나?</p>
+<ul class="options">
+<li><strong>A.</strong> Yes — <code>pipeline_builder.py</code> 신규, builder 패턴 명확화 — <span class="recommend">추천</span></li>
+<li><strong>B.</strong> No — state.py 안에 그대로 두기. progress yield와 build가 섞여서 분리 어려움.</li>
+<li><strong>C.</strong> 별도 파일 X, 하지만 클래스 메서드로 wrap (<code>_build_pipeline(self)</code>) — 중간 단계</li>
+</ul>
+<p class="meta">추천 <strong>A</strong> — Stage 6 (공통 패턴 추출) 에서 어차피 다시 손봐야 함. 지금 분리해두면 향후 재사용 가능.</p>
+</div>
+
+<div class="question">
+<h4>Q3. 단일 atomic commit vs sub-commit</h4>
+<p>분리 작업 (queries + view_helpers + validators + pipeline_builder 신규 4파일 + state.py 수정) — 어떻게 commit?</p>
+<ul class="options">
+<li><strong>A.</strong> 단일 atomic — <code>deep(stage-4-1): PASS — extract 4 modules from training_state (-NL)</code></li>
+<li><strong>B.</strong> 4 sub-commit (모듈별) — <span class="recommend">추천</span>
+  <ol>
+    <li><code>deep(stage-4-1a): PARTIAL — queries.py extraction (4 LOW methods)</code></li>
+    <li><code>deep(stage-4-1b): PARTIAL — validators.py + create_feature_config refactor</code></li>
+    <li><code>deep(stage-4-1c): PARTIAL — view_helpers.py for save_model</code></li>
+    <li><code>deep(stage-4-1d): PASS — pipeline_builder.py + start_training refactor</code></li>
+  </ol>
+</li>
+<li><strong>C.</strong> 2 commit (queries + view 묶음 / pipeline_builder 별도)</li>
+</ul>
+<p class="meta">추천 <strong>B</strong> — 각 sub-commit 후 docker logs 확인 가능. 망가지면 atomic revert 1단계만.</p>
+</div>
+
+<div class="question">
+<h4>Q4. start_training yield 흐름 처리</h4>
+<p>pipeline build 부분 추출 시 progress yield 어떻게?</p>
+<ul class="options">
+<li><strong>A.</strong> <code>progress_callback</code> async function 인자로 받기 — builder 함수에서 callback 호출 — <span class="recommend">추천</span></li>
+<li><strong>B.</strong> builder를 async generator로 → state에서 <code>async for progress in builder(...): ...</code></li>
+<li><strong>C.</strong> pipeline build는 분리 안 함 (현재 state.py 그대로 유지) → 일부 helper 추출만</li>
+</ul>
+<p class="meta">추천 <strong>A</strong> — 가장 단순 + Reflex async event 흐름과 자연스러움. callback 안에서 <code>async with self: self.progress = ...; yield</code> 패턴 그대로.</p>
+</div>
+
+<h2>🔭 다음 단계 (Step 5-8, 컨펌 후)</h2>
+
+<ol>
+<li><strong>Step 5</strong>: queries.py / view_helpers.py / validators.py / pipeline_builder.py 신규 파일 작성</li>
+<li><strong>Step 6</strong>: state.py 의 해당 부분을 함수 호출로 교체</li>
+<li><strong>Step 7</strong>: <code>python -m py_compile</code> + ast.parse syntax 검증</li>
+<li><strong>Step 8</strong>: atomic commit(s) (Q3에서 선택한 방식). Docker build + /training-wizard 라우트 검증.</li>
+</ol>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+DEEP-1 analysis executed 2026-05-20 00:30 KST · read-only · 0 code modifications · <strong>PARTIAL (analysis done, extraction pending Q1-Q4 user answers)</strong>
+</p>
+
+</body>
+</html>

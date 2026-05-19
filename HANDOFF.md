@@ -183,3 +183,15 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 ---
 
 _이 핸드오프 파일은 2026-05-18 round 2 Claude 세션이 작성. 다음 세션은 위 "다음 실행 방법"만 따라하면 즉시 개발 시작 가능._
+
+---
+
+## 2026-05-20 verify-0 (stage-0): PASS
+- 결과: 14 commits 누적분 풍도 Docker 환경 부팅 검증 통과 — 15/15 라우트 HTTP 200, 0 traceback
+- 다음 권장: Stage 4 Deep DEEP-1 분석으로 자동 진입
+- 산출물: `reports/verify_2026-05-20.html`, commit `6106566`
+
+## 2026-05-20 deep (stage-4-1): PARTIAL
+- 결과: training_state/state.py (1,077 LoC) 분석 완료 — 7 @rx.event + 5 @rx.var + 8 setter 분류. 분리 후 ~600 LoC (AC2 통과) 예상. HIGH 위험 메서드 2개 (start_training 337L, save_model 309L)
+- 다음 권장: Q1-Q4 사용자 답변 후 Step 5-8 (helper 모듈 4개 신규 작성 + state.py 교체)
+- 산출물: `reports/deep1_analysis_2026-05-20.html`, commit (next)

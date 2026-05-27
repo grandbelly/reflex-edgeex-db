@@ -1,0 +1,17 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install pipeline dependencies
+RUN pip install --no-cache-dir asyncpg pytz
+
+# Copy the scripts directory into the container
+COPY scripts/ /app/scripts/
+
+# Set environment variables
+ENV DOCKER_CONTAINER=true
+ENV PYTHONUNBUFFERED=1
+ENV CSV_PATH=/app/all_sensors.csv
+
+# Run the timeseries pipeline, resolving the CSV path via environment variable
+CMD ["sh", "-c", "python -u scripts/timeseries_pipeline.py --csv-path \"$CSV_PATH\""]

@@ -138,8 +138,11 @@ class AlarmMonitor:
         """, event_id, scenario_id, level, ts, message,
             json.dumps(sensor_data), ["알람 생성", "모니터링"])
 
-        # NOTIFY 이벤트 발생
-        await conn.execute(f"NOTIFY alarm_event, '{event_id}'")
+        # NOTIFY 이벤트 발생 — use pg_notify() function for proper parameterization.
+        # The previous `f"NOTIFY alarm_event, '{event_id}'"` pattern was a SQL
+        # injection vector because event_id ultimately derives from sensor data
+        # which can come from upstream untrusted sources.
+        await conn.execute("SELECT pg_notify('alarm_event', $1)", event_id)
 
         print(f"✅ 알람 생성: {event_id} - {message}")
 

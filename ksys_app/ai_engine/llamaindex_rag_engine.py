@@ -240,11 +240,17 @@ class LlamaIndexRAGEngine:
 
         # 태그 필터
         if tags:
-            tag_list = ','.join([f"'{t}'" for t in tags])
-            if 'WHERE' in sql:
-                sql += f" AND tag_name IN ({tag_list})"
-            else:
-                sql += f" WHERE tag_name IN ({tag_list})"
+            # SECURITY: tag names trace back to user chat input via LLM tag-extraction.
+            # Whitelist regex matches TS tag conventions (alnum + _ . / -). Rejects
+            # SQL injection payloads. Future: refactor generate_sql to use $N params.
+            _TAG_RE = __import__('re').compile(r'^[A-Za-z0-9_./\-]+$')
+            safe_tags = [t for t in tags if _TAG_RE.match(t)]
+            if safe_tags:
+                tag_list = ','.join([f"'{t}'" for t in safe_tags])
+                if 'WHERE' in sql:
+                    sql += f" AND tag_name IN ({tag_list})"
+                else:
+                    sql += f" WHERE tag_name IN ({tag_list})"
 
         if view != 'influx_latest':
             sql += " GROUP BY tag_name"

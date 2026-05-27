@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="10">
+<title>Swarm Dashboard — RPI Stage 4 Deep</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #0d1117; color: #e6edf3; padding: 24px;
+    min-height: 100vh; line-height: 1.5;
+  }
+  h1 { font-size: 26px; color: #79c0ff; border-bottom: 2px solid #30363d; padding-bottom: 10px; margin-bottom: 8px; }
+  .meta { color: #8b949e; font-size: 12px; margin-bottom: 24px; }
+
+  .alert {
+    background: #2b1414; border: 2px solid #f85149; border-radius: 8px;
+    padding: 18px 22px; margin-bottom: 24px; font-size: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .alert.go {
+    background: #0e2417; border-color: #3fb950;
+  }
+  .alert.idle {
+    background: #1c2128; border-color: #30363d;
+  }
+  .alert-icon { font-size: 28px; }
+  .alert strong { color: #f85149; }
+  .alert.go strong { color: #3fb950; }
+  .alert.idle strong { color: #8b949e; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 24px; }
+  .agent {
+    background: #161b22; border: 2px solid #30363d; border-radius: 12px;
+    padding: 20px; transition: border-color 0.3s;
+  }
+  .agent.working { border-color: #1f6feb; background: #0a1f33; }
+  .agent.completed { border-color: #3fb950; background: #0e2417; }
+  .agent.blocked { border-color: #f85149; background: #2b1414; }
+  .agent.thinking { border-color: #d29922; background: #1c1810; }
+
+  .agent .name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .agent .role { font-size: 12px; color: #8b949e; margin-bottom: 12px; }
+  .agent .status {
+    display: inline-block; padding: 4px 12px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; margin-bottom: 10px;
+  }
+  .status-idle { background: #6e7681; color: #fff; }
+  .status-working { background: #1f6feb; color: #fff; }
+  .status-thinking { background: #d29922; color: #fff; }
+  .status-completed { background: #3fb950; color: #fff; }
+  .status-blocked { background: #f85149; color: #fff; }
+
+  .agent .task { font-size: 13px; color: #c9d1d9; margin-bottom: 8px; }
+  .agent .log {
+    font-family: ui-monospace, monospace; font-size: 11px;
+    color: #8b949e; background: #0d1117; padding: 8px;
+    border-radius: 4px; margin-top: 8px; max-height: 60px; overflow: hidden;
+  }
+
+  .signals {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .signals h2 { font-size: 16px; color: #a371f7; margin-bottom: 10px; }
+  .signals table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .signals td { padding: 6px 10px; border-bottom: 1px solid #21262d; }
+  .signals td:first-child { color: #8b949e; width: 200px; }
+  .signals code { background: #0d1117; color: #79c0ff; padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+
+  .legend {
+    display: flex; gap: 12px; font-size: 11px; color: #8b949e;
+    margin-top: 18px; padding-top: 14px; border-top: 1px dashed #30363d;
+  }
+  .legend span { padding: 2px 8px; border-radius: 10px; }
+
+  .commands {
+    background: #0a1f33; border: 1px solid #1f6feb; border-radius: 8px;
+    padding: 14px 18px; margin-bottom: 24px;
+  }
+  .commands h2 { font-size: 15px; color: #79c0ff; margin-bottom: 10px; }
+  .commands ul { list-style: none; }
+  .commands li { padding: 4px 0; font-size: 13px; }
+  .commands strong { color: #3fb950; font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+
+<h1>🐝 Swarm Dashboard — RPI Stage 4 Deep</h1>
+<p class="meta">
+  10초마다 자동 새로고침 · 마지막 갱신: <span id="now"></span> ·
+  feature: <code>rpi-stage5-7-mcp-integration</code> ·
+  pattern: P/C Swarm + D Sequential
+</p>
+
+<!-- =========== 알림 영역 (최상단, 사용자가 가장 먼저 봄) =========== -->
+<div class="alert go">
+  <span class="alert-icon">🚀</span>
+  <div>
+    <strong>BABA 결정 → Worker Step 5~8 진행 중</strong><br>
+    Phase C Sequential Apply — 4 sub-commit (queries / validators / view_helpers / pipeline_builder).
+    각 sub-commit 후 docker logs 자동 확인. BLOCKED 발생 시 자동 raise.
+  </div>
+</div>
+
+<!-- =========== 사용자가 할 수 있는 명령 =========== -->
+<div class="commands">
+  <h2>👤 너가 지금 보내면 좋은 응답</h2>
+  <ul>
+    <li><strong>"GO"</strong> → Phase A 시작 (Alice/Bob/Carol 3 worker spawn, 30분 분석)</li>
+    <li><strong>"STOP"</strong> → 진행 멈춤</li>
+    <li><strong>"A" / "B" / "C"</strong> → 옵션 선택 (알림에 뜰 때)</li>
+    <li><strong>"상태"</strong> → 이 세션이 즉시 polling 후 보고</li>
+  </ul>
+</div>
+
+<!-- =========== 3 Worker 상태 =========== -->
+<div class="grid">
+
+  <div class="agent">
+    <div class="name">👩‍💻 Alice</div>
+    <div class="role">DEEP-1 Analyst</div>
+    <span class="status status-idle">IDLE</span>
+    <div class="task">대상: <code>states/training_state/state.py</code> (1,077L)</div>
+    <div class="task">목표: @rx.event / @rx.var 분석 + cross-ref</div>
+    <div class="log">대기 중 — spawn 안 됨</div>
+  </div>
+
+  <div class="agent">
+    <div class="name">👨‍💻 Bob</div>
+    <div class="role">DEEP-2 Analyst</div>
+    <span class="status status-idle">IDLE</span>
+    <div class="task">대상: <code>states/dashboard/state.py</code> (1,638L)</div>
+    <div class="task">목표: @rx.event / @rx.var 분석 + cross-ref</div>
+    <div class="log">대기 중 — spawn 안 됨</div>
+  </div>
+
+  <div class="agent">
+    <div class="name">👩‍🔬 Carol</div>
+    <div class="role">DEEP-3 Analyst</div>
+    <span class="status status-idle">IDLE</span>
+    <div class="task">대상: <code>states/forecast_player_state/state.py</code> (1,668L)</div>
+    <div class="task">목표: @rx.event / @rx.var 분석 + cross-ref</div>
+    <div class="log">대기 중 — spawn 안 됨</div>
+  </div>
+
+</div>
+
+<!-- =========== 신호 모니터 =========== -->
+<div class="signals">
+  <h2>📡 통신 신호 (이 세션이 자동 폴링)</h2>
+  <table>
+    <tr><td>HEAD commit</td><td><code>2a18d27</code> docs: stage5-7 plan + mcp framework</td></tr>
+    <tr><td>branch</td><td><code>refactor/rpi-baseline-sync</code> (master 대비 16 commits ahead)</td></tr>
+    <tr><td>이번 사이클 commits</td><td>0 / 예상 ~6 (3 분석 + 3 적용)</td></tr>
+    <tr><td>새 reports/*.html</td><td>0 / 예상 4 (3 분석 + 1 종합)</td></tr>
+    <tr><td>HANDOFF.md 마지막 갱신</td><td>2026-05-18 Round 3 (Stage 4 Deep 진입 전)</td></tr>
+    <tr><td>state.py LoC (training/dashboard/forecast)</td><td>1077 / 1638 / 1668 → target 600 / 900 / 900</td></tr>
+  </table>
+  <div class="legend">
+    <span class="status-idle">IDLE</span>
+    <span class="status-thinking">THINKING</span>
+    <span class="status-working">WORKING</span>
+    <span class="status-completed">COMPLETED</span>
+    <span class="status-blocked">BLOCKED</span>
+  </div>
+</div>
+
+<!-- =========== 사이클 단계 표시 =========== -->
+<div class="signals">
+  <h2>🔄 PDCA Swarm Cycle</h2>
+  <table>
+    <tr><td>Phase A — Analysis Swarm (병렬)</td><td>⏸️ 대기 · 30분 예상</td></tr>
+    <tr><td>Phase B — Pattern Council (단일)</td><td>⏸️ 대기 · 15분 예상 · 사용자 결정 1회</td></tr>
+    <tr><td>Phase C — Sequential Apply (직렬)</td><td>⏸️ 대기 · DEEP-1 → 2 → 3 (1일)</td></tr>
+    <tr><td>Phase D — Verify Swarm (병렬)</td><td>⏸️ 대기 · 각 DEEP 끝마다 자동</td></tr>
+  </table>
+</div>
+
+<script>
+  document.getElementById('now').textContent = new Date().toLocaleTimeString('ko-KR');
+</script>
+
+</body>
+</html>

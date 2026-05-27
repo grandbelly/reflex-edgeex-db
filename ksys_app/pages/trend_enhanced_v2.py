@@ -1,7 +1,6 @@
 """개선된 트렌드 페이지 - Syncing Charts with Brush"""
 import reflex as rx
 from ..states.trend_state import TrendState as T
-from ..states.base import BaseState
 from ..components.layout import shell
 from ..utils.responsive import responsive_grid_columns, responsive_card, GRID_PRESETS
 

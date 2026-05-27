@@ -720,13 +720,21 @@ class TrainingState(rx.State):
             async with get_async_session() as session:
                 from ..models.forecasting_orm import ModelRegistry, Prediction
                 from datetime import datetime, timedelta
+                import asyncio
                 import json
                 import os
                 import pickle
                 from pathlib import Path
 
+                # Capture time ONCE at method start. Drives model_name, version,
+                # evaluation_time, and target_time consistently. Avoids the prior
+                # drift where save_model was sampling datetime.now() at 3 different
+                # points (L729, L751, L887) causing model_name, version, and
+                # evaluation_time to disagree if pickle/DB ops took >1s.
+                current_time = datetime.now().replace(microsecond=0)
+
                 # 1. Retrieve model from cache and serialize to pickle bytes
-                model_name = f"{self.selected_model}_{self.selected_tag}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                model_name = f"{self.selected_model}_{self.selected_tag}_{current_time.strftime('%Y%m%d_%H%M%S')}"
 
                 # Get trained model object from module-level cache
                 trained_model = _get_cached_model(self.selected_tag)
@@ -737,8 +745,11 @@ class TrainingState(rx.State):
 
                 if trained_model is not None:
                     try:
-                        # Serialize to bytes for PostgreSQL BYTEA
-                        model_pickle_bytes = pickle.dumps(trained_model)
+                        # Offload pickle.dumps to a worker thread. For large XGBoost/Prophet
+                        # models this can take 100ms+ of pure-CPU work, which would block
+                        # the asyncio event loop and stall every other Reflex async task
+                        # (other users' requests, scheduler ticks, WS sends).
+                        model_pickle_bytes = await asyncio.to_thread(pickle.dumps, trained_model)
                         model_size = len(model_pickle_bytes)
                         console.info(f"✅ Model serialized to pickle bytes: {model_size} bytes")
                     except Exception as e:
@@ -746,9 +757,6 @@ class TrainingState(rx.State):
                         console.warn(f"⚠️ Pickle failed, saving metadata only")
                 else:
                     console.warn(f"⚠️ No cached model found, saving metadata only")
-
-                # Remove microseconds to avoid sentinel values mismatch
-                current_time = datetime.now().replace(microsecond=0)
 
                 # Generate unique version with timestamp to avoid unique constraint violations
                 version = f"1.0.{current_time.strftime('%Y%m%d%H%M%S')}"
@@ -883,8 +891,10 @@ class TrainingState(rx.State):
                 if self.forecast_values:
                     from sqlalchemy import text
 
-                    # Remove microseconds to avoid sentinel values mismatch
-                    current_time = datetime.now().replace(microsecond=0)
+                    # current_time was captured at method start — reuse it for
+                    # evaluation_time consistency. Was previously re-sampled here
+                    # via datetime.now(), causing silent drift between model_name
+                    # (built at method start) and the evaluation_time persisted to DB.
 
                     # Build INSERT statement for training_evaluation
                     insert_sql = text("""
@@ -896,12 +906,15 @@ class TrainingState(rx.State):
                          :horizon_minutes, :model_type, :sensor_tag)
                     """)
 
-                    # Execute INSERT for each prediction (offline backtest data)
                     # IMPORTANT: Use horizons list from forecast configuration
                     if not self.horizons:
                         console.error("⚠️ No horizons configured! Forecast configuration is missing.")
                         raise ValueError("Forecast configuration (horizons) is required for saving predictions")
 
+                    # Build all evaluation records first, then bulk-INSERT in a single
+                    # round-trip. Was previously N+1 (~36 round-trips × ~5ms each on
+                    # RPI = ~180ms of pure DB latency for a single save_model call).
+                    evaluation_records = []
                     for i, value in enumerate(self.forecast_values):
                         # Use horizon from configured list (e.g., 10, 20, 30... for 10-min intervals)
                         if i >= len(self.horizons):
@@ -913,8 +926,7 @@ class TrainingState(rx.State):
                         # Calculate target_time based on actual horizon
                         target_time = (current_time + timedelta(minutes=horizon_minutes)).replace(microsecond=0)
 
-                        # Execute INSERT to training_evaluation
-                        await session.execute(insert_sql, {
+                        evaluation_records.append({
                             'model_id': model_entry.model_id,
                             'evaluation_time': current_time,  # When model was trained
                             'target_time': target_time,       # Future timestamp (correct interval)
@@ -925,7 +937,12 @@ class TrainingState(rx.State):
                             'sensor_tag': self.selected_tag,
                         })
 
-                    console.log(f"Inserted {len(self.forecast_values)} evaluation records to training_evaluation table")
+                    # SQLAlchemy 2.0 executemany: passing a list of dicts to execute()
+                    # with a text() statement uses driver-level bulk insert. asyncpg
+                    # handles this as a single network round-trip.
+                    if evaluation_records:
+                        await session.execute(insert_sql, evaluation_records)
+                        console.log(f"Bulk-inserted {len(evaluation_records)} evaluation records (was N+1 round-trips, now 1)")
 
                 await session.commit()
 

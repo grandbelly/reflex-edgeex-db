@@ -2,9 +2,26 @@
 pgai_data/
 ollama_data/
 
-# Environment files
+# Environment files (secrets — never commit)
 .env
 .env.local
+.env.*.local
+.env.production
+.env.staging
+.env.rpi
+.env.rpi-*
+*.env.bak
+*.env.backup
+# But DO commit the template
+!.env.example
+
+# Other secret patterns
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+.cloudflared/
 
 # Logs
 logs/

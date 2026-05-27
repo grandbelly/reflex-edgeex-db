@@ -16,21 +16,21 @@ services:
     ports:
       # Canonical RPI deployment ports. Zombies on 14001 were cleared once we
       # killed the orphan uvicorn child workers that inherited the listener FD.
-      - "14000:14000"
-      - "14001:14001"
+      - "${FRONTEND_PORT:-14000}:14000"
+      - "${BACKEND_PORT:-14001}:14001"
     environment:
       - DOCKER_ENV=true
       - DB_TARGET=pgai
-      - TS_DSN=postgresql://postgres:postgres@ksys-dev-db:5432/ecoanp?sslmode=disable
-      - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@ksys-dev-db:5432/ecoanp?sslmode=disable
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - POSTGRES_CONNECTION_STRING=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
       - APP_ENV=development
-      - TZ=Asia/Seoul
-      - VERSION_TYPE=FULL
-      - ENABLE_AI_FEATURES=true
+      - TZ=${TZ:-Asia/Seoul}
+      - VERSION_TYPE=${VERSION_TYPE:-FULL}
+      - ENABLE_AI_FEATURES=${ENABLE_AI_FEATURES:-true}
       # In-app scheduler off — the dedicated forecast-scheduler container handles it.
       - DISABLE_INAPP_SCHEDULER=true
       # API_URL is baked into the frontend bundle by `reflex export` / prod build.
-      - API_URL=http://localhost:14001
+      - API_URL=${API_URL:-http://localhost:14001}
     volumes:
       - ./ksys_app:/app/ksys_app
       - ./rxconfig.py:/app/rxconfig.py
@@ -65,7 +65,7 @@ services:
     environment:
       - DB_HOST=ksys-dev-db
       - DB_PORT=5432
-      - TZ=Asia/Seoul
+      - TZ=${TZ:-Asia/Seoul}
     networks:
       - dev_network
     restart: unless-stopped
@@ -80,9 +80,9 @@ services:
     environment:
       - DOCKER_ENV=true
       - DB_TARGET=pgai
-      - TS_DSN=postgresql://postgres:postgres@ksys-dev-db:5432/ecoanp?sslmode=disable
-      - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@ksys-dev-db:5432/ecoanp?sslmode=disable
-      - TZ=Asia/Seoul
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - POSTGRES_CONNECTION_STRING=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - TZ=${TZ:-Asia/Seoul}
     volumes:
       - ./ksys_app:/app/ksys_app
       - ./saved_models:/app/saved_models
@@ -92,6 +92,22 @@ services:
     restart: unless-stopped
     init: true
     stop_grace_period: 20s
+
+  timeseries-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    container_name: ksys-local-timeseries-pipeline
+    environment:
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - CSV_PATH=/app/all_sensors.csv
+      - TZ=${TZ:-Asia/Seoul}
+    volumes:
+      - ./all_sensors.csv:/app/all_sensors.csv
+    networks:
+      - dev_network
+    restart: unless-stopped
+    init: true
 
 networks:
   dev_network:

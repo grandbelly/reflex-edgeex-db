@@ -153,12 +153,25 @@ class SyncMonitorState(rx.State):
 
         try:
             # Run tag sync
+            # Upstream IoT cloud DB — credentials externalized to .env
+            # See .env.example for required vars: UPSTREAM_DB_HOST/PORT/NAME/USER/PASSWORD
+            import os
+            upstream_host = os.getenv("UPSTREAM_DB_HOST", "")
+            upstream_user = os.getenv("UPSTREAM_DB_USER", "")
+            upstream_password = os.getenv("UPSTREAM_DB_PASSWORD", "")
+            if not (upstream_host and upstream_user and upstream_password):
+                console.log("UPSTREAM_DB_* env vars not set — skipping tag sync. "
+                            "Set them in .env to enable upstream tag sync.")
+                async with self:
+                    self.syncing_tags = False
+                    yield
+                return
             config = RemoteDBConfig(
-                host="59.10.187.46",
-                port=9543,
-                database="iot_cloud_v2_exaxt_stp",
-                username="exaxt",
-                password="exaxt00"
+                host=upstream_host,
+                port=int(os.getenv("UPSTREAM_DB_PORT", "9543")),
+                database=os.getenv("UPSTREAM_DB_NAME", "iot_cloud_v2_exaxt_stp"),
+                username=upstream_user,
+                password=upstream_password
             )
 
             async with RemoteDBService(config) as remote:

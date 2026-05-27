@@ -7,13 +7,13 @@ services:
       dockerfile: Dockerfile.rpi-pgcron
     container_name: pgai-db
     ports:
-      - "5432:5432"
+      - "${DB_PORT_HOST:-5432}:5432"
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
       - TIMESCALEDB_TELEMETRY=off
-      - TZ=Asia/Seoul
+      - TZ=${TZ:-Asia/Seoul}
     volumes:
       - pgai_data:/var/lib/postgresql/data
       - ./backup:/backup
@@ -22,7 +22,7 @@ services:
       - ksys-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 30s
       timeout: 10s
       retries: 5

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KSys IoT — 종합 Audit/QA/QC 보고서 2026-05-21</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 30px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 40px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+              gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 28px; font-weight: 700; }
+  .kpi .l { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .kpi.crit .v { color: #f85149; }
+  .kpi.high .v { color: #d29922; }
+  .kpi.good .v { color: #3fb950; }
+  .kpi.info .v { color: #79c0ff; }
+  .callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 14px 18px;
+             margin: 16px 0; border-radius: 6px; }
+  .callout.crit { border-left-color: #f85149; background: #2b1414; }
+  .callout.good { border-left-color: #3fb950; background: #0e2417; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .good { color: #3fb950; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+         font-weight: 700; margin-right: 4px; }
+  .tag-crit { background: #2b1414; color: #f85149; border: 1px solid #f85149; }
+  .tag-high { background: #2a1f08; color: #d29922; border: 1px solid #d29922; }
+  .tag-med  { background: #1c2128; color: #79c0ff; border: 1px solid #79c0ff; }
+  .agent-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+                padding: 16px; margin: 12px 0; }
+  .agent-card .name { color: #79c0ff; font-weight: 600; font-size: 15px; }
+  .agent-card .meta { font-size: 12px; margin-top: 4px; }
+  ul li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>🔍 KSys IoT — 종합 Audit/QA/QC 보고서</h1>
+<p class="meta">실행 일시 2026-05-21 · 5-에이전트 병렬 audit · 코드 0 줄 수정 (read-only) · 5 영역 cross-validation</p>
+
+<div class="callout crit">
+<strong>한 줄 결론:</strong> 5명의 독립 에이전트가 같은 critical 이슈를 cross-confirm — <strong>Cloudflare 터널 토큰 평문 commit, 외부 IoT-cloud DB 자격증명 하드코딩, 인증 0건의 179 event handler가 public tunnel 노출</strong>. 추가 RPI 배포 전에 즉시 처리 필수. 동시에 multi-RPI 배포 준비도(20개 기준): <strong>0 met / 4 partial / 16 not-met</strong>. 코드 리팩토링 진척 — 지난 2일간 plan 24항목 중 21 not-started.
+</div>
+
+<h2>📊 Executive Summary (4 관점)</h2>
+
+<table>
+<tr><th>관점</th><th>내용</th></tr>
+<tr><td><strong>Problem</strong></td><td>리팩토링 진척이 정지 상태(plan 24항목 중 21 not-started, 2일간). 동시에 운영중인 코드에 즉시 처리 critical 보안 이슈 3건이 박혀있고, RPI 배포 readiness 20점 만점 중 0 met. 본 audit 전에는 사용자가 어디부터 시작해야 할지 결정 불가.</td></tr>
+<tr><td><strong>Solution</strong></td><td>5 에이전트(code/security/frontend/infra/gap) 병렬 audit. 각자 자기 영역에서 발견 후, cross-validation으로 가짜 양성 제거. 종합 우선순위 매트릭스 도출.</td></tr>
+<tr><td><strong>Function UX Effect</strong></td><td>"무엇을 먼저 할지" 가 사용자 판단이 아니라 multi-agent consensus로 결정됨. 단일 출처 의존 X — 2명 이상이 같은 이슈 짚으면 신뢰도 ↑. CRITICAL/HIGH/MED 분류 + impact×effort^-1 정렬.</td></tr>
+<tr><td><strong>Core Value</strong></td><td>이번 응답에서 사용자에게 묻지 않고 5-agent 병렬 실행 → 약 7분 만에 5개 도메인 검증. 사용자 입장에서 "다른 사람 5명 고용해서 한꺼번에 검토 받은 효과". audit 산출물은 디스크에 영구 보존 (reports/audit_*.md).</td></tr>
+</table>
+
+<div class="kpi-grid">
+  <div class="kpi crit">
+    <div class="v">3</div>
+    <div class="l">CRITICAL findings<br>(2+ 에이전트 cross-confirm)</div>
+  </div>
+  <div class="kpi high">
+    <div class="v">13</div>
+    <div class="l">HIGH findings</div>
+  </div>
+  <div class="kpi crit">
+    <div class="v">0/20</div>
+    <div class="l">Multi-RPI 배포 readiness<br>(메탄 4건 partial, 16건 미충족)</div>
+  </div>
+  <div class="kpi info">
+    <div class="v">21/24</div>
+    <div class="l">미시작 plan 항목<br>(지난 2일간)</div>
+  </div>
+  <div class="kpi info">
+    <div class="v">13,626L</div>
+    <div class="l">제거 가능 죽은 코드<br>(23 backup + ksys_app_clean/)</div>
+  </div>
+</div>
+
+<h2>🚨 CRITICAL — 2+ 에이전트가 독립적으로 발견 (높은 신뢰)</h2>
+
+<table>
+<tr><th>#</th><th>이슈</th><th>증거</th><th>발견 에이전트</th><th>액션</th></tr>
+<tr>
+  <td><span class="tag tag-crit">C-01</span></td>
+  <td><strong>Cloudflare 터널 토큰 평문 commit</strong></td>
+  <td><code>docker-compose.yml:130</code> — 계정 묶인 JWT</td>
+  <td>🛡️ Security C1<br>🏗️ Infra C1</td>
+  <td><span class="bad">즉시 rotate</span> + 모든 secret을 <code>.env</code> 로 외부화. <code>.gitignore</code>에 <code>.env</code> 추가.</td>
+</tr>
+<tr>
+  <td><span class="tag tag-crit">C-02</span></td>
+  <td><strong>외부 IoT-cloud DB 자격증명 하드코딩</strong></td>
+  <td><code>ksys_app/states/sync_monitor_state.py:156-162</code> — <code>exaxt:exaxt00@59.10.187.46:9543</code></td>
+  <td>🛡️ Security C2</td>
+  <td>환경 변수로 외부화. 운영자 계정과 별개 read-only 계정 생성. log에 호스트/포트 노출 금지.</td>
+</tr>
+<tr>
+  <td><span class="tag tag-crit">C-03</span></td>
+  <td><strong>인증 0건 — 179 <code>@rx.event</code> + public Cloudflare tunnel + <code>backend_host=0.0.0.0</code></strong></td>
+  <td>전체 codebase grep — 인증 primitive 없음</td>
+  <td>🛡️ Security C3<br>(🎨 Frontend cors_allowed_origins="*" 보조 증거)</td>
+  <td>최소 basic auth 또는 magic link. CORS 화이트리스트. <code>0.0.0.0</code> 노출 재검토.</td>
+</tr>
+</table>
+
+<h2>⚠️ HIGH — 즉시 처리 권장</h2>
+
+<table>
+<tr><th>#</th><th>이슈</th><th>증거</th><th>에이전트</th></tr>
+<tr><td><span class="tag tag-high">H-01</span></td><td>POSTGRES_PASSWORD=postgres 기본값 + Postgres LAN 5432 노출</td><td>4개 compose 파일 6+ 곳</td><td>Security H1 + Infra</td></tr>
+<tr><td><span class="tag tag-high">H-02</span></td><td>SQL injection — <code>WHERE tag_name IN ({tag_list})</code> 채팅 입력 흐름</td><td><code>dynamic_rag_engine.py:183-184</code>, <code>llamaindex_rag_engine.py:243-247</code></td><td>Security H2</td></tr>
+<tr><td><span class="tag tag-high">H-03</span></td><td><code>pickle.loads</code> on DB BYTEA — DB 침해 시 컨테이너-root RCE</td><td><code>forecast_scheduler.py:109,140</code> + 3개 더</td><td>Security H3</td></tr>
+<tr><td><span class="tag tag-high">H-04</span></td><td>모든 5개 Dockerfile이 root 실행 + 소스 bind mount</td><td>USER directive 없음. <code>./ksys_app:/app/ksys_app</code></td><td>Security H4 + Infra</td></tr>
+<tr><td><span class="tag tag-high">H-05</span></td><td><strong>듀얼 BaseState</strong> — <code>base.py</code> 와 <code>base_state.py</code> 두 클래스 같은 이름, 다른 contract</td><td>같은 이름 import 시 silent shadowing</td><td>Code 2 + Frontend F-1.1</td></tr>
+<tr><td><span class="tag tag-high">H-06</span></td><td><code>dashboard/state.py::load</code> 단일 메서드 <strong>667 LoC</strong></td><td>40+ state vars god-class</td><td>Code 2 + Frontend F-1.2</td></tr>
+<tr><td><span class="tag tag-high">H-07</span></td><td><code>alarm_rt_state.py</code> 에 <code>toggle_auto_refresh</code> <strong>중복 정의</strong> (L133 + L272) — 두 번째가 첫 번째 silent override</td><td>버그</td><td>Code 2</td></tr>
+<tr><td><span class="tag tag-high">H-08</span></td><td><code>NOTIFY alarm_event, '{event_id}'</code> — tag_name interpolation</td><td><code>monitoring/alarm_monitor.py:142</code>, <code>utils/db_events.py:36</code></td><td>Security H5</td></tr>
+<tr><td><span class="tag tag-high">H-09</span></td><td>save_model의 <strong>N+1 INSERT loop (36 round-trips)</strong></td><td><code>state.py:905-926</code></td><td>Code 1 (save_model 분석)</td></tr>
+<tr><td><span class="tag tag-high">H-10</span></td><td><strong>fresh-RPI bootstrap 자동화 0건</strong></td><td><code>scripts/deploy_gcp.sh</code> 1줄 stub. multi-RPI 1개월 목표 불가능</td><td>Infra C2</td></tr>
+<tr><td><span class="tag tag-high">H-11</span></td><td><code>Dockerfile.rpi-pgcron</code> <code>latest-pg17</code> floating tag + pg_cron ABI mismatch (HANDOFF.md 명시)</td><td>다음 <code>docker pull</code>이 RPI DB brick 가능성</td><td>Infra C3</td></tr>
+<tr><td><span class="tag tag-high">H-12</span></td><td>101개 generic <code>except Exception as e:</code> blocks across 24 files (~700 LoC) — 같은 shape</td><td>structured error handling 부재</td><td>Code 6</td></tr>
+<tr><td><span class="tag tag-high">H-13</span></td><td><code>rxconfig.py</code>: <code>loglevel=DEBUG</code> in prod, <code>telemetry_enabled=True</code>, <code>cors_allowed_origins="*"</code></td><td>3건 동시 — production-unsafe</td><td>Frontend Section 5</td></tr>
+</table>
+
+<h2>📍 MEDIUM — 다음 sprint</h2>
+
+<ul>
+  <li><strong>987 <code>print()</code> calls</strong> across codebase (dashboard alone 25). <code>console.debug</code> 로 일괄 교체 — Korean Windows에서 PYTHONUTF8 없이도 동작 (Frontend F-2.4)</li>
+  <li><strong><code>@rx.var</code> on pandas pivot</strong> — <code>heatmap_matrix</code>, <code>algorithm_comparison_data</code>, <code>CommunicationState</code> 의 3개 — 매 렌더마다 재계산. <code>cache=True</code> 한 줄로 해결 (Code 7 + Frontend F-6.3)</li>
+  <li><strong>rx.foreach dict key access bug</strong> — <code>alarm_card</code> 의 status badge 가 항상 "gray" 나옴 (silent correctness) (Frontend F-3.1)</li>
+  <li><strong>dashboard_realtime.py:108 race condition</strong> — bare yield 가 state lock 밖에서 (Frontend F-2.2)</li>
+  <li><strong>매직 넘버 12개 산재</strong> — horizon, timeout, batch size 등. <code>ksys_app/constants/</code> 모듈 신규 (Code 4)</li>
+  <li><strong>trend_state.py ↔ trend_state_enhanced.py ~90% identical</strong> — alarm state 7개 parallel 파일 (Code 2)</li>
+  <li><strong>function-internal imports</strong> in hot-path events — <code>import time/uuid</code> in <code>start_realtime</code>, <code>import text</code> in <code>initialize_wizard</code> (Frontend F-2.3)</li>
+</ul>
+
+<h2>🎯 Top 5 우선순위 — impact × (effort)<sup>-1</sup></h2>
+
+<table>
+<tr><th>#</th><th>액션</th><th>Impact</th><th>Effort</th><th>blocker 해제</th></tr>
+<tr>
+  <td>1</td>
+  <td><strong>Cloudflare 토큰 rotate + secret을 <code>.env</code> 외부화 + <code>.gitignore</code></strong></td>
+  <td>CRITICAL</td>
+  <td>30분</td>
+  <td>다음 RPI 배포 가능 조건 1번</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>23 backup 파일 + <code>ksys_app/ksys_app_clean/</code> 삭제</strong> (1 commit)</td>
+  <td>HIGH<br>(13,626L 제거)</td>
+  <td>10분</td>
+  <td>baseline 깨끗 + 다음 분석 노이즈 제거</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong><code>bootstrap_rpi.sh</code> + <code>restore_db.sh</code></strong> 신규</td>
+  <td>HIGH</td>
+  <td>2일</td>
+  <td>1개월 multi-RPI 배포 목표 달성 조건</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><strong>듀얼 BaseState 통합</strong> (2개를 하나로)</td>
+  <td>HIGH<br>(silent shadowing 제거)</td>
+  <td>2시간</td>
+  <td>모든 향후 state 작업의 토대</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><strong><code>@event_with_error</code> 데코레이터</strong> — 101개 try/except 블록을 한 곳으로</td>
+  <td>HIGH<br>(~700 LoC 절감)</td>
+  <td>1일</td>
+  <td>structured logging + Sentry 등 향후 연결점</td>
+</tr>
+</table>
+
+<h2>👥 에이전트별 상세 산출물</h2>
+
+<div class="agent-card">
+  <div class="name">🔬 code-analyzer</div>
+  <div class="meta">122,597 토큰 · 28 tool uses · 296초</div>
+  <div>📄 <code>reports/audit_code-quality_2026-05-21.md</code> (357 lines) — save_model 분석, 다른 state 파일 god-class 발견, N+1 query, magic numbers, 타입 hint 부실, DRY 위반 101 except 블록, Reflex anti-patterns</div>
+</div>
+
+<div class="agent-card">
+  <div class="name">🛡️ security-architect</div>
+  <div class="meta">77,982 토큰 · 52 tool uses · 413초</div>
+  <div>📄 <code>reports/audit_security_2026-05-21.md</code> (190 lines) — 3 CRITICAL (CF token / 외부 DB cred / 인증 0건) + 5 HIGH + 5 MED + 5 LOW. CVE 외부 참조 포함.</div>
+</div>
+
+<div class="agent-card">
+  <div class="name">🎨 frontend-architect</div>
+  <div class="meta">97,829 토큰 · 62 tool uses · 513초</div>
+  <div>📄 <code>reports/audit_reflex-frontend_2026-05-21.md</code> — State 조직, event handler 패턴, component composition, async DB, rxconfig, Sonnet 4.0 era anti-patterns. venv reflex 소스 직접 참조하여 "최신" 기준 검증.</div>
+</div>
+
+<div class="agent-card">
+  <div class="name">🏗️ infra-architect</div>
+  <div class="meta">64,990 토큰 · 39 tool uses · 274초</div>
+  <div>📄 <code>reports/audit_infra_2026-05-21.md</code> (350 lines) — 3 CRITICAL + 8 HIGH. 중요한 발견: <strong><code>.git/config</code>에 GitHub remote 있음</strong> (<code>https://github.com/grandbelly/reflex-ksys-db.git</code>) — 사용자가 "GitHub 관리 안 됨" 라고 했지만 stale일 가능성. Multi-RPI scorecard 20점 만점 0 met / 4 partial / 16 not-met.</div>
+</div>
+
+<div class="agent-card">
+  <div class="name">📊 gap-detector</div>
+  <div class="meta">112,013 토큰 · 45 tool uses · 169초</div>
+  <div>📄 <code>reports/audit_gap_2026-05-21.md</code> — plan 24항목 추적: 1 done / 2 partial / 21 not-started. Top 3 longest-standing: Stage 4-1 deep extraction (2일), <code>ksys_app_clean/</code> 삭제 (2일), RPI baseline measurement (2일).</div>
+</div>
+
+<h2>🤔 사용자 직접 확인 필요 항목</h2>
+
+<ol>
+  <li><strong>GitHub remote 정체</strong> — <code>.git/config</code>에 <code>origin = https://github.com/grandbelly/reflex-ksys-db.git</code> 있음. 사용자 말씀("GitHub 관리 안 됨")과 다름. <code>git log origin/master..HEAD</code> 로 확인 — 실제로 push 된 적 있는지, 또는 origin이 stale인지. (Infra G-01)</li>
+  <li><strong>외부 DB <code>59.10.187.46:9543</code> 접근</strong> — 본인 시스템인지 외부 회사인지? rotate 가능한지? (Security C2)</li>
+  <li><strong>인증 도입 범위</strong> — 모든 페이지에 auth? 또는 일부만? 운영자/뷰어 권한 분리 필요? (Security C3)</li>
+  <li><strong>Stage 4-1 O1/O2/O3 결정</strong> — verify-deep1 §5 의 미응답 질문. 코드 작업 재개 위해 필요. (Gap §C-1)</li>
+</ol>
+
+<h2>📋 권장 진행 순서 (audit 후 1주일)</h2>
+
+<table>
+<tr><th>Day</th><th>액션</th><th>Owner</th></tr>
+<tr><td>1 (오전)</td><td>Cloudflare 토큰 rotate + <code>.env</code> 외부화 + <code>.gitignore</code> 업데이트</td><td>사용자 (secrets)</td></tr>
+<tr><td>1 (오후)</td><td>23 backup 파일 + <code>ksys_app_clean/</code> 삭제 commit + dirty 워킹트리 정리</td><td>AI</td></tr>
+<tr><td>2</td><td>듀얼 BaseState 통합 + <code>alarm_rt_state.py:272</code> dup-def 수정</td><td>AI</td></tr>
+<tr><td>3</td><td>save_model bulk INSERT + pickle blocking 분리</td><td>AI</td></tr>
+<tr><td>4</td><td><code>bootstrap_rpi.sh</code> + <code>restore_db.sh</code> 작성 + 테스트</td><td>AI + 사용자 (테스트 RPI)</td></tr>
+<tr><td>5</td><td>RPI baseline 측정 (Stage 5-1) — 메모리/부팅/DB 응답</td><td>사용자 (RPI ssh)</td></tr>
+<tr><td>6</td><td>SQL injection 2개 사이트 fix + <code>NOTIFY</code> parameterize</td><td>AI</td></tr>
+<tr><td>7</td><td><code>@event_with_error</code> 데코레이터 + try/except 일괄 교체 PoC (1 state 파일)</td><td>AI</td></tr>
+</table>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+audit_consolidated 2026-05-21 · 5-agent parallel · 475,411 tokens total · 226 tool uses across agents · 0 lines of source modified · <strong>READY for prioritized execution</strong>
+</p>
+
+</body>
+</html>

@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_02_backend_states_services</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="backend-stateservice-layer-catalog-ksys-app">Backend State/Service Layer Catalog — KSYS App</h1>
+<blockquote>
+<p>Generated: 2026-05-28 | Source: ksys_app/states/, ksys_app/services/, ksys_app/ai_engine/, ksys_app/controllers/
+Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
+</blockquote>
+<hr />
+<h2 id="tldr-surface-area-summary">TL;DR — Surface Area Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th style="text-align: right;">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State classes (total)</td>
+<td style="text-align: right;">24</td>
+</tr>
+<tr>
+<td>State classes used by registered pages</td>
+<td style="text-align: right;">12</td>
+</tr>
+<tr>
+<td>Orphaned state classes (defined, no page reference)</td>
+<td style="text-align: right;">7</td>
+</tr>
+<tr>
+<td><code>@rx.event</code> handlers (all)</td>
+<td style="text-align: right;">201</td>
+</tr>
+<tr>
+<td><code>@rx.event(background=True)</code> handlers</td>
+<td style="text-align: right;">112</td>
+</tr>
+<tr>
+<td><code>@rx.var</code> computed properties</td>
+<td style="text-align: right;">268</td>
+</tr>
+<tr>
+<td>Service classes (<code>services/</code>)</td>
+<td style="text-align: right;">11</td>
+</tr>
+<tr>
+<td>AI engine modules (<code>ai_engine/</code>)</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr>
+<td>Controllers (<code>controllers/</code>)</td>
+<td style="text-align: right;">1 (dashboard_controller.py — DB connection wrapper only)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Top 5 pages by backend surface (event handlers + vars):</strong></p>
+<ol>
+<li><code>/training-wizard</code> — TrainingWizardState (extends TrainingState) — 17 events + 50+ vars</li>
+<li><code>/forecast</code> — ForecastPlayerState — 22 events + 57 vars</li>
+<li><code>/</code> (Dashboard) — DashboardState (1635 LOC) + DashboardRealtimeState — 44 events + 30 vars combined</li>
+<li><code>/trend</code> — TrendState — 17 events + 16 vars</li>
+<li><code>/alarms</code> — AlarmsState — 17 events + 19 vars</li>
+</ol>
+<hr />
+<h2 id="state-class-master-table">State Class Master Table</h2>
+<table>
+<thead>
+<tr>
+<th>State Class</th>
+<th>File</th>
+<th>Parent</th>
+<th style="text-align: right;">Vars (approx)</th>
+<th style="text-align: right;">@rx.event</th>
+<th style="text-align: right;">bg events</th>
+<th style="text-align: right;">@rx.var</th>
+<th>Used by page?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BaseState</code></td>
+<td>states/base_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td>(mixin only)</td>
+</tr>
+<tr>
+<td><code>DashboardRealtimeState</code></td>
+<td>states/dashboard_realtime.py</td>
+<td>BaseState</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">10</td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td><code>DashboardState</code></td>
+<td>states/dashboard/state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">50+</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">18</td>
+<td>(legacy components only — features_table, indicators_table)</td>
+</tr>
+<tr>
+<td><code>AlarmsState</code></td>
+<td>states/alarms.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">26</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">12</td>
+<td style="text-align: right;">19</td>
+<td><code>/alarms</code></td>
+</tr>
+<tr>
+<td><code>AlarmRTState</code></td>
+<td>states/alarm_rt_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">0</td>
+<td><code>/alarms_rt</code>, <code>/alarms_rt_new</code></td>
+</tr>
+<tr>
+<td><code>AlarmHistState</code></td>
+<td>states/alarm_hist_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">0</td>
+<td><code>/alarms_hist</code>, <code>/alarms_hist_new</code></td>
+</tr>
+<tr>
+<td><code>AlarmState</code></td>
+<td>states/alarm_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">0</td>
+<td>ORPHAN (referenced only as docstring in stat_card.py)</td>
+</tr>
+<tr>
+<td><code>AlarmsEnhancedState</code></td>
+<td>states/alarms_enhanced.py</td>
+<td>TagHierarchyState</td>
+<td style="text-align: right;">~25</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">3</td>
+<td style="text-align: right;">8</td>
+<td>ORPHAN (not imported by any page)</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState</code></td>
+<td>states/scada_alarm_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~12</td>
+<td style="text-align: right;">0 (only <code>def</code>)</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td><code>/scada-alarms</code></td>
+</tr>
+<tr>
+<td><code>ScadaAlarmComparisonState</code></td>
+<td>states/scada_alarm_comparison_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~10</td>
+<td style="text-align: right;">0 (only <code>def</code>)</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0</td>
+<td><code>/scada-alarm-comparison</code></td>
+</tr>
+<tr>
+<td><code>CommunicationState</code></td>
+<td>states/communication_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">15</td>
+<td><code>/comm</code></td>
+</tr>
+<tr>
+<td><code>TrendState</code></td>
+<td>states/trend_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~30</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">16</td>
+<td><code>/trend</code> (alias <code>T</code>)</td>
+</tr>
+<tr>
+<td><code>TrendStateEnhanced</code></td>
+<td>states/trend_state_enhanced.py</td>
+<td>TagHierarchyState</td>
+<td style="text-align: right;">~30</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">8</td>
+<td style="text-align: right;">17</td>
+<td>ORPHAN (not imported by any page)</td>
+</tr>
+<tr>
+<td><code>TrainingState</code></td>
+<td>states/training_state/state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~40</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">5</td>
+<td>(used as base for TrainingWizardState only)</td>
+</tr>
+<tr>
+<td><code>TrainingWizardState</code></td>
+<td>states/training_wizard_state.py</td>
+<td>TrainingState</td>
+<td style="text-align: right;">~10 + inherited</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">37</td>
+<td><code>/training-wizard</code></td>
+</tr>
+<tr>
+<td><code>TrainingWizardStateEnhanced</code></td>
+<td>states/training_wizard_state_enhanced.py</td>
+<td>TrainingWizardState, TagHierarchyState</td>
+<td style="text-align: right;">~5</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">5</td>
+<td>ORPHAN (not imported by any page)</td>
+</tr>
+<tr>
+<td><code>ForecastPlayerState</code></td>
+<td>states/forecast_player_state/state.py</td>
+<td>BaseState</td>
+<td style="text-align: right;">~40</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">9</td>
+<td style="text-align: right;">57</td>
+<td><code>/forecast</code> (alias <code>FPS</code>)</td>
+</tr>
+<tr>
+<td><code>ModelPerformanceState</code></td>
+<td>states/model_performance_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~25</td>
+<td style="text-align: right;">11</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">16</td>
+<td><code>/model-performance</code> (alias <code>M</code>)</td>
+</tr>
+<tr>
+<td><code>ModelConfigState</code></td>
+<td>states/model_config_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~15</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0</td>
+<td>ORPHAN (not imported by any page)</td>
+</tr>
+<tr>
+<td><code>ViewerTagState</code></td>
+<td>states/viewer_tag_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~10</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">0</td>
+<td><code>/viewer-tag</code></td>
+</tr>
+<tr>
+<td><code>AIState</code></td>
+<td>states/ai_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~10</td>
+<td style="text-align: right;">7</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">32</td>
+<td><code>/ai</code> (UNREGISTERED page — frontend orphan)</td>
+</tr>
+<tr>
+<td><code>SchedulerState</code></td>
+<td>states/scheduler_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~5</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0</td>
+<td>(loaded from <code>ksys_app.py</code>, no page UI)</td>
+</tr>
+<tr>
+<td><code>SyncMonitorState</code></td>
+<td>states/sync_monitor_state.py</td>
+<td>rx.State</td>
+<td style="text-align: right;">~10</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">0</td>
+<td>ORPHAN</td>
+</tr>
+<tr>
+<td><code>TagHierarchyState</code></td>
+<td>states/tag_hierarchy_state.py</td>
+<td>BaseState</td>
+<td style="text-align: right;">~10</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">6</td>
+<td>(mixin for Enhanced* states)</td>
+</tr>
+<tr>
+<td><code>DashboardRealtimeGroupedState</code></td>
+<td>states/dashboard_realtime_grouped.py</td>
+<td>TagHierarchyState</td>
+<td style="text-align: right;">~15</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">7</td>
+<td>ORPHAN (not imported by any page)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Orphan list (defined but no page uses them):</strong>
+1. <code>AlarmState</code> (states/alarm_state.py) — legacy AI/rule unified alarm state, superseded by <code>AlarmsState</code>
+2. <code>AlarmsEnhancedState</code> (states/alarms_enhanced.py) — TagHierarchy-aware version of AlarmsState
+3. <code>TrendStateEnhanced</code> (states/trend_state_enhanced.py) — TagHierarchy-aware Trend state
+4. <code>TrainingWizardStateEnhanced</code> (states/training_wizard_state_enhanced.py)
+5. <code>DashboardRealtimeGroupedState</code> (states/dashboard_realtime_grouped.py)
+6. <code>ModelConfigState</code> (states/model_config_state.py)
+7. <code>SyncMonitorState</code> (states/sync_monitor_state.py)</p>
+<p>The 5 <code>*Enhanced</code> / <code>*Grouped</code> orphans appear to be in-progress UX refactors. <code>ModelConfigState</code> and <code>SyncMonitorState</code> lack any page binding; treat as dead code unless a new page is planned.</p>
+<hr />
+<h2 id="cross-state-inheritance-graph">Cross-State Inheritance Graph</h2>
+<pre><code>rx.State
+  ├── BaseState (base_state.py)
+  │     ├── DashboardRealtimeState
+  │     ├── ForecastPlayerState
+  │     └── TagHierarchyState
+  │           ├── DashboardRealtimeGroupedState   [orphan]
+  │           ├── AlarmsEnhancedState              [orphan]
+  │           ├── TrendStateEnhanced               [orphan]
+  │           └── TrainingWizardStateEnhanced (multi-inherits TrainingWizardState too) [orphan]
+  │
+  ├── TrainingState
+  │     └── TrainingWizardState
+  │           └── TrainingWizardStateEnhanced [orphan]
+  │
+  ├── AlarmsState
+  ├── AlarmState (legacy)         [orphan]
+  ├── AlarmRTState
+  ├── AlarmHistState
+  ├── AIState                     [orphan via page — page /ai not registered]
+  ├── CommunicationState
+  ├── ScadaAlarmState
+  ├── ScadaAlarmComparisonState
+  ├── TrendState
+  ├── ModelConfigState            [orphan]
+  ├── ModelPerformanceState
+  ├── SchedulerState              (singleton, used in startup hook in ksys_app.py:204)
+  ├── SyncMonitorState            [orphan]
+  ├── DashboardState (states/dashboard/state.py — legacy giant)
+  └── ViewerTagState
+</code></pre>
+<hr />
+<h1 id="per-domain-catalog">Per-Domain Catalog</h1>
+<h2 id="domain-mapping">Domain Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>State files</th>
+<th>Service files</th>
+<th>ai_engine files</th>
+<th>Key event handlers (test priority high)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alarm</td>
+<td>alarms.py, alarm_rt_state.py, alarm_hist_state.py, alarm_state.py [orphan], alarms_enhanced.py [orphan], scada_alarm_state.py, scada_alarm_comparison_state.py</td>
+<td>alarm_service.py</td>
+<td>(none)</td>
+<td><code>acknowledge_alarm</code>, <code>acknowledge_selected</code>, <code>set_severity_filter</code>, <code>cleanup_old_alarms</code></td>
+</tr>
+<tr>
+<td>Dashboard / Sensor</td>
+<td>dashboard_realtime.py, dashboard/state.py, dashboard_realtime_grouped.py [orphan]</td>
+<td>sensor_service.py</td>
+<td>(none)</td>
+<td><code>save_sensor_info</code> (DB write), <code>start_streaming</code>, <code>_fetch_data</code></td>
+</tr>
+<tr>
+<td>Forecast / Prediction</td>
+<td>forecast_player_state/state.py</td>
+<td>forecast_service.py</td>
+<td>(none)</td>
+<td><code>trigger_forecast_now</code>, <code>deploy_model</code>, <code>load_predictions</code>, <code>start_streaming</code></td>
+</tr>
+<tr>
+<td>Training (offline ML)</td>
+<td>training_state/state.py, training_wizard_state.py, training_wizard_state_enhanced.py [orphan]</td>
+<td>feature_config_service.py, feature_config_service_v2.py, feature_config_service_final.py, feature_engineering_service.py, model_config_service.py</td>
+<td>(none)</td>
+<td><code>start_training</code>, <code>save_model</code>, <code>create_feature_config</code></td>
+</tr>
+<tr>
+<td>Communication</td>
+<td>communication_state.py</td>
+<td>communication_service.py</td>
+<td>(none)</td>
+<td><code>load_data</code>, <code>refresh_data</code></td>
+</tr>
+<tr>
+<td>Trend</td>
+<td>trend_state.py, trend_state_enhanced.py [orphan]</td>
+<td>trend_service.py</td>
+<td>(none)</td>
+<td><code>load_series_data</code>, <code>export_csv_all</code>, <code>export_csv_page</code></td>
+</tr>
+<tr>
+<td>Model Performance / Deploy</td>
+<td>model_performance_state.py, model_config_state.py [orphan]</td>
+<td>model_config_service.py</td>
+<td>(none)</td>
+<td><code>deploy_model</code>, <code>delete_model</code>, <code>undeploy_model</code></td>
+</tr>
+<tr>
+<td>AI / RAG</td>
+<td>ai_state.py</td>
+<td>ai_service.py</td>
+<td>rag_engine.py, rag_engine_pgvector.py, graph_rag_engine.py, dynamic_rag_engine.py, llamaindex_rag_engine.py, knowledge_<em>.py, pandas_analysis_engine.py, response_validator.py, hallucination_prevention.py, audit_agent_system.py, agent_orchestrator.py, five_w1h_agent.py, w5h1_</em>.py, real_data_audit_system.py, visualization_generator.py</td>
+<td><code>send_message</code>, <code>search_knowledge</code>, <code>refresh_insights</code> (NOTE: page unregistered)</td>
+</tr>
+<tr>
+<td>Scheduler / Sync</td>
+<td>scheduler_state.py, sync_monitor_state.py [orphan]</td>
+<td>(none)</td>
+<td>(none)</td>
+<td><code>start_schedulers</code> (called on app startup), <code>sync_tags</code>, <code>sync_realtime</code></td>
+</tr>
+<tr>
+<td>Tag admin</td>
+<td>viewer_tag_state.py, tag_hierarchy_state.py</td>
+<td>(none — direct DB)</td>
+<td>(none)</td>
+<td><code>toggle_dashboard</code>, <code>toggle_alarm</code>, <code>toggle_trend</code>, <code>toggle_model</code>, <code>add_tag</code>, <code>delete_tag</code>, <code>update_order</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-alarm-domain">1. ALARM DOMAIN</h2>
+<h3 id="alarmsstate-statesalarmspy-alarms-page"><code>AlarmsState</code> (states/alarms.py) — <code>/alarms</code> page</h3>
+<p>Parent: <code>rx.State</code>. 17 events (12 bg), 19 vars. Uses <code>AlarmService</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Line</th>
+<th>Type</th>
+<th>Purpose</th>
+<th>DB / Service</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>filtered_alarms</code></td>
+<td>67</td>
+<td>@rx.var(cache=True)</td>
+<td>filter+search alarms list</td>
+<td>(in-memory)</td>
+</tr>
+<tr>
+<td><code>paginated_alarms</code></td>
+<td>105</td>
+<td>@rx.var</td>
+<td>slice for current page</td>
+<td>(in-memory)</td>
+</tr>
+<tr>
+<td><code>active_alarms</code></td>
+<td>112</td>
+<td>@rx.var</td>
+<td>filter to unacknowledged</td>
+<td>(in-memory)</td>
+</tr>
+<tr>
+<td><code>history_alarms</code></td>
+<td>118</td>
+<td>@rx.var</td>
+<td>filter to acknowledged</td>
+<td>(in-memory)</td>
+</tr>
+<tr>
+<td><code>active_count</code>/<code>history_count</code>/<code>active_total_pages</code>/<code>history_total_pages</code>/<code>total_pages</code>/<code>filtered_count</code>/<code>page_info</code>/<code>has_prev_page</code>/<code>has_next_page</code>/<code>selected_count</code>/<code>total_display</code>/<code>critical_display</code>/<code>warning_display</code>/<code>info_display</code>/<code>unacked_display</code></td>
+<td>122-209</td>
+<td>@rx.var</td>
+<td>stats/pagination</td>
+<td>(in-memory)</td>
+</tr>
+<tr>
+<td><code>initialize</code></td>
+<td>212</td>
+<td>@rx.event(bg)</td>
+<td>initial load on page mount</td>
+<td>AlarmService.get_rule_based_alarms</td>
+</tr>
+<tr>
+<td><code>_fetch_data</code></td>
+<td>239</td>
+<td>private async</td>
+<td>fetch+statistics</td>
+<td>AlarmService</td>
+</tr>
+<tr>
+<td><code>load_sensor_status</code></td>
+<td>319</td>
+<td>@rx.event(bg)</td>
+<td>load sensor cards</td>
+<td>SensorService</td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td>397</td>
+<td>@rx.event(bg)</td>
+<td>reload alarm + sensors</td>
+<td>AlarmService + SensorService</td>
+</tr>
+<tr>
+<td><code>set_hours_filter</code></td>
+<td>418</td>
+<td>@rx.event(bg)</td>
+<td>change time range, reload</td>
+<td>AlarmService</td>
+</tr>
+<tr>
+<td><code>toggle_show_acknowledged</code></td>
+<td>432</td>
+<td>@rx.event</td>
+<td>bool toggle</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_search_query</code></td>
+<td>440</td>
+<td>@rx.event(bg)</td>
+<td>apply search filter</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_severity_filter</code></td>
+<td>457</td>
+<td>@rx.event(bg)</td>
+<td>apply severity filter</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_status_filter</code></td>
+<td>470</td>
+<td>@rx.event(bg)</td>
+<td>apply status filter</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_view_mode</code></td>
+<td>483</td>
+<td>@rx.event(bg)</td>
+<td>active</td>
+<td>history toggle</td>
+</tr>
+<tr>
+<td><code>set_page</code>/<code>next_page</code>/<code>prev_page</code></td>
+<td>496-515</td>
+<td>@rx.event/(bg)</td>
+<td>pagination</td>
+<td></td>
+</tr>
+<tr>
+<td><code>toggle_alarm_selection</code>/<code>select_all_visible</code>/<code>clear_selection</code></td>
+<td>534-549</td>
+<td>@rx.event</td>
+<td>selection mgmt</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>acknowledge_selected</code></strong></td>
+<td>555</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> — bulk ack</td>
+<td>AlarmService.acknowledge_alarm × N</td>
+</tr>
+<tr>
+<td><strong><code>acknowledge_alarm</code></strong></td>
+<td>588</td>
+<td>@rx.event(bg) + <code>@event_with_error</code> decorator</td>
+<td><strong>DB write</strong></td>
+<td>AlarmService.acknowledge_alarm</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alarmrtstate-statesalarm_rt_statepy-alarms_rt-alarms_rt_new"><code>AlarmRTState</code> (states/alarm_rt_state.py) — <code>/alarms_rt</code>, <code>/alarms_rt_new</code></h3>
+<p>Parent: <code>rx.State</code>. 7 events (7 bg). Direct raw SQL via <code>..db.q</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Line</th>
+<th>Type</th>
+<th>Purpose</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>on_load</code></td>
+<td>49</td>
+<td>def</td>
+<td>mount hook</td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_all_data</code></td>
+<td>54</td>
+<td>@rx.event(bg)</td>
+<td>aggregate load</td>
+<td>influx_latest, influx_qc_rule, alarm_events</td>
+</tr>
+<tr>
+<td><code>load_sensor_status</code></td>
+<td>60</td>
+<td>@rx.event(bg)</td>
+<td>per-sensor stat</td>
+<td>influx_latest + qc rule</td>
+</tr>
+<tr>
+<td><code>refresh_realtime</code></td>
+<td>137</td>
+<td>@rx.event(bg)</td>
+<td>refresh</td>
+<td>(same)</td>
+</tr>
+<tr>
+<td><code>set_filter</code>/<code>set_scenario_filter</code></td>
+<td>214,219</td>
+<td>def</td>
+<td>filter</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>acknowledge_alarm</code></strong></td>
+<td>225</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong></td>
+<td>alarm_events UPDATE</td>
+</tr>
+<tr>
+<td><strong><code>acknowledge_all</code></strong></td>
+<td>241</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write — bulk</strong></td>
+<td>alarm_events UPDATE</td>
+</tr>
+<tr>
+<td><strong><code>cleanup_old_alarms</code></strong></td>
+<td>256</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB delete/archive</strong></td>
+<td>alarm_events DELETE</td>
+</tr>
+<tr>
+<td><code>toggle_auto_refresh</code></td>
+<td>271</td>
+<td>def</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>start_auto_refresh</code></td>
+<td>278</td>
+<td>@rx.event(bg)</td>
+<td>polling loop</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="alarmhiststate-statesalarm_hist_statepy-alarms_hist-alarms_hist_new"><code>AlarmHistState</code> (states/alarm_hist_state.py) — <code>/alarms_hist</code>, <code>/alarms_hist_new</code></h3>
+<p>Parent: <code>rx.State</code>. 9 events (3 bg), 0 vars. Raw SQL via <code>..db.q, execute_query</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Line</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set_date_range</code>/<code>toggle_critical</code>/<code>toggle_warning</code>/<code>toggle_info</code>/<code>next_page</code>/<code>prev_page</code></td>
+<td>62-94</td>
+<td>@rx.event</td>
+<td>filter/paginate</td>
+</tr>
+<tr>
+<td><code>search_alarms</code></td>
+<td>82</td>
+<td>@rx.event(bg)</td>
+<td>search</td>
+</tr>
+<tr>
+<td><code>on_load</code></td>
+<td>100</td>
+<td>@rx.event(bg)</td>
+<td>page mount</td>
+</tr>
+<tr>
+<td><code>fetch_history</code></td>
+<td>120</td>
+<td>@rx.event(bg)</td>
+<td>DB read — alarm_events history with dynamic WHERE</td>
+</tr>
+<tr>
+<td><code>_fetch_statistics</code></td>
+<td>215</td>
+<td>private async</td>
+<td>stats with SQL params</td>
+</tr>
+<tr>
+<td><code>set_start_date</code>/<code>set_end_date</code>/<code>set_quick_range</code>/<code>set_sensor_filter</code>/<code>set_scenario_filter</code>/<code>set_level_filter</code>/<code>toggle_unresolved</code>/<code>reset_filters</code>/<code>next_page</code>/<code>prev_page</code>/<code>set_page_size</code></td>
+<td>250-322</td>
+<td>def</td>
+<td>filter setters</td>
+</tr>
+<tr>
+<td><strong><code>export_excel</code></strong></td>
+<td>328</td>
+<td>async def</td>
+<td><strong>file write</strong> (Excel export)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="alarmstate-statesalarm_statepy-orphan"><code>AlarmState</code> (states/alarm_state.py) — <strong>ORPHAN</strong></h3>
+<p>Legacy unified rule+AI alarm state. 10 events (5 bg). Has DB write methods (<code>create_alarm_event</code>, <code>_save_alarm_vector</code>) and vector search. Document but skip for testing unless revived.</p>
+<h3 id="scadaalarmstate-statesscada_alarm_statepy-scada-alarms"><code>ScadaAlarmState</code> (states/scada_alarm_state.py) — <code>/scada-alarms</code></h3>
+<p>Parent: <code>rx.State</code>. NO <code>@rx.event</code> decorators — uses plain <code>async def</code> methods triggered via on_mount/on_change. Implements Postgres LISTEN/NOTIFY for streaming alarms.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize</code></td>
+<td>69</td>
+<td>mount hook</td>
+</tr>
+<tr>
+<td><code>load_alarm_logs</code></td>
+<td>74</td>
+<td>DB read — <code>scada_alarm_log</code> table</td>
+</tr>
+<tr>
+<td><code>_update_statistics</code></td>
+<td>110</td>
+<td>aggregate counts</td>
+</tr>
+<tr>
+<td><code>apply_filters</code></td>
+<td>174</td>
+<td>client-side filter</td>
+</tr>
+<tr>
+<td><code>toggle_streaming</code>/<code>start_streaming</code>/<code>stop_streaming</code></td>
+<td>208-251</td>
+<td>LISTEN/NOTIFY control</td>
+</tr>
+<tr>
+<td><code>_keep_listening</code></td>
+<td>251</td>
+<td><strong>background task</strong> — long-running NOTIFY listener</td>
+</tr>
+<tr>
+<td><code>_handle_notification</code></td>
+<td>262</td>
+<td>NOTIFY callback</td>
+</tr>
+<tr>
+<td><code>cleanup</code></td>
+<td>292</td>
+<td>task cancellation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scadaalarmcomparisonstate-statesscada_alarm_comparison_statepy-scada-alarm-comparison"><code>ScadaAlarmComparisonState</code> (states/scada_alarm_comparison_state.py) — <code>/scada-alarm-comparison</code></h3>
+<p>Parent: <code>rx.State</code>. 0 <code>@rx.event</code> decorators. Compares rule-based vs AI-based alarms.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize</code>/<code>load_comparison_data</code>/<code>_calculate_statistics</code>/<code>generate_test_data</code></td>
+<td>26-151</td>
+<td>comparison + test seed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-dashboard-sensor-domain">2. DASHBOARD / SENSOR DOMAIN</h2>
+<h3 id="dashboardrealtimestate-statesdashboard_realtimepy"><code>DashboardRealtimeState</code> (states/dashboard_realtime.py) — <code>/</code></h3>
+<p>Parent: <code>BaseState</code>. 4 events (4 bg), 10 vars. Uses <code>SensorService</code> + raw ORM <code>ModelRegistry</code>/<code>Prediction</code> queries.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Line</th>
+<th>Type</th>
+<th>Purpose</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_streaming</code></td>
+<td>69</td>
+<td>@rx.event(bg)</td>
+<td>long-running streaming loop</td>
+<td>SensorService</td>
+</tr>
+<tr>
+<td><code>stop_streaming</code></td>
+<td>119</td>
+<td>async def</td>
+<td>stop loop</td>
+<td></td>
+</tr>
+<tr>
+<td><code>_fetch_data</code></td>
+<td>130</td>
+<td>private async</td>
+<td>data fetch</td>
+<td>sensor + qc + statistics</td>
+</tr>
+<tr>
+<td><code>_fetch_forecast_data</code></td>
+<td>308</td>
+<td>private async</td>
+<td>forecast overlay</td>
+<td>ModelRegistry, Prediction (ORM)</td>
+</tr>
+<tr>
+<td><code>total_sensors</code>/<code>system_status</code>/<code>status_color</code>/<code>is_loading</code>/<code>formatted_sensors</code>/<code>critical_percentage_display</code>/<code>avg_deviation_display</code>/<code>max_alarm_display</code>/<code>warning_percentage</code>/<code>normal_percentage</code></td>
+<td>362-438</td>
+<td>@rx.var</td>
+<td>UI labels</td>
+<td></td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td>441</td>
+<td>@rx.event(bg)</td>
+<td>impl of BaseState abstract</td>
+<td></td>
+</tr>
+<tr>
+<td><code>open_edit_dialog</code>/<code>close_edit_dialog</code>/<code>update_min_val</code>/<code>update_max_val</code>/<code>update_warning_low</code>/<code>update_warning_high</code>/<code>update_critical_low</code>/<code>update_critical_high</code></td>
+<td>452-509</td>
+<td>def</td>
+<td>edit dialog</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>save_sensor_info</code></strong></td>
+<td>513</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> — influx_qc_rule update</td>
+<td>SensorService.update_sensor_metadata</td>
+</tr>
+<tr>
+<td><code>open_chart_dialog</code>/<code>load_chart_data</code>/<code>close_chart_dialog</code></td>
+<td>556-593</td>
+<td>def/@rx.event(bg)</td>
+<td>full-screen chart</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="dashboardstate-statesdashboardstatepy-legacy-1635-loc"><code>DashboardState</code> (states/dashboard/state.py) — <em>legacy, 1635 LOC</em></h3>
+<p>Parent: <code>rx.State</code>. 40 events (4 bg), 18 vars. Only <code>components/features_table.py</code> and <code>components/indicators_table.py</code> import it (alias <code>D</code>). Not referenced from any page directly — likely deprecated by <code>DashboardRealtimeState</code>. Contains massive amount of chart toggle handlers (set_show_avg/min/max/etc. × dozens).</p>
+<p>Selected high-priority handlers:
+- <code>load</code> (230) — bg event, initial data fetch
+- <code>start_realtime</code> (1132) — bg streaming loop
+- <code>update_realtime_data</code> (1206) — bg
+- <code>start_auto</code> (1084) — bg auto-refresh
+- 30+ chart toggle handlers (set_show_<em>, toggle_</em>) — mostly trivial setters</p>
+<h3 id="dashboardrealtimegroupedstate-statesdashboard_realtime_groupedpy-orphan"><code>DashboardRealtimeGroupedState</code> (states/dashboard_realtime_grouped.py) — <strong>ORPHAN</strong></h3>
+<p>TagHierarchy-aware grouped dashboard. 1 bg event (<code>start_streaming_grouped</code>), 7 vars.</p>
+<hr />
+<h2 id="3-forecast-domain">3. FORECAST DOMAIN</h2>
+<h3 id="forecastplayerstate-statesforecast_player_statestatepy-forecast"><code>ForecastPlayerState</code> (states/forecast_player_state/state.py) — <code>/forecast</code></h3>
+<p>Parent: <code>BaseState</code>. 9 events (9 bg), 57 vars. Uses <code>ForecastService</code>.</p>
+<p>Background events (high-priority for testing):</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>DB / Side effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_deployed_models</code></td>
+<td>933</td>
+<td>load deployed model list</td>
+<td>ForecastService.get_deployed_models</td>
+</tr>
+<tr>
+<td><code>_load_playlist_internal</code></td>
+<td>991</td>
+<td>playlist data</td>
+<td>ForecastService</td>
+</tr>
+<tr>
+<td><code>_load_predictions_internal</code></td>
+<td>1077</td>
+<td>predictions data</td>
+<td>ForecastService.get_predictions</td>
+</tr>
+<tr>
+<td><code>load_predictions</code></td>
+<td>1240</td>
+<td>bg wrapper</td>
+<td></td>
+</tr>
+<tr>
+<td><code>start_streaming</code></td>
+<td>1247</td>
+<td>10-min countdown streaming loop</td>
+<td>(long-running)</td>
+</tr>
+<tr>
+<td><code>load_forecast_steps</code></td>
+<td>1344</td>
+<td>step navigation data</td>
+<td>ForecastService.get_forecast_steps</td>
+</tr>
+<tr>
+<td><code>_load_step_data_internal</code></td>
+<td>1377</td>
+<td>per-step data</td>
+<td>ForecastService.get_step_data</td>
+</tr>
+<tr>
+<td><code>go_to_step</code></td>
+<td>1422</td>
+<td>navigate to step</td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_initial_data</code></td>
+<td>1475</td>
+<td>mount hook</td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_selected_model_forecast</code></td>
+<td>1484</td>
+<td>per-model</td>
+<td>ForecastService</td>
+</tr>
+<tr>
+<td><strong><code>trigger_forecast_now</code></strong></td>
+<td>1499</td>
+<td><strong>DB write / side effect</strong> — manual forecast run</td>
+<td>ForecastService + scheduler</td>
+</tr>
+<tr>
+<td><code>start_countdown_monitor</code></td>
+<td>1566</td>
+<td>bg countdown</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Non-bg handlers: <code>select_model</code> (973), <code>stop_streaming</code> (1320), <code>toggle_playlist</code> (1325), <code>toggle_y_axis_scale</code> (1330), <code>select_from_playlist</code> (1335), step nav (1438-1453), <code>switch_to_playback_mode</code>/<code>switch_to_realtime_mode</code> (1458-1465), <code>set_selected_model_id</code> (1479), scheduler control (1553-1559).</p>
+<p>57 <code>@rx.var</code> for chart data, table rows, countdown display, MAPE/R²/accuracy formatting (lines 75-916). All UI formatters, no DB.</p>
+<hr />
+<h2 id="4-training-domain">4. TRAINING DOMAIN</h2>
+<h3 id="trainingstate-statestraining_statestatepy-base-for-wizard"><code>TrainingState</code> (states/training_state/state.py) — base for wizard</h3>
+<p>Parent: <code>rx.State</code>. 7 events (7 bg), 5 vars. Uses <code>FeatureConfigService</code>. Has module-level cache in <code>states/training_state/cache.py</code> (<code>_training_cache</code>).</p>
+<p>Background events:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>DB / Side effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize</code></td>
+<td>120</td>
+<td>mount hook</td>
+<td>FeatureConfigService.list_configs</td>
+</tr>
+<tr>
+<td><code>filter_configs_for_tag</code></td>
+<td>156</td>
+<td>filter for tag</td>
+<td></td>
+</tr>
+<tr>
+<td><code>load_feature_config</code></td>
+<td>191</td>
+<td>load config</td>
+<td>FeatureConfigService.get_complete_config</td>
+</tr>
+<tr>
+<td><code>set_new_config_name</code></td>
+<td>253</td>
+<td>name validation</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>create_feature_config</code></strong></td>
+<td>303</td>
+<td><strong>DB write</strong></td>
+<td>FeatureConfigService.create_feature_config + add_lag/rolling/temporal</td>
+</tr>
+<tr>
+<td><strong><code>start_training</code></strong></td>
+<td>364</td>
+<td><strong>long-running ML training</strong> — fits model, evaluates, caches result</td>
+<td>(no DB write itself — caches via <code>_cache_training_result</code>)</td>
+</tr>
+<tr>
+<td><strong><code>save_model</code></strong></td>
+<td>713</td>
+<td><strong>DB write</strong> — persists trained model + predictions</td>
+<td>model_registry + predictions tables</td>
+</tr>
+</tbody>
+</table>
+<p>Non-bg async: <code>set_selected_model</code> (172), <code>toggle_skip_features</code> (220), <code>toggle_feature_creator</code> (229), <code>toggle_rolling_feature</code> (288), <code>toggle_temporal_feature</code> (295), <code>reset_form</code> (1040), 6 parameter setters (1051-1089).</p>
+<p>Computed vars: <code>horizons</code>, <code>forecast_summary</code>, <code>residuals_stats</code>, <code>config_name_validation_message</code>, <code>can_create_config</code>.</p>
+<h3 id="trainingwizardstate-statestraining_wizard_statepy-training-wizard"><code>TrainingWizardState</code> (states/training_wizard_state.py) — <code>/training-wizard</code></h3>
+<p>Parent: <code>TrainingState</code>. 2 events (2 bg), 37 vars (mostly display formatters).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>can_proceed</code></td>
+<td>21</td>
+<td>@rx.var — step gate logic</td>
+</tr>
+<tr>
+<td><code>validation_feasibility</code></td>
+<td>36</td>
+<td>@rx.var — walk-forward CV feasibility check</td>
+</tr>
+<tr>
+<td><code>next_step</code>/<code>previous_step</code></td>
+<td>130-139</td>
+<td>wizard nav</td>
+</tr>
+<tr>
+<td><code>initialize_wizard</code></td>
+<td>149</td>
+<td>@rx.event(bg) — mount hook</td>
+</tr>
+<tr>
+<td><code>open_forecast_dialog</code>/<code>close_forecast_dialog</code></td>
+<td>196-200</td>
+<td>dialog</td>
+</tr>
+<tr>
+<td><code>reset_wizard</code></td>
+<td>204</td>
+<td>reset</td>
+</tr>
+<tr>
+<td><code>start_wizard_training</code></td>
+<td>224</td>
+<td>wrapper → super().start_training</td>
+</tr>
+<tr>
+<td><code>monitor_training_completion</code></td>
+<td>230</td>
+<td>@rx.event(bg) — polling</td>
+</tr>
+<tr>
+<td><code>navigate_to_performance</code></td>
+<td>639</td>
+<td>redirect</td>
+</tr>
+</tbody>
+</table>
+<p>Computed vars cover: raw/processed sample counts, feature counts, ARIMA params (AIC/BIC/AICC), residual stats (mean/std/skew/kurtosis), evaluation metrics (MAE/MAPE/RMSE/SMAPE/MASE), walk-forward stats, chart data (forecast/validation/ACF/PACF/QQ/histogram), table data, model_saved flag.</p>
+<h3 id="trainingwizardstateenhanced-statestraining_wizard_state_enhancedpy-orphan"><code>TrainingWizardStateEnhanced</code> (states/training_wizard_state_enhanced.py) — <strong>ORPHAN</strong></h3>
+<p>Multi-inheritance: <code>TrainingWizardState, TagHierarchyState</code>. Adds tag hierarchy filtering. 6 events (1 bg), 5 vars. Not bound to any page.</p>
+<hr />
+<h2 id="5-communication-domain">5. COMMUNICATION DOMAIN</h2>
+<h3 id="communicationstate-statescommunication_statepy-comm"><code>CommunicationState</code> (states/communication_state.py) — <code>/comm</code></h3>
+<p>Parent: <code>rx.State</code>. 4 events (4 bg), 15 vars. Uses <code>CommunicationService</code> + pandas.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_data</code></td>
+<td>352</td>
+<td>@rx.event(bg)</td>
+<td>CommunicationService.get_hourly_stats + get_daily_stats</td>
+</tr>
+<tr>
+<td><code>initialize</code></td>
+<td>357</td>
+<td>mount hook</td>
+<td>CommunicationService.get_available_tags + load_data</td>
+</tr>
+<tr>
+<td><code>_fetch_data</code></td>
+<td>388</td>
+<td>private</td>
+<td>hourly/daily/summary</td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td>443</td>
+<td>@rx.event(bg)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_selected_tag</code></td>
+<td>479</td>
+<td>@rx.event(bg) — change tag, reload</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_selected_days_str</code></td>
+<td>486</td>
+<td>def</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>15 <code>@rx.var</code> compute: <code>selected_days_str</code>, <code>chart_height</code>, <code>active_hours_str</code>, <code>total_hours_str</code>, <code>overall_success_rate</code> (capped at 100%, recent fix 2025-11-26), <code>total_records</code>, <code>expected_records</code>, <code>heatmap_matrix</code> (lines 104-158, complex aggregation), <code>hour_labels</code>, <code>date_labels</code>, <code>heatmap_dates</code>, <code>daily_chart_data</code>, <code>hourly_data</code>, <code>hourly_pattern_stats</code>, <code>anomaly_detection</code>.</p>
+<hr />
+<h2 id="6-trend-domain">6. TREND DOMAIN</h2>
+<h3 id="trendstate-statestrend_statepy-trend"><code>TrendState</code> (states/trend_state.py) — <code>/trend</code></h3>
+<p>Parent: <code>rx.State</code>. 17 events (7 bg), 16 vars. Uses <code>TrendService</code>.</p>
+<p>Background events: <code>load</code> (58), <code>load_series_data</code> (96), <code>set_tag_select</code> (145), <code>set_aggregation_view</code> (152), <code>set_time_range</code> (171), <code>toggle_auto_refresh</code> (223), <code>auto_refresh_loop</code> (232).</p>
+<p>Non-bg: <code>set_chart_mode</code> (191), <code>set_trend_selected</code> (199), <code>toggle_auto_scale</code> (208), <code>toggle_trend_composed_item</code> (213), pagination (<code>next_page</code>/<code>prev_page</code>/<code>set_page</code>/<code>set_page_size</code> 246-265).</p>
+<p><strong>Side-effect events:</strong>
+- <code>export_csv_all</code> (271) — <strong>file write</strong> (CSV download)
+- <code>export_csv_page</code> (304) — <strong>file write</strong></p>
+<p>Helpers: <code>_parse_time_range</code> (591), <code>_get_aggregation_table</code> (610), <code>_get_time_range_options</code> (628).</p>
+<p>16 <code>@rx.var</code> for chart series, pagination, time labels, Y-axis domain, completeness/missing/average stats.</p>
+<h3 id="trendstateenhanced-statestrend_state_enhancedpy-orphan"><code>TrendStateEnhanced</code> (states/trend_state_enhanced.py) — <strong>ORPHAN</strong></h3>
+<p>TagHierarchy-aware (multi-tag selection). 18 events (8 bg), 17 vars. Same shape as TrendState plus <code>on_tag_selected</code>/<code>on_tag_removed</code> handlers.</p>
+<hr />
+<h2 id="7-model-management-domain">7. MODEL MANAGEMENT DOMAIN</h2>
+<h3 id="modelperformancestate-statesmodel_performance_statepy-model-performance"><code>ModelPerformanceState</code> (states/model_performance_state.py) — <code>/model-performance</code></h3>
+<p>Parent: <code>rx.State</code>. 11 events (6 bg), 16 vars. Uses raw SQLAlchemy queries against <code>model_registry</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>on_mount</code></td>
+<td>46</td>
+<td>mount</td>
+<td>(loads sensors+models)</td>
+</tr>
+<tr>
+<td><code>load_available_sensors</code></td>
+<td>51</td>
+<td>@rx.event(bg)</td>
+<td>influx_tag DISTINCT</td>
+</tr>
+<tr>
+<td><code>load_performance_data</code></td>
+<td>83</td>
+<td>@rx.event(bg)</td>
+<td>model history + drift + comparison</td>
+</tr>
+<tr>
+<td><code>_load_model_history</code></td>
+<td>125</td>
+<td>private</td>
+<td>model_registry SELECT</td>
+</tr>
+<tr>
+<td><code>_load_drift_history</code></td>
+<td>165</td>
+<td>private</td>
+<td>drift_history SELECT</td>
+</tr>
+<tr>
+<td><code>_calculate_model_comparison</code></td>
+<td>193</td>
+<td>private</td>
+<td>aggregation</td>
+</tr>
+<tr>
+<td><code>_get_current_models</code></td>
+<td>222</td>
+<td>private</td>
+<td></td>
+</tr>
+<tr>
+<td><code>_calculate_summary</code></td>
+<td>251</td>
+<td>private</td>
+<td></td>
+</tr>
+<tr>
+<td><code>set_selected_sensor</code>/<code>set_time_range</code>/<code>set_model_type</code>/<code>refresh_data</code></td>
+<td>280-303</td>
+<td>@rx.event</td>
+<td>setter/filter</td>
+</tr>
+<tr>
+<td><code>load_all_saved_models</code></td>
+<td>391</td>
+<td>@rx.event(bg)</td>
+<td>model_registry full SELECT</td>
+</tr>
+<tr>
+<td><strong><code>deploy_model</code></strong></td>
+<td>502</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> — set is_deployed=True</td>
+</tr>
+<tr>
+<td><code>set_selected_model_for_deploy</code>/<code>undeploy_current_model</code></td>
+<td>552-557</td>
+<td>def</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>delete_model</code></strong></td>
+<td>564</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB delete</strong> — soft delete</td>
+</tr>
+<tr>
+<td><code>set_selected_model_for_delete</code></td>
+<td>605</td>
+<td>def</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>undeploy_model</code></strong></td>
+<td>611</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> — set is_deployed=False</td>
+</tr>
+<tr>
+<td><code>navigate_to_forecast_player</code></td>
+<td>987</td>
+<td>redirect</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>16 <code>@rx.var</code>: deployed model info, recommendations, insights, algorithm comparison rows, best algorithm display, pipeline rows, training condition warnings.</p>
+<h3 id="modelconfigstate-statesmodel_config_statepy-orphan"><code>ModelConfigState</code> (states/model_config_state.py) — <strong>ORPHAN</strong></h3>
+<p>Parent: <code>rx.State</code>. 6 events (6 bg). Uses <code>ModelConfigService</code>. CRUD for model hyperparameters. Not bound to any page.</p>
+<hr />
+<h2 id="8-ai-rag-domain">8. AI / RAG DOMAIN</h2>
+<h3 id="aistate-statesai_statepy-ai-page-unregistered-frontend-orphan"><code>AIState</code> (states/ai_state.py) — <code>/ai</code> page (UNREGISTERED — frontend orphan)</h3>
+<p>Parent: <code>rx.State</code>. 7 events (4 bg), 32 vars. Uses <code>AIService</code> + <code>ai_engine.rag_engine.get_rag_response</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>Engine</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load</code></td>
+<td>47</td>
+<td>@rx.event(bg)</td>
+<td>mount — AIService.get_knowledge_base + get_ai_insights + initialize RAG</td>
+</tr>
+<tr>
+<td><code>send_message</code></td>
+<td>99</td>
+<td>@rx.event(bg)</td>
+<td>chat — invokes <code>get_rag_response</code> from rag_engine, saves history via AIService.save_chat_history</td>
+</tr>
+<tr>
+<td><code>search_knowledge</code></td>
+<td>168</td>
+<td>@rx.event(bg)</td>
+<td>AIService.search_knowledge</td>
+</tr>
+<tr>
+<td><code>refresh_insights</code></td>
+<td>194</td>
+<td>@rx.event(bg)</td>
+<td>AIService.get_ai_insights</td>
+</tr>
+<tr>
+<td><code>clear_chat</code>/<code>clear_messages</code>/<code>load_initial_sensor_data</code></td>
+<td>211-418</td>
+<td>@rx.event</td>
+<td></td>
+</tr>
+<tr>
+<td><code>_extract_sensor_id</code>/<code>_prepare_context</code></td>
+<td>217-225</td>
+<td>private</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>32 <code>@rx.var</code> are all readers into a dict (<code>visualization_data</code>, <code>analysis_data</code>) — heavy chart data formatters.</p>
+<h3 id="ai_engine-modules-no-direct-state-binding-except-via-aistate">ai_engine modules (no direct State binding except via AIState)</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Type</th>
+<th>Inputs</th>
+<th>Outputs</th>
+<th>DB queries</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rag_engine.py</code> (RAGEngine)</td>
+<td>RAG</td>
+<td>query: str, use_w5h1: bool</td>
+<td>response: str</td>
+<td><code>knowledge_base</code> SELECT, <code>qc_rules</code> SELECT, latest sensor — invoked via <code>..db.q</code> raw SQL</td>
+</tr>
+<tr>
+<td><code>rag_engine_pgvector.py</code> (PgVectorRAGEngine)</td>
+<td>Vector RAG</td>
+<td>query</td>
+<td>top_k results</td>
+<td>pgvector cosine sim on <code>knowledge_base.embedding</code></td>
+</tr>
+<tr>
+<td><code>graph_rag_engine.py</code> (GraphRAGEngine)</td>
+<td>Graph + vector RAG</td>
+<td>query, sensor_tags</td>
+<td>response</td>
+<td>knowledge_base + sensor relations</td>
+</tr>
+<tr>
+<td><code>dynamic_rag_engine.py</code> (DynamicRAGEngine)</td>
+<td>Dynamic RAG</td>
+<td>query</td>
+<td>response</td>
+<td>DB lookup</td>
+</tr>
+<tr>
+<td><code>llamaindex_rag_engine.py</code> (LlamaIndexRAGEngine)</td>
+<td>LlamaIndex wrapper</td>
+<td>docs</td>
+<td>indexed response</td>
+<td></td>
+</tr>
+<tr>
+<td><code>knowledge_builder.py</code></td>
+<td>builder</td>
+<td>(none)</td>
+<td>int (count)</td>
+<td>knowledge_base INSERT (bulk seed)</td>
+</tr>
+<tr>
+<td><code>knowledge_loader.py</code></td>
+<td>watcher</td>
+<td>yaml files</td>
+<td>KB rows</td>
+<td><code>KnowledgeFileWatcher</code> reloads on file change</td>
+</tr>
+<tr>
+<td><code>knowledge_search.py</code> (KnowledgeSearchEngine)</td>
+<td>search</td>
+<td>query, filters</td>
+<td>results list</td>
+<td>knowledge_base SELECT</td>
+</tr>
+<tr>
+<td><code>pandas_analysis_engine.py</code> (PandasAnalysisEngine)</td>
+<td>analytics</td>
+<td>sensors[], hours</td>
+<td>AnalysisResult</td>
+<td>influx_hist SELECT then pandas</td>
+</tr>
+<tr>
+<td><code>agent_orchestrator.py</code></td>
+<td>multi-agent</td>
+<td>query</td>
+<td>response</td>
+<td>invokes ResearchAgent/AnalysisAgent/ReviewAgent</td>
+</tr>
+<tr>
+<td><code>audit_agent_system.py</code> (AuditAgent, RLSystem)</td>
+<td>audit</td>
+<td>agent runs</td>
+<td>grades</td>
+<td>agent_history table</td>
+</tr>
+<tr>
+<td><code>five_w1h_agent.py</code> (FiveW1HAgent)</td>
+<td>structured prompt</td>
+<td>query</td>
+<td>5W1H response</td>
+<td></td>
+</tr>
+<tr>
+<td><code>hallucination_prevention.py</code> (HallucinationPrevention)</td>
+<td>validator</td>
+<td>response</td>
+<td>ValidationResult</td>
+<td></td>
+</tr>
+<tr>
+<td><code>response_validator.py</code> (ResponseValidator)</td>
+<td>validator</td>
+<td>response</td>
+<td>AnalysisResponse</td>
+<td></td>
+</tr>
+<tr>
+<td><code>visualization_generator.py</code></td>
+<td>chart spec</td>
+<td>query+sensor+qc</td>
+<td>viz dict</td>
+<td></td>
+</tr>
+<tr>
+<td><code>w5h1_formatter.py</code> (W5H1Formatter)</td>
+<td>formatter</td>
+<td>data</td>
+<td>W5H1Response</td>
+<td></td>
+</tr>
+<tr>
+<td><code>w5h1_knowledge_retriever.py</code></td>
+<td>KB retriever</td>
+<td>query</td>
+<td>knowledge</td>
+<td></td>
+</tr>
+<tr>
+<td><code>real_data_audit_system.py</code> (RealDataAuditSystem)</td>
+<td>data gap</td>
+<td>sensor, hours</td>
+<td>DataGapAnalysis</td>
+<td>influx_hist time-gap query</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Trigger entry point:</strong> All AI engine code is reachable only through <code>AIState</code> (used by <code>/ai</code> page, which is currently NOT registered in <code>ksys_app.py</code> per spec_01). Effectively dead from a UI test perspective.</p>
+<p><strong>Earlier finding (security):</strong> SQL injection vectors documented in <code>audit_security_2026-05-21.md</code> were in these engines (knowledge_search, pandas_analysis_engine). The full surface includes 12+ engines, most using raw <code>..db.q</code> with string interpolation.</p>
+<hr />
+<h2 id="9-scheduler-sync-domain">9. SCHEDULER / SYNC DOMAIN</h2>
+<h3 id="schedulerstate-statesscheduler_statepy-startup-singleton"><code>SchedulerState</code> (states/scheduler_state.py) — startup singleton</h3>
+<p>Parent: <code>rx.State</code>. 1 event (1 bg), 0 vars. Loaded from <code>ksys_app.py:204</code> to initialize APScheduler.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_schedulers</code></td>
+<td>27</td>
+<td>@rx.event(bg) — boots forecast/training schedulers</td>
+</tr>
+<tr>
+<td><code>stop_schedulers</code></td>
+<td>53</td>
+<td>async def — cleanup</td>
+</tr>
+</tbody>
+</table>
+<h3 id="syncmonitorstate-statessync_monitor_statepy-orphan"><code>SyncMonitorState</code> (states/sync_monitor_state.py) — <strong>ORPHAN</strong></h3>
+<p>Parent: <code>rx.State</code>. 4 events (4 bg). Manual sync triggers. Not bound to any page.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refresh_data</code></td>
+<td>37</td>
+<td>@rx.event(bg)</td>
+</tr>
+<tr>
+<td><code>sync_tags</code></td>
+<td>148</td>
+<td>@rx.event(bg)</td>
+</tr>
+<tr>
+<td><code>sync_realtime</code></td>
+<td>192</td>
+<td>@rx.event(bg)</td>
+</tr>
+<tr>
+<td><code>sync_historical</code></td>
+<td>213</td>
+<td>@rx.event(bg)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-tag-admin-domain">10. TAG ADMIN DOMAIN</h2>
+<h3 id="viewertagstate-statesviewer_tag_statepy-viewer-tag"><code>ViewerTagState</code> (states/viewer_tag_state.py) — <code>/viewer-tag</code></h3>
+<p>Parent: <code>rx.State</code>. 10 events (10 bg), 0 vars. All DB writes via raw SQL.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Purpose</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_tags</code></td>
+<td>40</td>
+<td>@rx.event(bg)</td>
+<td>viewer_tag SELECT</td>
+</tr>
+<tr>
+<td><strong><code>toggle_dashboard</code></strong></td>
+<td>109</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> UPDATE viewer_tag SET show_in_dashboard=...</td>
+</tr>
+<tr>
+<td><strong><code>toggle_alarm</code></strong></td>
+<td>126</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong></td>
+</tr>
+<tr>
+<td><strong><code>toggle_trend</code></strong></td>
+<td>143</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong></td>
+</tr>
+<tr>
+<td><strong><code>toggle_model</code></strong></td>
+<td>160</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong></td>
+</tr>
+<tr>
+<td><strong><code>update_order</code></strong></td>
+<td>181</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> UPDATE order</td>
+</tr>
+<tr>
+<td><code>open_add_dialog</code>/<code>close_add_dialog</code>/<code>set_add_tag_name</code></td>
+<td>208-217</td>
+<td>def</td>
+<td></td>
+</tr>
+<tr>
+<td><strong><code>add_tag</code></strong></td>
+<td>222</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> INSERT</td>
+</tr>
+<tr>
+<td><strong><code>delete_tag</code></strong></td>
+<td>267</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB delete</strong></td>
+</tr>
+<tr>
+<td><strong><code>show_all_dashboard</code></strong></td>
+<td>294</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> bulk update</td>
+</tr>
+<tr>
+<td><strong><code>hide_all_dashboard</code></strong></td>
+<td>310</td>
+<td>@rx.event(bg)</td>
+<td><strong>DB write</strong> bulk update</td>
+</tr>
+<tr>
+<td><code>clear_messages</code></td>
+<td>329</td>
+<td>def</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="taghierarchystate-statestag_hierarchy_statepy-mixin"><code>TagHierarchyState</code> (states/tag_hierarchy_state.py) — mixin</h3>
+<p>Parent: <code>BaseState</code>. 1 event (1 bg), 6 vars. Provides Station/System filtering used by *Enhanced states.</p>
+<table>
+<thead>
+<tr>
+<th>Member</th>
+<th>Line</th>
+<th>Type</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>available_stations</code>/<code>available_systems</code>/<code>filtered_tags</code>/<code>station_tag_counts</code>/<code>system_tag_counts</code>/<code>selected_tags_by_station</code></td>
+<td>43-148</td>
+<td>@rx.var</td>
+<td>hierarchy facets</td>
+</tr>
+<tr>
+<td><code>load_tag_hierarchy</code></td>
+<td>149</td>
+<td>@rx.event(bg)</td>
+<td>influx_tag SELECT with station/system parsing</td>
+</tr>
+<tr>
+<td><code>set_selected_station</code>/<code>set_selected_system</code>/<code>toggle_tag_selection</code>/<code>is_tag_selected</code>/<code>clear_selected_tags</code>/<code>select_top_tags</code>/<code>remove_selected_tag</code>/<code>select_all_in_system</code>/<code>get_tag_station</code>/<code>get_tag_system</code></td>
+<td>217-271</td>
+<td>def</td>
+<td>filter manipulation</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="services-layer-inventory">Services Layer Inventory</h1>
+<h2 id="baseservice-servicesbase_servicepy"><code>BaseService</code> (services/base_service.py)</h2>
+<p>Constructor: <code>__init__(session: AsyncSession)</code>. Helpers: <code>execute_query</code>, <code>execute_scalar</code>, <code>execute_insert</code>.</p>
+<h2 id="alarmservice-servicesalarm_servicepy"><code>AlarmService</code> (services/alarm_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Returns</th>
+<th>DB tables</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_rule_based_alarms</code></td>
+<td>22</td>
+<td>List[Dict]</td>
+<td>alarm_events, influx_qc_rule</td>
+</tr>
+<tr>
+<td><code>get_active_sensor_alarms</code></td>
+<td>213</td>
+<td>List[Dict]</td>
+<td>influx_latest + qc</td>
+</tr>
+<tr>
+<td><code>get_alarm_statistics</code></td>
+<td>357</td>
+<td>Dict</td>
+<td>alarm_events aggregation</td>
+</tr>
+<tr>
+<td><strong><code>acknowledge_alarm</code></strong></td>
+<td>453</td>
+<td>bool</td>
+<td><strong>alarm_events UPDATE</strong></td>
+</tr>
+<tr>
+<td><code>_get_level_name</code></td>
+<td>495</td>
+<td>str</td>
+<td>(helper)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sensorservice-servicessensor_servicepy"><code>SensorService</code> (services/sensor_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>Returns</th>
+<th>DB tables</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_all_sensors_with_latest</code></td>
+<td>19</td>
+<td>List[Dict]</td>
+<td>influx_latest, influx_tag</td>
+</tr>
+<tr>
+<td><code>get_aggregated_chart_data</code></td>
+<td>95</td>
+<td>Dict</td>
+<td>influx_agg_1m</td>
+</tr>
+<tr>
+<td><code>get_sensor_statistics</code></td>
+<td>149</td>
+<td>Dict</td>
+<td>influx_latest + qc</td>
+</tr>
+<tr>
+<td><code>get_sensor_chart_data</code></td>
+<td>185</td>
+<td>List[Dict]</td>
+<td>influx_hist</td>
+</tr>
+<tr>
+<td><code>_get_chart_color</code></td>
+<td>257</td>
+<td>str</td>
+<td>(helper)</td>
+</tr>
+<tr>
+<td><code>get_realtime_alarms_with_charts</code></td>
+<td>266</td>
+<td>List[Dict]</td>
+<td>influx_latest + qc + sliding window</td>
+</tr>
+<tr>
+<td><code>get_dashboard_statistics</code></td>
+<td>300</td>
+<td>Dict</td>
+<td>aggregation</td>
+</tr>
+<tr>
+<td><strong><code>update_sensor_metadata</code></strong></td>
+<td>397</td>
+<td>None</td>
+<td><strong>influx_qc_rule UPDATE / influx_tag UPDATE</strong></td>
+</tr>
+</tbody>
+</table>
+<h2 id="forecastservice-servicesforecast_servicepy"><code>ForecastService</code> (services/forecast_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_deployed_models</code></td>
+<td>42</td>
+<td>model_registry SELECT</td>
+</tr>
+<tr>
+<td><code>get_predictions</code></td>
+<td>104</td>
+<td>predictions SELECT</td>
+</tr>
+<tr>
+<td><code>get_latest_sensor_value</code></td>
+<td>202</td>
+<td>influx_latest</td>
+</tr>
+<tr>
+<td><code>get_rolling_window_data</code></td>
+<td>240</td>
+<td>influx_hist + predictions</td>
+</tr>
+<tr>
+<td><code>get_predictions_grouped</code></td>
+<td>533</td>
+<td>predictions GROUP BY</td>
+</tr>
+<tr>
+<td><code>get_forecast_steps</code></td>
+<td>708</td>
+<td>(predictions step calc)</td>
+</tr>
+<tr>
+<td><code>get_step_data</code></td>
+<td>755</td>
+<td>actual + forecast merged</td>
+</tr>
+<tr>
+<td><code>get_timeline_chart_data</code></td>
+<td>871</td>
+<td>timeline merged</td>
+</tr>
+</tbody>
+</table>
+<h2 id="communicationservicebaseservice-servicescommunication_servicepy"><code>CommunicationService(BaseService)</code> (services/communication_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_available_tags</code></td>
+<td>18</td>
+<td>influx_tag DISTINCT</td>
+</tr>
+<tr>
+<td><code>get_hourly_stats</code></td>
+<td>34</td>
+<td>influx_agg_1m hourly bucket</td>
+</tr>
+<tr>
+<td><code>get_daily_stats</code></td>
+<td>87</td>
+<td>influx_agg_1m daily bucket</td>
+</tr>
+<tr>
+<td><code>get_tag_summary</code></td>
+<td>149</td>
+<td>aggregation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="trendservice-servicestrend_servicepy"><code>TrendService</code> (services/trend_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_tags</code></td>
+<td>17</td>
+<td>influx_tag</td>
+</tr>
+<tr>
+<td><code>get_series_data</code></td>
+<td>34</td>
+<td>influx_agg_{1m,1h,1d} polymorphic</td>
+</tr>
+<tr>
+<td><code>get_realtime_data</code></td>
+<td>116</td>
+<td>influx_latest</td>
+</tr>
+<tr>
+<td><code>get_statistics</code></td>
+<td>158</td>
+<td>aggregation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="aiservice-servicesai_servicepy"><code>AIService</code> (services/ai_service.py)</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Line</th>
+<th>DB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get_knowledge_base</code></td>
+<td>17</td>
+<td>knowledge_base SELECT</td>
+</tr>
+<tr>
+<td><code>search_knowledge</code></td>
+<td>52</td>
+<td>knowledge_base full-text</td>
+</tr>
+<tr>
+<td><code>get_sensor_context</code></td>
+<td>112</td>
+<td>influx_latest + qc + alarms</td>
+</tr>
+<tr>
+<td><strong><code>save_chat_history</code></strong></td>
+<td>184</td>
+<td><strong>chat_history INSERT</strong></td>
+</tr>
+<tr>
+<td><code>get_chat_history</code></td>
+<td>211</td>
+<td>chat_history SELECT</td>
+</tr>
+<tr>
+<td><code>get_ai_insights</code></td>
+<td>243</td>
+<td>aggregation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="modelconfigservice-servicesmodel_config_servicepy"><code>ModelConfigService</code> (services/model_config_service.py)</h2>
+<p>CRUD for <code>model_registry</code>. Methods: get_model_schema, get_default_config, get_model_config, <strong>save_model_config</strong>, <strong>create_model_config</strong>, list_model_configs, <strong>delete_model_config</strong> (soft), <strong>clone_model_config</strong>, validate_config.</p>
+<h2 id="featureconfigservice-family-3-versions-original-_v2-_final"><code>FeatureConfigService</code> family (3 versions: original / <code>_v2</code> / <code>_final</code>)</h2>
+<ul>
+<li><code>feature_config_service.py</code> (line 42) — original; example_usage script at line 559</li>
+<li><code>feature_config_service_v2.py</code> (line 35) — version 2; example_usage at 509</li>
+<li><code>feature_config_service_final.py</code> (line 17) — final (used by training_state)</li>
+</ul>
+<p>CRUD for feature_config + lag/rolling/temporal/seasonal/fourier/diff/interaction features. ~14 methods each.</p>
+<h2 id="featureengineeringservice-servicesfeature_engineering_servicepy"><code>FeatureEngineeringService</code> (services/feature_engineering_service.py)</h2>
+<p>Pandas-based feature generation: lag, rolling, time, seasonal, advanced. Methods write back via <code>save_features_to_db</code>.</p>
+<h2 id="virtualtagservice-servicesvirtual_tag_servicepy"><code>VirtualTagService</code> (services/virtual_tag_service.py)</h2>
+<p>Includes inner <code>FormulaParser</code> class (arithmetic/conditional/aggregation formula evaluation). Methods: get_active_virtual_tags, get_sensor_latest_values, get_sensor_aggregated_values, <strong>calculate_arithmetic_tag</strong>, <strong>calculate_conditional_tag</strong>, <strong>calculate_aggregation_tag</strong>, calculate_all_virtual_tags, <strong>store_virtual_tag_values</strong> (DB write), <strong>calculate_and_store</strong>.</p>
+<p>⚠️ Security: <code>FormulaParser.parse_arithmetic</code> evaluates user-defined strings. Audit if any path is user-controlled.</p>
+<hr />
+<h1 id="test-priority-ranking">Test Priority Ranking</h1>
+<h2 id="tier-1-mutating-business-critical-test-first">Tier 1 — Mutating, business-critical (test FIRST)</h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Handler</th>
+<th>Why critical</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AlarmsState</td>
+<td><code>acknowledge_alarm</code> (alarms.py:588)</td>
+<td>Mutates alarm_events.acknowledged. ISA-18.2 audit trail.</td>
+</tr>
+<tr>
+<td>AlarmsState</td>
+<td><code>acknowledge_selected</code> (alarms.py:555)</td>
+<td>Bulk DB mutation.</td>
+</tr>
+<tr>
+<td>AlarmRTState</td>
+<td><code>acknowledge_alarm</code> / <code>acknowledge_all</code> / <code>cleanup_old_alarms</code> (alarm_rt_state.py:225/241/256)</td>
+<td>Bulk + delete; idempotency unclear.</td>
+</tr>
+<tr>
+<td>ModelPerformanceState</td>
+<td><code>deploy_model</code> (502) / <code>undeploy_model</code> (611) / <code>delete_model</code> (564)</td>
+<td>Production model toggling.</td>
+</tr>
+<tr>
+<td>TrainingState</td>
+<td><code>save_model</code> (713)</td>
+<td>Persists ML model + predictions; rolls forward forecast pipeline.</td>
+</tr>
+<tr>
+<td>TrainingState</td>
+<td><code>start_training</code> (364)</td>
+<td>Long-running ML run; resource leak/timeout risk.</td>
+</tr>
+<tr>
+<td>TrainingState</td>
+<td><code>create_feature_config</code> (303)</td>
+<td>DB write — multiple tables.</td>
+</tr>
+<tr>
+<td>ForecastPlayerState</td>
+<td><code>trigger_forecast_now</code> (1499)</td>
+<td>Manual forecast invocation; scheduler interaction.</td>
+</tr>
+<tr>
+<td>DashboardRealtimeState</td>
+<td><code>save_sensor_info</code> (513)</td>
+<td>Updates QC thresholds → cascades to alarm engine.</td>
+</tr>
+<tr>
+<td>ViewerTagState</td>
+<td><code>toggle_dashboard</code> / <code>toggle_alarm</code> / <code>toggle_trend</code> / <code>toggle_model</code> / <code>update_order</code> / <code>add_tag</code> / <code>delete_tag</code> / <code>show_all_dashboard</code> / <code>hide_all_dashboard</code> (109-310)</td>
+<td>Tag visibility cascades to all dashboards.</td>
+</tr>
+<tr>
+<td>ScadaAlarmComparisonState</td>
+<td><code>generate_test_data</code> (151)</td>
+<td>DB seed (likely admin-only — confirm).</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tier-2-long-running-background-streaming-test-for-leaktimeout">Tier 2 — Long-running / background streaming (test for leak/timeout)</h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Handler</th>
+<th>Concern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DashboardRealtimeState</td>
+<td><code>start_streaming</code> (69)</td>
+<td>30s loop, asyncio.wait_for with 28s timeout; verify no zombie task.</td>
+</tr>
+<tr>
+<td>ForecastPlayerState</td>
+<td><code>start_streaming</code> (1247)</td>
+<td>600s loop; verify stop_streaming releases.</td>
+</tr>
+<tr>
+<td>ForecastPlayerState</td>
+<td><code>start_countdown_monitor</code> (1566)</td>
+<td>secondary loop; concurrency?</td>
+</tr>
+<tr>
+<td>DashboardState</td>
+<td><code>start_realtime</code> (1132)</td>
+<td>Per <code>_realtime_loop_id</code> guard — verify no double-loop.</td>
+</tr>
+<tr>
+<td>DashboardState</td>
+<td><code>start_auto</code> (1084)</td>
+<td>Same; verify guard.</td>
+</tr>
+<tr>
+<td>BaseState</td>
+<td><code>start_polling</code> (40)</td>
+<td>Abstract pattern; verify all subclasses implement <code>refresh_data</code> correctly.</td>
+</tr>
+<tr>
+<td>TrendState</td>
+<td><code>auto_refresh_loop</code> (232)</td>
+<td></td>
+</tr>
+<tr>
+<td>AlarmsState</td>
+<td><code>initialize</code> polling + RT refresh — verify cancel-on-unmount</td>
+<td></td>
+</tr>
+<tr>
+<td>AlarmRTState</td>
+<td><code>start_auto_refresh</code> (278)</td>
+<td></td>
+</tr>
+<tr>
+<td>ScadaAlarmState</td>
+<td><code>_keep_listening</code> (251)</td>
+<td>NOTIFY listener — must clean up DB conn on page leave.</td>
+</tr>
+<tr>
+<td>SchedulerState</td>
+<td><code>start_schedulers</code> (27)</td>
+<td>App-level singleton, runs forever.</td>
+</tr>
+<tr>
+<td>TrainingState</td>
+<td><code>start_training</code> (364)</td>
+<td>CPU-bound async — may block event loop.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tier-3-read-mostly-handlers-test-for-correctness">Tier 3 — Read-mostly handlers (test for correctness)</h2>
+<p>All <code>load_*</code>, <code>refresh_*</code>, <code>set_*_filter</code>, computed <code>@rx.var</code>. Quick smoke tests; failures here = wrong data displayed but no corruption.</p>
+<h2 id="tier-4-side-effect-writes-to-filesystem">Tier 4 — Side-effect writes to filesystem</h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Handler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AlarmHistState</td>
+<td><code>export_excel</code> (328) — writes xlsx</td>
+</tr>
+<tr>
+<td>TrendState</td>
+<td><code>export_csv_all</code> (271), <code>export_csv_page</code> (304)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="handlers-calling-external-code">Handlers Calling External Code</h1>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Handlers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OpenAI API call</strong></td>
+<td>AIState.send_message → rag_engine.get_rag_response → RAGEngine._generate_openai_response (rag_engine.py:488); also PgVectorRAGEngine for embeddings (rag_engine_pgvector.py:97 _generate_missing_embeddings)</td>
+</tr>
+<tr>
+<td><strong>APScheduler</strong></td>
+<td>SchedulerState.start_schedulers, ForecastPlayerState.trigger_forecast_now</td>
+</tr>
+<tr>
+<td><strong>Postgres LISTEN/NOTIFY</strong></td>
+<td>ScadaAlarmState._keep_listening (raw asyncpg connection)</td>
+</tr>
+<tr>
+<td><strong>pickle/joblib</strong></td>
+<td>TrainingState.save_model + cache.py <code>_cache_training_result</code> (in-memory module dict — not on disk in current code)</td>
+</tr>
+<tr>
+<td><strong>File watchers</strong></td>
+<td>ai_engine/knowledge_loader.py <code>KnowledgeFileWatcher</code> (watchdog Observer)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="cross-cutting-concerns">Cross-Cutting Concerns</h1>
+<h2 id="background-event-accounting">Background event accounting</h2>
+<ul>
+<li>Total <code>@rx.event(background=True)</code>: <strong>112</strong></li>
+<li>Of those, ~10 are infinite loops (streaming / polling). The rest are single-shot bg tasks for DB I/O.</li>
+<li>Cancellation pattern: most use <code>while self.is_streaming:</code> + setter <code>stop_streaming()</code> — but no asyncio task tracking on most states (BaseState has <code>_polling_task: Optional[asyncio.Task]</code> declared but never assigned). Risk of zombie loops on page navigation.</li>
+</ul>
+<h2 id="service-vs-raw-sql-split">Service vs raw SQL split</h2>
+<ul>
+<li><strong>Clean service layer:</strong> AlarmsState, DashboardRealtimeState, ForecastPlayerState, CommunicationState, TrendState, AIState</li>
+<li><strong>Raw <code>..db.q</code> direct usage:</strong> AlarmState, AlarmRTState, AlarmHistState, ScadaAlarmState, ScadaAlarmComparisonState, ViewerTagState, TagHierarchyState</li>
+<li>ai_engine modules: 100% raw SQL</li>
+</ul>
+<p>The "Enhanced" orphans (AlarmsEnhancedState, TrendStateEnhanced, etc.) appear to be incomplete refactors toward the service pattern + TagHierarchy mixin.</p>
+<h2 id="decorator-event_with_error">decorator <code>@event_with_error</code></h2>
+<p>Imported from <code>ksys_app.utils.decorators</code> and used in <code>AlarmsState.acknowledge_alarm</code> (only). Comment claims it replaces try/except boilerplate "101× across 24 state files." Most state files still use inline try/except — adoption is partial.</p>
+<h2 id="module-level-mutable-state">Module-level mutable state</h2>
+<ul>
+<li><code>ksys_app/states/training_state/cache.py</code> — <code>_training_cache: dict</code> — in-process cache for training results. Not serializable, lost on worker restart. No invalidation strategy in code reviewed.</li>
+</ul>
+<hr />
+<h1 id="recommended-test-plan-stub-input-for-next-agent">Recommended Test Plan Stub (input for next agent)</h1>
+<p>For a user who says "어떤 기능을 테스트해야 하는지 전혀 모르고 있음":</p>
+<p><strong>Smoke (15 min):</strong>
+1. Visit each registered page (14 pages from spec_01) and confirm initial mount loads data.
+2. Confirm 2 unregistered pages (<code>/ai</code>, <code>/design-system-demo</code>) are inaccessible.</p>
+<p><strong>Functional (per Tier 1 handler, ~30 cases):</strong>
+1. Acknowledge alarm (rule-based, ISA-18.2) — <code>/alarms</code> + <code>/alarms_rt</code>. Confirm row turns acknowledged, DB updated.
+2. Bulk acknowledge — <code>/alarms</code> select-all + acknowledge_selected.
+3. Sensor metadata edit dialog — <code>/</code> → click sensor → edit → save. Confirm QC thresholds persist + alarm engine re-evaluates.
+4. Tag visibility toggles — <code>/viewer-tag</code> → toggle each (dashboard/alarm/trend/model). Confirm cascades to corresponding page.
+5. Add/delete tag — <code>/viewer-tag</code>.
+6. Model deploy/undeploy/delete — <code>/model-performance</code>.
+7. Trigger forecast now — <code>/forecast</code> → confirm new predictions inserted.
+8. Run training wizard end-to-end — <code>/training-wizard</code> 6 steps, save model.
+9. Export CSV — <code>/trend</code>.
+10. Export Excel — <code>/alarms_hist</code>.</p>
+<p><strong>Streaming/leak (30 min):</strong>
+1. Open <code>/</code> (dashboard), wait 3 polling cycles (90s). Navigate away. Confirm no zombie asyncio task / DB conn (check <code>pg_stat_activity</code>).
+2. Same for <code>/forecast</code>, <code>/alarms_rt</code>, <code>/scada-alarms</code>.</p>
+<p><strong>Edge / non-obvious:</strong>
+1. <code>acknowledge_alarm</code> idempotency — call twice, second should no-op or return False.
+2. <code>start_streaming</code> race — refresh page rapidly, confirm no duplicate loops (DashboardState has <code>_realtime_loop_id</code> guard; verify others).
+3. Walk-forward <code>validation_feasibility</code> (TrainingWizardState) — set training_days=1, horizon_hours=24, interval=10. Should return shortage error message.
+4. <code>overall_success_rate</code> cap (CommunicationState:66) — confirm never exceeds 100% even with bad input data.
+5. ScadaAlarmState NOTIFY — kill DB during streaming, confirm reconnect or graceful error.</p>
+<hr />
+<h2 id="path-reportsspec_02_backend_states_servicesmd">Path: <code>reports/spec_02_backend_states_services.md</code></h2>
+</body></html>

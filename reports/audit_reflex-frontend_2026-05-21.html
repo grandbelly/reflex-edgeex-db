@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>audit_reflex-frontend_2026-05-21</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="ksys-iot-reflex-frontendstate-architecture-audit">KSys IoT — Reflex Frontend/State Architecture Audit</h1>
+<p><strong>Date</strong>: 2026-05-27 | <strong>Reflex</strong>: 0.8.x | <strong>Auditor</strong>: bkit-frontend-architect</p>
+<hr />
+<h2 id="1-state-class-organization">1. State Class Organization</h2>
+<h3 id="f-11-dual-basestate-two-conflicting-base-classes-in-production">F-1.1 · Dual BaseState — two conflicting base classes in production</h3>
+<p><strong>File</strong>: <code>ksys_app/states/base.py:10</code> vs <code>ksys_app/states/base_state.py:12</code></p>
+<pre><code class="language-python"># base.py — uses raw pool (db.q), has toggle_auto_refresh, clear_error
+class BaseState(rx.State):
+    is_loading: bool = False
+    error: str = &quot;&quot;
+    auto_refresh_enabled: bool = False
+    ...
+
+# base_state.py — uses get_async_session ORM, has _polling_active
+class BaseState(rx.State):
+    _polling_active: bool = False
+    loading: bool = False
+    error_message: str = &quot;&quot;
+    ...
+</code></pre>
+<p><strong>Problem</strong>: Two classes named <code>BaseState</code>, both imported by different state files. States that import from <code>base_state.py</code> (<code>DashboardRealtimeState</code>, <code>TagHierarchyState</code>, <code>TrainingWizardStateEnhanced</code>) use the ORM session version; states that inherit directly from <code>rx.State</code> (<code>AlarmState</code>, <code>AlarmRTState</code>, <code>AIState</code>, <code>CommunicationState</code>) inherit neither — UI-level common patterns (sidebar, theme) are duplicated or missing. Name collision also causes silent import shadowing.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Merge into a single <code>AppState(rx.State)</code> with <code>sidebar_collapsed</code>, <code>theme_mode</code>, and one polling pattern. Make domain states inherit from it.</p>
+<hr />
+<h3 id="f-12-dashboardstate-monolith-40-state-vars-in-one-class">F-1.2 · DashboardState monolith — 40+ state vars in one class</h3>
+<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:39–145</code></p>
+<pre><code class="language-python">class DashboardState(rx.State):
+    tag_name: Optional[str] = None
+    window: str = &quot;5 min&quot;
+    series: List[Dict[str, Any]] = []
+    features: List[Dict[str, Any]] = []
+    latest: List[Dict[str, Any]] = []
+    indicators: List[Dict[str, Any]] = []
+    kpi_rows: List[Dict[str, Any]] = []
+    mini_chart_data: Dict[str, List[Dict[str, Any]]] = {}
+    show_avg: bool = True
+    show_min: bool = True
+    # ... ~25 more vars ...
+    realtime_data: Dict[str, List[Dict[str, Any]]] = {}
+    _realtime_loop_id: Optional[str] = None
+    active_alarms: List[Dict[str, Any]] = []
+    detail_modal_open: bool = False
+    selected_sensor_data: Dict[str, Any] = {}
+    sidebar_collapsed: bool = False
+</code></pre>
+<p><strong>Problem</strong>: Mixes chart data, KPI tiles, tech indicators, real-time loop control, alarm state, modal state, and sidebar state in one class. Every state mutation (e.g. toggling a checkbox) re-serializes the entire state including heavy <code>List[Dict]</code> chart blobs. 40+ vars is above the 30-var smell threshold.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Extract <code>ChartVisibilityState</code>, <code>RealtimeLoopState</code>, and <code>AlarmSummaryState</code> as sibling substates. Dashboard page composes from all three.</p>
+<hr />
+<h3 id="f-13-four-level-inheritance-chain-for-trainingwizardstateenhanced">F-1.3 · Four-level inheritance chain for TrainingWizardStateEnhanced</h3>
+<p><strong>File</strong>: <code>ksys_app/states/training_wizard_state_enhanced.py:15</code></p>
+<pre><code class="language-python">class TrainingWizardStateEnhanced(TrainingWizardState, TagHierarchyState):
+    # TrainingWizardState -&gt; TrainingState(rx.State)
+    # TagHierarchyState  -&gt; BaseState(base_state.py) -&gt; rx.State
+</code></pre>
+<p><strong>Problem</strong>: <code>TrainingWizardStateEnhanced</code> sits at depth 4 from <code>rx.State</code> via multiple inheritance, creating an MRO that Reflex's serialization resolves left-to-right. <code>tag_search_query</code> exists in <strong>both</strong> <code>TrainingWizardStateEnhanced</code> (line 19) and <code>TagHierarchyState</code> (line 34) — silent shadowing. Reflex substates are designed for vertical fan-out, not mixin-style horizontal mixing.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Make <code>TagHierarchyState</code> a standalone substate (not base-mixed). Page reads both states independently via <code>TagHierarchyState.filtered_tags</code> and <code>TrainingWizardState.selected_tag</code>.</p>
+<hr />
+<h3 id="f-14-rxvar-returning-new-mutable-dicts-on-every-call">F-1.4 · <code>@rx.var</code> returning new mutable dicts on every call</h3>
+<p><strong>File</strong>: <code>ksys_app/states/training_wizard_state.py:36</code></p>
+<pre><code class="language-python">@rx.var
+def validation_feasibility(self) -&gt; dict:
+    if self.forecast_interval_minutes &lt;= 0:
+        return {
+            'is_valid': False,
+            'test_size': 0,
+            # ... 6 more keys
+        }
+</code></pre>
+<p><strong>Problem</strong>: Returns a new <code>dict</code> literal on every recomputation. Reflex serializes <code>@rx.var</code> results to the frontend; when the dict is structurally equal but a new object, some Reflex 0.8 builds still re-send the full delta. Use <code>cache=True</code> for expensive computed vars that return complex types.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>:</p>
+<pre><code class="language-python">@rx.var(cache=True)
+def validation_feasibility(self) -&gt; dict:
+    ...
+</code></pre>
+<p>Apply similarly to <code>forecast_chart_data</code>, <code>combined_forecast_chart_data</code>, <code>validation_table_data</code> (all in <code>training_wizard_state.py</code>).</p>
+<hr />
+<h2 id="2-event-handler-patterns">2. Event Handler Patterns</h2>
+<h3 id="f-21-long-running-db-work-inside-async-with-self-state-lock">F-2.1 · Long-running DB work inside <code>async with self:</code> state lock</h3>
+<p><strong>File</strong>: <code>ksys_app/states/base.py:78–98</code></p>
+<pre><code class="language-python">@rx.event(background=True)
+async def start_auto_refresh(self):
+    async with self:
+        if self._refresh_task_running:
+            return
+        self._refresh_task_running = True
+
+    while True:
+        async with self:
+            if not self.auto_refresh_enabled:
+                ...
+        if hasattr(self, 'refresh_data'):
+            await self.refresh_data()  # DB query runs OUTSIDE lock — correct
+        yield
+</code></pre>
+<p><strong>Assessment</strong>: This base pattern is actually correct — DB call is outside <code>async with self:</code>. However, in <code>alarm_rt_state.py</code> (lines 116–130) and <code>alarm_state.py</code>, state writes (<code>self.all_sensors = ...</code>) happen inside <code>async with self:</code> after large list construction — lock is held only for the assignment, which is fine.</p>
+<p><strong>Actual smell</strong>: <code>base_state.py</code> line 57 calls <code>self.refresh_data()</code> without <code>await</code> inside a background task (<code>asyncio.wait_for</code> wraps the call, which is fine for a coroutine but <code>refresh_data</code> is decorated <code>@rx.event(background=True)</code> — calling it as <code>await coro()</code> skips Reflex's event dispatch and yields nothing to the frontend).</p>
+<hr />
+<h3 id="f-22-generator-style-yield-mixed-with-async-with-self-yield-pattern-inconsistently">F-2.2 · Generator-style <code>yield</code> mixed with <code>async with self: yield</code> pattern inconsistently</h3>
+<p><strong>File</strong>: <code>ksys_app/states/dashboard_realtime.py:68–117</code></p>
+<pre><code class="language-python">@rx.event(background=True)
+async def start_streaming(self):
+    async with self:
+        self.is_streaming = True
+        self.last_update = &quot;Initializing...&quot;
+        yield  # yields inside lock — correct for Reflex 0.8
+
+    # ...
+    while self.is_streaming:
+        await asyncio.sleep(self.update_interval)
+        try:
+            await asyncio.wait_for(self._fetch_data(), ...)
+            yield  # bare yield OUTSIDE async with self — problematic
+</code></pre>
+<p><strong>Problem</strong>: The bare <code>yield</code> at line 108 is outside <code>async with self:</code>. In Reflex 0.8 background tasks, yielding state updates must happen inside <code>async with self:</code> or via <code>yield EventSpec</code>. A bare yield here does not acquire the state lock, which means the UI update may race with <code>_fetch_data</code>'s own <code>async with self:</code> block.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>:</p>
+<pre><code class="language-python">await asyncio.wait_for(self._fetch_data(), ...)
+async with self:
+    yield  # acquire lock before signalling UI
+</code></pre>
+<hr />
+<h3 id="f-23-function-internal-imports-in-hot-path-event-handlers">F-2.3 · Function-internal imports in hot-path event handlers</h3>
+<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1135–1136</code>, <code>ksys_app/states/training_wizard_state.py:163</code></p>
+<pre><code class="language-python">@rx.event(background=True)
+async def start_realtime(self):
+    import time       # line 1135 — executed on every event call
+    import uuid       # line 1136
+
+@rx.event(background=True)
+async def initialize_wizard(self):
+    # ...
+    from sqlalchemy import text   # line 163 — inside background event body
+</code></pre>
+<p><strong>Problem</strong>: <code>import time</code> / <code>import uuid</code> are stdlib modules with trivial import cost but signal a sloppy pattern. The SQLAlchemy <code>from sqlalchemy import text</code> inside <code>initialize_wizard</code> runs every time the event fires. Move all imports to module top-level.</p>
+<hr />
+<h3 id="f-24-print-used-as-logging-in-production-state-event-handlers">F-2.4 · <code>print()</code> used as logging in production state event handlers</h3>
+<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1144, 1149, 1156, 1159, 1173, 1177</code></p>
+<pre><code class="language-python">print(f&quot;🚫 {current_time} - 싱글톤 보호: 실시간 루프가 이미 실행 중 (ID: {self._realtime_loop_id})&quot;)
+print(f&quot;⚠️ {current_time} - 실시간 모드가 비활성화되어 루프 시작 취소&quot;)
+</code></pre>
+<p><strong>Problem</strong>: 25 <code>print()</code> calls in <code>dashboard/state.py</code> alone (987 total across the codebase in non-test code), plus 45 in state files. <code>print()</code> bypasses Reflex's <code>console</code> log level control (<code>LogLevel.DEBUG</code> set in rxconfig), floods server stdout, and cannot be silenced in production without code changes.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>:</p>
+<pre><code class="language-python">from reflex.utils import console
+console.debug(f&quot;Singleton guard: realtime loop already running (ID: {self._realtime_loop_id})&quot;)
+</code></pre>
+<p><code>console</code> respects <code>loglevel=LogLevel.INFO</code> in production config.</p>
+<hr />
+<h3 id="f-25-stop_polling-stop_streaming-not-decorated-with-rxevent">F-2.5 · <code>stop_polling</code> / <code>stop_streaming</code> not decorated with <code>@rx.event</code></h3>
+<p><strong>File</strong>: <code>ksys_app/states/base_state.py:74</code> and <code>ksys_app/states/dashboard_realtime.py:119</code></p>
+<pre><code class="language-python">async def stop_polling(self):     # missing @rx.event
+    async with self:
+        self._polling_active = False
+
+async def stop_streaming(self):   # missing @rx.event
+    async with self:
+        self.is_streaming = False
+</code></pre>
+<p><strong>Problem</strong>: Methods that mutate state must be decorated with <code>@rx.event</code> in Reflex 0.8 to be safely dispatchable from the frontend or from other events. Without the decorator these cannot be called from component <code>on_click</code> or <code>on_unmount</code> handlers; callers must use the class-level reference as an event spec, which is inconsistent.</p>
+<hr />
+<h2 id="3-component-composition">3. Component Composition</h2>
+<h3 id="f-31-python-dict-key-access-on-rxforeach-item-common-sonnet-40-era-bug">F-3.1 · Python dict-key access on <code>rx.foreach</code> item (common Sonnet 4.0-era bug)</h3>
+<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:88, 111, 113</code></p>
+<pre><code class="language-python">def alarm_card(alarm: Dict) -&gt; rx.Component:
+    return rx.box(
+        rx.vstack(
+            rx.flex(
+                level_badge(alarm[&quot;level&quot;], alarm[&quot;level_name&quot;]),  # dict access
+                rx.text(alarm[&quot;triggered_at_short&quot;], ...),         # dict access
+            ),
+            rx.text(alarm[&quot;message&quot;], ...),
+            rx.flex(
+                rx.hstack(
+                    rx.badge(alarm[&quot;tag_name&quot;], ...),
+                    rx.text(f&quot;{alarm['value']}{alarm['unit']}&quot;, ...),
+</code></pre>
+<p><strong>Problem</strong>: <code>alarm_card</code> is called via <code>rx.foreach(AlarmsState.paginated_alarms, alarm_card)</code>. Inside <code>rx.foreach</code>, each item is a <code>Var[Dict]</code>, not a plain Python dict. Accessing <code>alarm["level"]</code> with Python <code>[]</code> notation raises a <code>VarTypeError</code> at runtime or silently returns a static Var pointing to the wrong index. Must use <code>alarm["level"]</code> through Reflex Var subscript (which does work for <code>Dict</code> Vars in 0.8) — but calling a pure Python helper like <code>level_badge(alarm["level"], alarm["level_name"])</code> passes a <code>Var</code> object as a Python int to <code>color_map.get(level, "gray")</code>, which will never match and always return "gray". This is a silent correctness bug.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: <code>level_badge</code> should accept <code>Var</code> types and use <code>rx.cond</code> for branching, or the color should be pre-computed in state as a string field in each alarm dict.</p>
+<hr />
+<h3 id="f-32-hardcoded-hex-color-strings-as-magic-values-across-components">F-3.2 · Hardcoded hex color strings as magic values across components</h3>
+<p><strong>Files</strong>: <code>ksys_app/components/layout.py:74,80</code>, <code>ksys_app/components/sensor_card_enhanced.py:68,70,72,117,118,138,183</code>, <code>ksys_app/pages/alarms.py:93,105,113,115,162,164</code></p>
+<pre><code class="language-python"># layout.py
+color=&quot;#3b82f6&quot; if is_active else &quot;#6b7280&quot;,  # blue-500 / gray-500
+
+# sensor_card_enhanced.py
+return &quot;#3b82f6&quot;  # blue
+return &quot;#f59e0b&quot;  # amber
+return &quot;#ef4444&quot;  # red
+
+# alarms.py
+color=&quot;#6b7280&quot;   # gray-500 — repeated 8+ times
+color=&quot;#111827&quot;   # gray-900 — repeated 10+ times
+</code></pre>
+<p><strong>Problem</strong>: The same color hex appears 20+ times across layout, sensor card, and alarms page. <code>rxconfig.py</code> already sets up <code>TailwindV3Plugin</code> with a custom theme (status colors, slate-850). None of the components use those tokens. If the amber warning color needs to change (e.g., accessibility contrast), it requires a grep-and-replace across 8 files.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Centralize in <code>ksys_app/styles/design_tokens.py</code> (file already exists) and reference via Tailwind classes or a <code>COLOR</code> constant dict imported by all components.</p>
+<hr />
+<h3 id="f-33-rxcond-chains-instead-of-tailwind-variant-maps-unreadable-and-error-prone">F-3.3 · <code>rx.cond</code> chains instead of Tailwind variant maps — unreadable and error-prone</h3>
+<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:155–166</code></p>
+<pre><code class="language-python">rx.badge(
+    rx.cond(sensor[&quot;status&quot;] == 0, &quot;NORMAL&quot;,
+        rx.cond(sensor[&quot;status&quot;] == 1, &quot;WARNING&quot;, &quot;CRITICAL&quot;)),
+    color_scheme=rx.cond(sensor[&quot;status&quot;] == 0, &quot;green&quot;,
+        rx.cond(sensor[&quot;status&quot;] == 1, &quot;amber&quot;, &quot;red&quot;)),
+    ...
+)
+</code></pre>
+<p><strong>Problem</strong>: Deeply nested <code>rx.cond</code> chains are the correct Reflex-reactive pattern (not Python <code>if</code>), so reactivity is intact. However, the pattern is repeated in at least 4 component functions for the same status→color mapping. This should be a helper or a pre-computed string field in state.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Pre-compute <code>status_label: str</code> and <code>status_color: str</code> in <code>DashboardRealtimeState.formatted_sensors</code> (already partially done) and access directly — no <code>rx.cond</code> chain needed.</p>
+<hr />
+<h3 id="f-34-ksys_apppagesalarmspy-400-loc-god-component-file">F-3.4 · <code>ksys_app/pages/alarms.py</code> — 400+ LoC god-component file</h3>
+<p>Checked: <code>alarms.py</code> contains <code>isa_level_badge</code>, <code>level_badge</code>, <code>stat_tile</code>, <code>alarm_card</code>, <code>active_alarms_view</code>, <code>history_alarms_view</code>, and the full page function inline. No dedicated component file for alarm-specific renderers. Similar pattern in <code>trend_enhanced_v2.py</code> (30+ <code>rx.cond</code> / <code>rx.foreach</code> calls, full page in one file).</p>
+<hr />
+<h3 id="f-35-inline-lambda-event-handlers-in-rxforeach-callbacks">F-3.5 · Inline <code>lambda</code> event handlers in <code>rx.foreach</code> callbacks</h3>
+<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:128, 198</code></p>
+<pre><code class="language-python">on_click=lambda: AlarmsState.acknowledge_alarm(alarm[&quot;event_id&quot;]),
+</code></pre>
+<p><strong>Problem</strong>: Lambda capturing a <code>rx.foreach</code> loop variable (<code>alarm["event_id"]</code>) works in Reflex 0.8 if <code>alarm</code> is a <code>Var</code> and <code>alarm["event_id"]</code> produces an <code>EventSpec</code>. However, the lambda notation bypasses Reflex's type-checking of event args and may silently pass a <code>Var[str]</code> where a <code>str</code> is expected, causing serialization issues. Confirmed pattern — used in 2 places.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Use partial application syntax directly:</p>
+<pre><code class="language-python">on_click=AlarmsState.acknowledge_alarm(alarm[&quot;event_id&quot;]),
+</code></pre>
+<hr />
+<h2 id="4-async-db-patterns">4. Async DB Patterns</h2>
+<h3 id="f-41-custom-get_async_session-shim-instead-of-rxasession">F-4.1 · Custom <code>get_async_session</code> shim instead of <code>rx.asession()</code></h3>
+<p><strong>File</strong>: <code>ksys_app/db_orm.py:1–60</code></p>
+<pre><code class="language-python"># db_orm.py — custom async engine factory
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+...
+@asynccontextmanager
+async def get_async_session() -&gt; AsyncGenerator[AsyncSession, None]:
+    ...
+</code></pre>
+<p><strong>Problem</strong>: Reflex 0.8 exposes <code>rx.asession()</code> (see <code>C:\dev\venv-ksys\Lib\site-packages\reflex\model.py:611</code>) which returns a managed <code>AsyncSession</code> with the same lazy-init pattern, configured via <code>rx.Config(async_db_url=...)</code>. The project bypasses this entirely in favor of a custom shim with its own pool (<code>NullPool</code> by default, <code>AsyncAdaptedQueuePool</code> via env var).</p>
+<p><strong>Assessment</strong>: The custom shim is actually well-engineered — it handles <code>asyncpg</code>-specific URL normalization, pool configuration, SSL, and <code>statement_timeout</code>. However it means <code>rxconfig.py</code> does not declare <code>async_db_url</code>, so Reflex's own DB migration/model tooling (<code>rx.Model</code>, <code>rx.alembic</code>) is not connected. This is a deliberate architectural choice but should be documented as such.</p>
+<p><strong>Verdict</strong>: Not a bug — acceptable for a TimescaleDB + asyncpg setup that needs fine-grained pool control. Flag for new contributors.</p>
+<hr />
+<h3 id="f-42-raw-sql-in-state-event-handlers-bypassing-service-layer">F-4.2 · Raw SQL in state event handlers bypassing service layer</h3>
+<p><strong>File</strong>: <code>ksys_app/states/alarm_rt_state.py:63–86</code>, <code>ksys_app/states/alarm_state.py:63–100</code></p>
+<pre><code class="language-python">@rx.event(background=True)
+async def load_sensor_status(self):
+    query = &quot;&quot;&quot;
+        SELECT l.tag_name, ROUND(l.value::numeric, 2) as value, ...
+        FROM influx_latest l
+        LEFT JOIN influx_qc_rule q ON l.tag_name = q.tag_name
+        ...
+    &quot;&quot;&quot;
+    rows = await q(query, ())
+</code></pre>
+<p><strong>Problem</strong>: <code>AlarmRTState</code> and <code>AlarmState</code> bypass the service layer and call raw SQL via <code>from ..db import q</code> directly in event handlers. <code>DashboardRealtimeState</code> (the newer, refactored state) uses <code>SensorService</code> correctly. This inconsistency means alarm-related SQL has no centralized testing surface.</p>
+<hr />
+<h2 id="5-rxconfigpy-assessment">5. rxconfig.py Assessment</h2>
+<p><strong>File</strong>: <code>rxconfig.py</code></p>
+<pre><code class="language-python">config = rx.Config(
+    app_name=&quot;ksys_app&quot;,
+    loglevel=LogLevel.DEBUG,     # DEBUG in production docker — noisy
+    show_built_with_reflex=False,
+    frontend_packages=[],
+    plugins=[
+        rx.plugins.SitemapPlugin(),
+        rx.plugins.TailwindV3Plugin(config={...}),
+    ],
+    frontend_port=14000,
+    backend_port=14001,
+    backend_host=&quot;0.0.0.0&quot;,
+)
+</code></pre>
+<p><strong>Findings</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Status</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loglevel=LogLevel.DEBUG</code></td>
+<td>Smell</td>
+<td>Production containers log debug output; should be <code>LogLevel.INFO</code> with DEBUG only in dev</td>
+</tr>
+<tr>
+<td><code>async_db_url</code> absent</td>
+<td>Intentional</td>
+<td>Custom <code>db_orm.py</code> shim handles this (see F-4.1)</td>
+</tr>
+<tr>
+<td><code>telemetry_enabled</code> absent</td>
+<td>Default=True</td>
+<td>Sends usage telemetry to Reflex team; set <code>telemetry_enabled=False</code> for an air-gapped IoT deployment</td>
+</tr>
+<tr>
+<td><code>cors_allowed_origins</code> absent</td>
+<td>Default="*"</td>
+<td>Open CORS on port 14001 backend — acceptable on LAN, risky if port is forwarded</td>
+</tr>
+<tr>
+<td><code>TailwindV3Plugin</code> configured</td>
+<td>Good</td>
+<td>Custom status colors and Inter font defined — but not used by components (see F-3.2)</td>
+</tr>
+<tr>
+<td><code>SitemapPlugin</code> present</td>
+<td>Low value</td>
+<td>A SCADA IoT app behind a firewall has no SEO use for a sitemap</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-sonnet-40-era-anti-patterns">6. "Sonnet 4.0 Era" Anti-Patterns</h2>
+<h3 id="f-61-dictstr-any-dict-as-default-var-type-for-all-complex-state">F-6.1 · <code>Dict[str, Any]</code> / <code>dict</code> as default var type for all complex state</h3>
+<p>97 occurrences of <code>Dict[str, Any]</code> across 16 state files (grep result). Specific examples:</p>
+<pre><code class="language-python"># training_state/state.py:66–82
+result_metadata: dict = {}
+model_diagnostics: dict = {}
+preprocessing_stats: dict = {}
+feature_engineering_stats: dict = {}
+evaluation_metrics: dict = {}
+residuals_analysis: dict = {}
+saved_model_info: dict = {}
+</code></pre>
+<p>Seven <code>dict</code> vars holding different domain shapes with no TypedDict definition. The <code>@rx.var</code> accessors like <code>mae_value</code>, <code>aic_value</code> defensively call <code>.get()</code> on these dicts — which is the tell-tale sign these should be typed models or at least TypedDict.</p>
+<hr />
+<h3 id="f-62-messagedict-class-invalid-python-pattern">F-6.2 · <code>Message(Dict)</code> class — invalid Python pattern</h3>
+<p><strong>File</strong>: <code>ksys_app/states/ai_state.py:15–19</code></p>
+<pre><code class="language-python">class Message(Dict):
+    &quot;&quot;&quot;Message structure for chat&quot;&quot;&quot;
+    text: str
+    is_ai: bool
+    timestamp: str
+    metadata: Optional[Dict[str, Any]] = None
+</code></pre>
+<p><strong>Problem</strong>: <code>class Message(Dict)</code> is not a valid Python type definition. <code>Dict</code> is a generic alias from <code>typing</code>, not a base class. This class would be equivalent to a bare <code>class Message(dict)</code> at runtime with no type enforcement. The field annotations (<code>text: str</code>) are class-level vars, not instance attributes. Actual <code>messages</code> state var stores <code>List[Dict[str, Any]]</code> — this class is unused as a type enforcer.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Use <code>TypedDict</code> or a Pydantic <code>BaseModel</code>:</p>
+<pre><code class="language-python">from typing import TypedDict
+class Message(TypedDict):
+    text: str
+    is_ai: bool
+    timestamp: str
+</code></pre>
+<hr />
+<h3 id="f-63-rxvar-computing-pandas-operations-on-every-recomputation">F-6.3 · <code>@rx.var</code> computing pandas operations on every recomputation</h3>
+<p><strong>File</strong>: <code>ksys_app/states/communication_state.py:66–157</code></p>
+<pre><code class="language-python">@rx.var
+def overall_success_rate(self) -&gt; float:
+    if not self._df_hourly:
+        return 0.0
+    df = pd.DataFrame(self._df_hourly)   # allocates new DataFrame every call
+    df['record_count'] = pd.to_numeric(df['record_count'], errors='coerce')
+    ...
+
+@rx.var
+def total_records(self) -&gt; int:
+    df = pd.DataFrame(self._df_hourly)   # second DataFrame allocation
+    ...
+
+@rx.var
+def heatmap_matrix(self) -&gt; List[List[float]]:
+    df = pd.DataFrame(self._df_hourly)   # third DataFrame allocation
+    pivot = df.pivot_table(...)
+    ...
+</code></pre>
+<p><strong>Problem</strong>: <code>_df_hourly</code> list is re-wrapped in a <code>pd.DataFrame</code> three separate times per state update cycle (three different <code>@rx.var</code> properties each creating their own DataFrame). In Reflex 0.8, <code>@rx.var</code> properties recompute whenever any state var changes. During a polling loop, this allocates 3+ DataFrames on every poll tick.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Add <code>@rx.var(cache=True)</code> to all three, or pre-compute aggregates in the event handler and store them as plain state vars (<code>overall_success_rate: float</code>, <code>total_records: int</code>) updated once at fetch time.</p>
+<hr />
+<h3 id="f-64-emoji-characters-in-consolelog-print-in-production-state-code">F-6.4 · Emoji characters in <code>console.log</code> / <code>print</code> in production state code</h3>
+<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1159</code>, <code>ksys_app/states/trend_state_enhanced.py:57</code>, multiple</p>
+<pre><code class="language-python">console.log(&quot;🔄 TrendStateEnhanced.load() called&quot;)
+print(f&quot;🚀 {start_time} - 실시간 모드 시작 [ID:{loop_id}]&quot;)
+print(&quot;=&quot; * 80)
+print(&quot;🚀 Starting Forecasting Schedulers from State...&quot;)
+</code></pre>
+<p><strong>Problem</strong>: Emoji in log strings breaks Korean Windows deployments unless <code>PYTHONUTF8=1</code> is set (known issue for this env per memory). Also, decorative separators (<code>"=" * 80</code>) and emoji tags signal development/prototype code that was never cleaned up for production.</p>
+<hr />
+<h2 id="top-5-modernization-wins">Top 5 Modernization Wins</h2>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Finding</th>
+<th>File(s)</th>
+<th>UX/Perf Impact</th>
+<th>Effort</th>
+<th>Score</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><strong>F-6.3</strong> — Add <code>cache=True</code> to 3 pandas <code>@rx.var</code> in <code>CommunicationState</code></td>
+<td><code>communication_state.py:66–157</code></td>
+<td>High (eliminates 3x DataFrame allocation per poll tick)</td>
+<td>15 min</td>
+<td>9</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>F-2.4</strong> — Replace 45 <code>print()</code> calls in states with <code>console.log/debug</code></td>
+<td><code>dashboard/state.py</code>, <code>alarm_rt_state.py</code>, 4 others</td>
+<td>Medium (prod log hygiene, respects LogLevel)</td>
+<td>30 min</td>
+<td>8</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>F-1.1</strong> — Merge dual <code>BaseState</code> and route all states through one base</td>
+<td><code>base.py</code> + <code>base_state.py</code></td>
+<td>Medium (eliminates inconsistent sidebar/theme behavior across pages)</td>
+<td>2h</td>
+<td>7</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>F-3.2</strong> — Replace hardcoded hex strings with design token constants</td>
+<td><code>sensor_card_enhanced.py</code>, <code>layout.py</code>, <code>alarms.py</code></td>
+<td>Low/Medium (theme consistency, ~1 change propagates everywhere)</td>
+<td>1h</td>
+<td>7</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>F-2.2</strong> — Fix bare <code>yield</code> outside <code>async with self:</code> in streaming loop</td>
+<td><code>dashboard_realtime.py:108</code></td>
+<td>High (prevents race condition in UI update during polling)</td>
+<td>10 min</td>
+<td>9</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="summary-by-section">Summary by Section</h2>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Findings</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State Organization</td>
+<td>F-1.1 (dual base), F-1.2 (monolith 40+), F-1.3 (4-level inheritance), F-1.4 (mutable <code>@rx.var</code>)</td>
+<td>Medium–High</td>
+</tr>
+<tr>
+<td>Event Handlers</td>
+<td>F-2.1 (assessed OK), F-2.2 (bare yield race), F-2.3 (hot-path imports), F-2.4 (print not console), F-2.5 (missing <code>@rx.event</code>)</td>
+<td>Low–High</td>
+</tr>
+<tr>
+<td>Components</td>
+<td>F-3.1 (dict Var subscript silent bug), F-3.2 (magic hex), F-3.3 (<code>rx.cond</code> chains), F-3.4 (god files), F-3.5 (lambda capture)</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>DB Patterns</td>
+<td>F-4.1 (custom shim — intentional), F-4.2 (raw SQL in state)</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>rxconfig</td>
+<td>DEBUG in prod, no <code>telemetry_enabled=False</code>, open CORS</td>
+<td>Low–Medium</td>
+</tr>
+<tr>
+<td>Sonnet 4.0</td>
+<td>F-6.1 (<code>dict</code> typing), F-6.2 (<code>Message(Dict)</code>), F-6.3 (pandas in <code>@rx.var</code>), F-6.4 (emoji logs)</td>
+<td>Low–High</td>
+</tr>
+</tbody>
+</table>
+</body></html>

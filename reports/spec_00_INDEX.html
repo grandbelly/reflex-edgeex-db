@@ -69,33 +69,71 @@
 <h2>📑 5 Specification 문서 (역설계 결과)</h2>
 
 <div class="spec-card">
-  <a href="spec_01_frontend_pages.md">spec_01_frontend_pages.md — Frontend Pages 카탈로그</a>
+  <a href="spec_01_frontend_pages.html">spec_01_frontend_pages.html — Frontend Pages 카탈로그</a>
   <div class="desc">16 페이지 × 각자 라우트 URL, 등록 여부, 사용 State, UI 엘리먼트, 테스트 시나리오. <strong>frontend-architect</strong> 작성.</div>
   <div class="stats">발견: /ai · /design-system-demo dead, /alarms_rt + /alarms_rt_new 중복, AlarmRT filter 하드코딩</div>
 </div>
 
 <div class="spec-card">
-  <a href="spec_02_backend_states_services.md">spec_02_backend_states_services.md — State + Service 카탈로그</a>
+  <a href="spec_02_backend_states_services.html">spec_02_backend_states_services.html — State + Service 카탈로그</a>
   <div class="desc">24 State × 201 @rx.event handlers, 11 services, 18 ai_engine modules. 도메인별 그룹핑 + 우선순위. <strong>code-analyzer</strong> 작성.</div>
   <div class="stats">발견: 7 orphan State, _polling_task zombie risk, AI engine 12+ raw db.q (Day 6 fix는 빙산의 일각)</div>
 </div>
 
 <div class="spec-card">
-  <a href="spec_03_database_schedulers.md">spec_03_database_schedulers.md — DB + Scheduler 카탈로그</a>
+  <a href="spec_03_database_schedulers.html">spec_03_database_schedulers.html — DB + Scheduler 카탈로그</a>
   <div class="desc">17 테이블 (4 hypertable, 5 cont agg), 6 schedulers (forecast/alarm/virtual tag/pg_cron). 데이터 흐름 다이어그램. <strong>bkend-expert</strong> 작성.</div>
   <div class="stats">발견: forecast 10min loop, alarm 10s polling + NOTIFY/LISTEN, pg_cron 가상 태그 계산</div>
 </div>
 
 <div class="spec-card">
-  <a href="spec_04_PRD.md">spec_04_PRD.md — 역설계 PRD (Product Requirements)</a>
+  <a href="spec_04_PRD.html">spec_04_PRD.html — 역설계 PRD (Product Requirements)</a>
   <div class="desc">제품 정체성, 3 페르소나 (Operator/Data Analyst/Admin), 29 features (M1/M2/M3 분류), 정리 권고. <strong>product-manager</strong> 작성.</div>
   <div class="stats">제품: 단일 사이트 정수처리 SCADA-adjacent IoT 플랫폼. M1=10, M2=9, M3=10 (M3 다수가 dead/duplicate)</div>
 </div>
 
 <div class="spec-card">
-  <a href="spec_05_test_plan.md">spec_05_test_plan.md — Master Test Catalog</a>
+  <a href="spec_05_test_plan.html">spec_05_test_plan.html — Master Test Catalog</a>
   <div class="desc">124 test cases, 4-tier (Smoke 10 / Functional 52 / Regression 50 / Performance 12). 7 도메인 × 평균 10 cases. 2주 실행 계획. <strong>qa-strategist</strong> 작성.</div>
   <div class="stats">Method: 40% Playwright + 23% pytest + 16% psql + 12% docker logs + 4% curl + 5% manual</div>
+</div>
+
+<h2>📑 Phase A+B — 정통 SI 산출물 시퀀스</h2>
+
+<div class="spec-card">
+  <a href="spec_06_menu_sitemap.html">spec_06_menu_sitemap.html — 메뉴 트리 + 사이트맵 + 네비게이션</a>
+  <div class="desc">5 메뉴 그룹, 16 라우트 트리, URL 정규화 권고 (kebab-case 일관성 43%), 권한 모델 초안. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">발견: 사이드바 노출 7개 + hidden 1개 + 미노출 6개, layout_v2.py 미사용, 모바일 사실상 불가</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_07_storyboard.html">spec_07_storyboard.html — 스토리보드 (페르소나별 user flow)</a>
+  <div class="desc">18 flows (Operator 7 + Analyst 6 + Admin 5), ASCII 다이어그램, happy/alternative/error paths, cross-flow 의존성 13개. <strong>product-manager</strong> 작성.</div>
+  <div class="stats">Critical flow: OP-02 (실시간 Critical 알람 긴급 대응, SLA 2분). Broken 10개, 누락 9개</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_08_screens_alarm_domain.html">spec_08_screens_alarm_domain.html — 화면 설계서 (Alarm 도메인 7 페이지)</a>
+  <div class="desc">/alarms · /alarms_rt · /alarms_rt_new · /alarms_hist · /alarms_hist_new · /scada-alarms · /scada-alarm-comparison. 각 페이지 layout grid + 컴포넌트 표 + state binding + 결함. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">총 145 컴포넌트, 알려진 결함 15개 (Critical 2, High 9, Medium 4). canonical 추천: /alarms 단일화</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_09_screens_ml_ai_domain.html">spec_09_screens_ml_ai_domain.html — 화면 설계서 (ML/AI 도메인)</a>
+  <div class="desc">/forecast (11 섹션) + /model-performance (8 섹션) + /training-wizard 6-step (~135 컴포넌트). save_model 파이프라인 10단계. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">결함: F-01 에러 UI 미노출, MP-01 삭제 confirm 없음, W-01 학습 취소 불가, W-02 pickle cache 휘발</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_10_screens_operations_domain.html">spec_10_screens_operations_domain.html — 화면 설계서 (Operations 도메인)</a>
+  <div class="desc">/ (dashboard 1635 LoC god-class → 6 sub-component 분리 제안) + /viewer-tag + /sync (orphan) + /comm. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">결함: D-01 zombie loop, V-01 delete confirm 없음, S-01 /sync 페이지 404, C-02 pandas @rx.var 미캐싱</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_11_screens_analytics_misc.html">spec_11_screens_analytics_misc.html — 화면 설계서 (Analytics + 기타)</a>
+  <div class="desc">/trend (849 LoC, dual sync chart) + /ai (DEAD, 활성화 시 9개 즉시 fix 필요) + /design-system-demo (DEAD). <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">AI 활성화 Critical: ksys_app.py import 1줄 추가만으로 라우트 활성. SQL injection 추가 사이트 발견</div>
 </div>
 
 <h2>🔢 산출물 요약 — 한눈에 보는 시스템</h2>

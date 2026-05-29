@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>audit_infra_2026-05-21</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="ksys-docker-deployment-infrastructure-audit">KSys Docker / Deployment Infrastructure Audit</h1>
+<ul>
+<li><strong>Date</strong>: 2026-05-21</li>
+<li><strong>Auditor</strong>: bkit-infra-architect</li>
+<li><strong>Scope</strong>: Dockerfile inventory, compose orchestration, multi-RPI rollout readiness, version control posture, TimescaleDB/pg_cron risks</li>
+<li><strong>Working dir</strong>: <code>C:\Users\Ipeop\SynologyDrive_강민구대표\SynologyDrive\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo\</code></li>
+<li><strong>Goal in scope</strong>: deploy to N additional RPI5 (ARM64) units within ~1 month</li>
+</ul>
+<hr />
+<h2 id="1-dockerfile-inventory-analysis">1. Dockerfile Inventory + Analysis</h2>
+<h3 id="11-inventory">1.1 Inventory</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Purpose</th>
+<th>Base image</th>
+<th>Stages</th>
+<th>Pinned?</th>
+<th>Runs as root?</th>
+<th>Healthcheck</th>
+<th>Size estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Dockerfile</code></td>
+<td>Reflex web app (frontend+backend)</td>
+<td><code>python:3.11-slim</code></td>
+<td>single</td>
+<td>partial (tag only)</td>
+<td>yes (no USER)</td>
+<td>none</td>
+<td>~1.8–2.2 GB (Node18+npm+reflex build)</td>
+</tr>
+<tr>
+<td><code>Dockerfile.scheduler</code></td>
+<td>Forecasting scheduler</td>
+<td><code>python:3.11-slim</code></td>
+<td>single</td>
+<td>partial</td>
+<td>yes</td>
+<td>none</td>
+<td>~1.2–1.6 GB (ML stack: statsforecast, xgboost, prophet)</td>
+</tr>
+<tr>
+<td><code>Dockerfile.pipeline</code> (untracked)</td>
+<td>CSV → TimescaleDB ETL one-shot</td>
+<td><code>python:3.12-slim</code></td>
+<td>single</td>
+<td>partial</td>
+<td>yes</td>
+<td>none</td>
+<td>~150 MB</td>
+</tr>
+<tr>
+<td><code>Dockerfile.data-injector</code></td>
+<td>Virtual data generator loop</td>
+<td><code>python:3.13-slim</code></td>
+<td>single</td>
+<td>partial</td>
+<td>yes</td>
+<td>none</td>
+<td>~150 MB</td>
+</tr>
+<tr>
+<td><code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron</code></td>
+<td>TimescaleDB17 + pg_cron (Alpine)</td>
+<td><code>timescale/timescaledb:latest-pg17</code></td>
+<td>single</td>
+<td><strong>NO</strong> (<code>latest</code>)</td>
+<td>yes (postgres user via base)</td>
+<td>yes</td>
+<td>~350–450 MB</td>
+</tr>
+<tr>
+<td><code>schedulers/Dockerfile</code></td>
+<td>Duplicate of <code>Dockerfile.scheduler</code> minus env vars</td>
+<td><code>python:3.11-slim</code></td>
+<td>single</td>
+<td>partial</td>
+<td>yes</td>
+<td>none</td>
+<td>identical to scheduler</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-findings">1.2 Findings</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>File / Evidence</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D-01</td>
+<td><code>Dockerfile.rpi-pgcron</code> uses <code>timescale/timescaledb:latest-pg17</code> — <code>latest</code> floating tag. New RPI built next month may pull a different upstream image than the RPI built today. Reproducibility is broken.</td>
+<td>CRITICAL</td>
+<td><code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron:6</code></td>
+<td>Pin to digest, e.g. <code>timescale/timescaledb:2.21.3-pg17</code> or <code>@sha256:...</code>. Re-pin after each verified RPI deploy.</td>
+</tr>
+<tr>
+<td>D-02</td>
+<td>No <code>.dockerignore</code> at repo root. Every <code>docker build</code> ships <code>.web/</code> (node_modules), <code>agentic-runs/</code>, <code>backup/</code> (389 MB dump), <code>reports/</code>, <code>.claude/worktrees/</code>, <code>*.dump</code>. Massive context tarball → slow builds and bloated images if copied.</td>
+<td>HIGH</td>
+<td><code>.dockerignore</code> absent; <code>Dockerfile:27</code> does <code>COPY . .</code></td>
+<td>Add <code>.dockerignore</code> mirroring <code>.gitignore</code> PLUS <code>.web/</code>, <code>.states/</code>, <code>backup/</code>, <code>reports/</code>, <code>agentic-runs/</code>, <code>.claude/</code>, <code>*.dump</code>, <code>*.csv</code>, <code>__pycache__/</code>.</td>
+</tr>
+<tr>
+<td>D-03</td>
+<td><code>Dockerfile</code> (web) and <code>Dockerfile.scheduler</code> both run as root. No <code>USER appuser</code> line. ML scheduler with pickle.loads from disk widens attack surface.</td>
+<td>HIGH</td>
+<td><code>Dockerfile</code> (no USER); <code>Dockerfile.scheduler</code> (no USER)</td>
+<td>Add <code>RUN useradd -m -u 1000 app &amp;&amp; chown -R app /app</code> and <code>USER app</code> before CMD.</td>
+</tr>
+<tr>
+<td>D-04</td>
+<td>No multi-stage builds. Web image keeps <code>build-essential</code>, <code>git</code>, <code>npm cache</code>, full pip cache layer in the final image. Compounding D-02. On RPI (16 GB SD/SSD) this matters. HANDOFF backlog also lists "Docker image 4.49 GB 경량화".</td>
+<td>HIGH</td>
+<td><code>Dockerfile:11-24</code></td>
+<td>Adopt multi-stage: stage 1 builds <code>.web/</code> with Node, stage 2 is <code>python:3.11-slim</code> + only runtime deps + built <code>.web/</code>. Estimated 50–60 % size cut.</td>
+</tr>
+<tr>
+<td>D-05</td>
+<td>Web <code>Dockerfile</code> runs <code>reflex init --loglevel debug \|\| true</code> at build time. The <code>\|\| true</code> silences any failure — a broken init ships unnoticed.</td>
+<td>MED</td>
+<td><code>Dockerfile:30</code></td>
+<td>Either fix the underlying init issue and remove <code>\|\| true</code>, or move init to an entrypoint script that fails fast on first start.</td>
+</tr>
+<tr>
+<td>D-06</td>
+<td>Three Python base versions span the four app images: 3.11 (web, scheduler), 3.12 (pipeline), 3.13 (data-injector). No reason for divergence — drift hazard.</td>
+<td>MED</td>
+<td><code>Dockerfile</code>, <code>Dockerfile.scheduler</code>, <code>Dockerfile.pipeline</code>, <code>Dockerfile.data-injector</code></td>
+<td>Standardise on <code>python:3.11-slim-bookworm@sha256:...</code> across all four.</td>
+</tr>
+<tr>
+<td>D-07</td>
+<td>Duplicate Dockerfile: <code>schedulers/Dockerfile</code> is essentially <code>Dockerfile.scheduler</code> minus the timeout/pool env vars from the H5/H7 fix. Risk: someone builds from the stale one.</td>
+<td>MED</td>
+<td><code>schedulers/Dockerfile</code> vs <code>Dockerfile.scheduler</code></td>
+<td>Delete <code>schedulers/Dockerfile</code> (no compose references it). Add <code># DO NOT USE</code> if deletion blocked.</td>
+</tr>
+<tr>
+<td>D-08</td>
+<td>No image has an in-container <code>HEALTHCHECK</code> except the DB. Compose-level healthchecks also missing for app/scheduler (see §2).</td>
+<td>MED</td>
+<td><code>Dockerfile</code>, <code>Dockerfile.scheduler</code></td>
+<td>Add <code>HEALTHCHECK CMD curl -fsS http://localhost:13001/ping \|\| exit 1</code> to web image; PID-based check for scheduler.</td>
+</tr>
+<tr>
+<td>D-09</td>
+<td>No <code>--platform=linux/arm64</code> declared. Dockerfiles silently build for the host arch. On Windows x86_64 dev, you build x86_64 images that won't run on RPI without rebuild. No <code>docker buildx</code> workflow.</td>
+<td>HIGH</td>
+<td><code>Dockerfile*</code> (no <code>--platform</code>)</td>
+<td>Adopt <code>docker buildx build --platform linux/arm64,linux/amd64</code> so the same Dockerfile produces both arches; push to registry (see §3).</td>
+</tr>
+<tr>
+<td>D-10</td>
+<td><code>Dockerfile.rpi-pgcron</code> symlinks <code>/usr/lib/postgresql17/pg_cron.so</code> blindly. Alpine recently flipped default to PG18; the dev workaround in <code>docker-compose.dev.yml</code> drops <code>pg_cron</code> from <code>shared_preload_libraries</code> to sidestep ABI mismatch. RPI prod uses the same image but keeps pg_cron on — fragile.</td>
+<td>HIGH</td>
+<td><code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron:14</code>, <code>HANDOFF.md:71-75</code></td>
+<td>Pin Alpine version (<code>FROM timescale/timescaledb:2.21.3-pg17-oss</code> or similar). Detect pkglibdir with <code>pg_config --pkglibdir</code>. Verify pg_cron loads on a clean build before next RPI ship.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-compose-orchestration">2. Compose Orchestration</h2>
+<h3 id="21-three-compose-files-three-naming-conventions">2.1 Three compose files, three naming conventions</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Container prefix</th>
+<th>Network</th>
+<th>Volume strategy</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker-compose.yml</code> (RPI prod)</td>
+<td><code>rpi-finished-*</code>, <code>cloudflared-tunnel</code></td>
+<td><code>ksys-network</code> (external)</td>
+<td>bind mounts for <code>./ksys_app</code>, named volume <code>pgai_data</code></td>
+<td>Cloudflare token <strong>in plaintext</strong>, line 130</td>
+</tr>
+<tr>
+<td><code>docker-compose.local.yml</code> (local validation)</td>
+<td><code>ksys-local-*</code></td>
+<td><code>dev_network</code> (alias of <code>reflex-rpi-local-deployment-poongdo_default</code>, external)</td>
+<td>bind mounts everywhere — reuses <code>ksys-dev-db</code> from dev compose</td>
+<td>Has <code>init: true</code> and <code>stop_grace_period</code> (best practice — only file that does)</td>
+</tr>
+<tr>
+<td><code>docker-compose.dev.yml</code> (DB only)</td>
+<td><code>ksys-dev-db</code></td>
+<td>implicit default</td>
+<td>named volume <code>ksys_dev_pgdata</code>, read-only mounts for backup/migrations</td>
+<td>Overrides CMD to drop pg_cron (workaround for ABI mismatch)</td>
+</tr>
+<tr>
+<td><code>20251030-rpi-pgcron/docker-compose.rpi-pgcron.yml</code> (legacy RPI DB only)</td>
+<td><code>pgai-db</code></td>
+<td><code>ksys-network</code> (external)</td>
+<td>named volume <code>pgai_data</code></td>
+<td>Yet another naming scheme</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-findings">2.2 Findings</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>File / Evidence</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C-01</td>
+<td><strong>Cloudflare Tunnel token committed in plaintext.</strong> Anyone with repo read access can hijack the tunnel.</td>
+<td>CRITICAL</td>
+<td><code>docker-compose.yml:130</code></td>
+<td>Rotate the token NOW via Cloudflare Zero Trust dashboard. Move to <code>.env</code> (gitignored) and reference as <code>${CLOUDFLARE_TUNNEL_TOKEN}</code>. Consider AWS/HCP Vault when fleet grows.</td>
+</tr>
+<tr>
+<td>C-02</td>
+<td>DB password <code>postgres:postgres</code> hardcoded in 6+ places across all three compose files. Identical on every RPI.</td>
+<td>CRITICAL</td>
+<td><code>docker-compose.yml:9-10,40,41,78,79,114</code>, <code>docker-compose.local.yml:24-25,83-84</code>, <code>docker-compose.dev.yml:27-28</code></td>
+<td>Externalise to <code>.env</code> per RPI: <code>POSTGRES_PASSWORD=...</code>, <code>TS_DSN=...</code>. Generate per-RPI password at provisioning time.</td>
+</tr>
+<tr>
+<td>C-03</td>
+<td>Healthcheck coverage gap: only the DB has a healthcheck. <code>rpi-finished-reflex-app</code>, <code>rpi-finished-forecast-scheduler</code>, <code>rpi-finished-data-injector</code>, <code>timeseries-pipeline</code> all lack one — <code>depends_on</code> cannot gate on their readiness.</td>
+<td>HIGH</td>
+<td><code>docker-compose.yml:31-124</code></td>
+<td>Add HTTP healthcheck to reflex-app (<code>curl /ping</code>), liveness file or stdin probe for scheduler/injector.</td>
+</tr>
+<tr>
+<td>C-04</td>
+<td>Production compose lacks <code>init: true</code> and <code>stop_grace_period</code>. Local compose has them because of the zombie socket incident ([[feedback_no_host_reflex_zombie]]). Same risk applies on RPI under power loss.</td>
+<td>HIGH</td>
+<td><code>docker-compose.yml</code> (no <code>init</code>/<code>stop_grace_period</code>); <code>docker-compose.local.yml:44-45</code></td>
+<td>Copy the <code>init: true</code> + <code>stop_grace_period: 30s</code> pattern from local compose into prod compose.</td>
+</tr>
+<tr>
+<td>C-05</td>
+<td>No memory/CPU limits anywhere. RPI5 has 8 GB shared. The scheduler holds statsforecast + XGBoost + Prophet in memory — one OOM kills the DB too.</td>
+<td>HIGH</td>
+<td>all compose files (no <code>deploy.resources</code> / <code>mem_limit</code>)</td>
+<td>Set <code>deploy.resources.limits.memory</code> per service (DB 3G, reflex-app 1.5G, scheduler 2G, injector/pipeline 256M). Validate against <code>free -m</code> on RPI.</td>
+</tr>
+<tr>
+<td>C-06</td>
+<td>Bind mount of source code (<code>./ksys_app:/app/ksys_app</code>) in <strong>production</strong> compose. Means RPI is doing live code reload from filesystem; image content is overridden. Intentional for hot-patch but unsafe for "ship to many RPIs" — code drift between RPIs becomes invisible.</td>
+<td>HIGH</td>
+<td><code>docker-compose.yml:47-48,82-83</code></td>
+<td>For prod, <code>COPY</code> code in image and drop the bind mount. Keep bind mount only in local/dev compose.</td>
+</tr>
+<tr>
+<td>C-07</td>
+<td>Network <code>ksys-network</code> is <code>external: true</code> but no script creates it on a fresh RPI. First <code>docker compose up</code> on a clean RPI errors out.</td>
+<td>MED</td>
+<td><code>docker-compose.yml:138-139</code>, <code>20251030-rpi-pgcron/docker-compose.rpi-pgcron.yml:31-32</code></td>
+<td>Either set <code>external: false</code> (let compose create), or add a <code>bootstrap.sh</code> that runs <code>docker network create ksys-network</code> before compose up.</td>
+</tr>
+<tr>
+<td>C-08</td>
+<td><code>docker-compose.local.yml</code> aliases <code>dev_network</code> to literal name <code>reflex-rpi-local-deployment-poongdo_default</code>. If anyone renames the project directory, dev breaks silently.</td>
+<td>MED</td>
+<td><code>docker-compose.local.yml:112-116</code></td>
+<td>Use <code>name: ksys-dev-default</code> (stable, independent of cwd), or define the network in both compose files identically.</td>
+</tr>
+<tr>
+<td>C-09</td>
+<td>Three different container names for the DB across environments (<code>rpi-finished-pgai-db</code>, <code>ksys-dev-db</code>, <code>pgai-db</code>) → in-app DSNs differ per env. Source of past bugs.</td>
+<td>MED</td>
+<td>docker-compose.{yml, local.yml, dev.yml}</td>
+<td>Standardise on hostname <code>db</code> (compose service name) inside the network; the app reads <code>TS_DSN</code> from env. Container names can stay different for shell ergonomics.</td>
+</tr>
+<tr>
+<td>C-10</td>
+<td><code>depends_on: condition: service_healthy</code> is used correctly — but only because DB has the only healthcheck. Once C-03 is fixed, add <code>condition: service_started</code> or <code>service_healthy</code> everywhere.</td>
+<td>LOW</td>
+<td>OK as-is</td>
+<td>Roll up under C-03.</td>
+</tr>
+<tr>
+<td>C-11</td>
+<td><code>restart: unless-stopped</code> everywhere is fine, but no <code>restart: on-failure:5</code> for one-shot pipeline. <code>timeseries-pipeline</code> is a one-shot ETL — <code>unless-stopped</code> will respawn forever after it finishes.</td>
+<td>LOW</td>
+<td><code>docker-compose.yml:124</code>, <code>docker-compose.local.yml:109</code></td>
+<td>Change pipeline to <code>restart: "no"</code> or <code>on-failure</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-multi-rpi-rollout-readiness">3. Multi-RPI Rollout Readiness</h2>
+<h3 id="31-automation-inventory">3.1 Automation inventory</h3>
+<table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Exists?</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/deploy_local.bat</code></td>
+<td>yes</td>
+<td>Spins up local dev DB + builds local compose. Windows-only. Not for RPI.</td>
+</tr>
+<tr>
+<td><code>scripts/deploy_gcp.sh</code></td>
+<td>yes</td>
+<td><strong>Empty stub</strong> — single comment "removed per user requirement".</td>
+</tr>
+<tr>
+<td><code>ansible/</code>, <code>cloud-init/</code>, <code>terraform/</code></td>
+<td>NO</td>
+<td>Nothing.</td>
+</tr>
+<tr>
+<td>Per-RPI bootstrap script</td>
+<td>NO</td>
+<td>No <code>provision_rpi.sh</code>, no Ansible playbook.</td>
+</tr>
+<tr>
+<td>DB restore script</td>
+<td>NO</td>
+<td>Procedure is documented in <code>20251030-rpi-pgcron/RPI_PGCRON_DEPLOYMENT.md</code> but not codified.</td>
+</tr>
+<tr>
+<td>Per-RPI config layer</td>
+<td>NO</td>
+<td>No <code>.env.example</code>, no <code>config/{rpi-id}/</code>. Everything is hardcoded in compose.</td>
+</tr>
+<tr>
+<td>Image registry</td>
+<td>NO</td>
+<td>Every RPI does <code>docker build</code> locally. No GHCR/ECR/Harbor.</td>
+</tr>
+<tr>
+<td>CI pipeline</td>
+<td>NO</td>
+<td>No <code>.github/workflows/</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-findings">3.2 Findings</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>Evidence</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R-01</td>
+<td><strong>No automation for bringing up a new RPI.</strong> Procedure is tribal knowledge ("ssh in, git pull, docker compose build, restore dump"). 1-month / N-unit goal is unrealistic without scripting.</td>
+<td>CRITICAL</td>
+<td><code>scripts/deploy_gcp.sh:1</code> is a removed stub</td>
+<td>Write <code>scripts/bootstrap_rpi.sh</code> that: (a) installs docker, (b) clones repo, (c) creates <code>ksys-network</code>, (d) generates per-RPI <code>.env</code>, (e) restores DB from a known dump, (f) starts compose, (g) verifies HTTP 200 on :14000.</td>
+</tr>
+<tr>
+<td>R-02</td>
+<td>Per-RPI config (sensor IDs, location label, hostname for Cloudflare, optional unit-specific tags) is not externalised. To deploy a second RPI you'd be editing compose YAML on each one.</td>
+<td>CRITICAL</td>
+<td><code>docker-compose.yml</code> hardcodes <code>TS_DSN</code>, <code>APP_ENV</code>, <code>ENABLE_AI_FEATURES</code>. No <code>RPI_SITE_NAME</code>/<code>RPI_UNIT_ID</code> env.</td>
+<td>Add <code>.env.example</code> listing every per-RPI variable. Add <code>env_file: .env</code> to each service. Document required keys in <code>README.md</code>.</td>
+</tr>
+<tr>
+<td>R-03</td>
+<td>DB restore is a multi-step manual incantation (HANDOFF.md round 2 §3 documents the TimescaleDB-specific <code>pre_restore</code>/<code>post_restore</code> dance). Not scripted → easy to skip on RPI #4.</td>
+<td>HIGH</td>
+<td><code>HANDOFF.md:77-90</code></td>
+<td><code>scripts/restore_db.sh &lt;dump_path&gt;</code> that does CREATE DATABASE template0 → CREATE EXTENSION timescaledb VERSION '2.21.3' → <code>pre_restore</code> → single-thread <code>pg_restore</code> → <code>post_restore</code>.</td>
+</tr>
+<tr>
+<td>R-04</td>
+<td>Images built per-RPI. Each RPI re-installs every pip + npm dep — slow, network-dependent, and bit-different per build. ML stack alone is ~800 MB pip download.</td>
+<td>HIGH</td>
+<td>No <code>image:</code> key (only <code>build:</code>) in any compose service</td>
+<td>Push pre-built ARM64 images to GHCR (free for public repos / cheap for private). RPI just does <code>docker compose pull &amp;&amp; up -d</code>. Build step becomes CI's job.</td>
+</tr>
+<tr>
+<td>R-05</td>
+<td>Backups (<code>backup/*.dump</code>) are in repo path but <code>.gitignore</code>d. There's no documented "golden seed dump" location for new RPIs. Where does RPI #5 get its initial DB from?</td>
+<td>HIGH</td>
+<td><code>.gitignore:27-28</code></td>
+<td>Decide policy: (a) seed each RPI from RPI #1's nightly dump (use S3/B2/Synology), (b) seed empty + replay from sensors. Document in <code>docs/rpi-provisioning.md</code>.</td>
+</tr>
+<tr>
+<td>R-06</td>
+<td>No version-pinning of the <code>reflex-rpi-local-deployment-poongdo</code> repo itself — every RPI tracks <code>master</code>. A bad commit propagates fleet-wide.</td>
+<td>MED</td>
+<td>git config shows no per-RPI tag</td>
+<td>Tag releases (<code>v1.0.0-rpi</code>); each RPI checks out a tag, not <code>master</code>. Promote via PR review.</td>
+</tr>
+<tr>
+<td>R-07</td>
+<td>No fleet monitoring. With N RPIs you need to know which is unhealthy. Reflex <code>/ping</code> works for one, not for ten.</td>
+<td>MED</td>
+<td>nothing in compose for metrics export</td>
+<td>Consider Uptime Kuma or a single Prometheus + node_exporter + cAdvisor on each RPI scraped by a central host. Out of scope for v1 but mention in plan.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-version-control-posture">4. Version Control Posture</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>Evidence</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G-01</td>
+<td><strong>Audit prompt says "no GitHub" but <code>.git/config</code> shows <code>origin = https://github.com/grandbelly/reflex-ksys-db.git</code>.</strong> This is the DB-deployment repo, NOT the app code repo. So the <em>application</em> (ksys_app/, Dockerfile, compose files for prod) is in fact pushed to the DB repo — semantic mismatch. Verify with <code>git log origin/master..HEAD</code>.</td>
+<td>HIGH</td>
+<td><code>.git/config:8-9</code>; HANDOFF.md round 2 §file table also lists <code>grandbelly/reflex-ksys-db</code></td>
+<td>Clarify: is <code>reflex-ksys-db</code> now the canonical repo for both? If yes, rename the repo to reflect scope. If no, split: app code in <code>reflex-ksys-app</code>, DB stuff in <code>reflex-ksys-db</code>.</td>
+</tr>
+<tr>
+<td>G-02</td>
+<td>Single-machine git, no CI, no PR review enforced. If this Windows machine dies, recovery = whatever was last pushed. Push cadence unknown — <code>git status</code> shows uncommitted changes to <code>docker-compose.local.yml</code>, <code>docker-compose.yml</code>, plus several <code>.bak</code> / <code>_backup_</code> files at HEAD.</td>
+<td>HIGH</td>
+<td>Initial git status in conversation context</td>
+<td>Immediately commit + push current <code>refactor/rpi-baseline-sync</code>. Confirm <code>origin/master</code> mirrors local. Set up branch protection on <code>master</code> (no direct push).</td>
+</tr>
+<tr>
+<td>G-03</td>
+<td><code>.gitignore</code> is okay but missing: <code>.env</code>, <code>*.dump.gz</code>, <code>.bkit/</code>, build artefacts <code>node_modules/</code> (covered via <code>.web/</code> only), <code>*.pyc</code> (covered), <code>*_backup_*.py</code> (visible in git status as untracked but should stay so until decided).</td>
+<td>MED</td>
+<td><code>.gitignore:1-58</code></td>
+<td>Add explicit <code>.env</code>, <code>.env.*</code>, <code>!.env.example</code>, <code>dist/</code>, <code>*.dump.gz</code>.</td>
+</tr>
+<tr>
+<td>G-04</td>
+<td>No CI. No automated tests on push. ML scheduler regressions ship invisibly.</td>
+<td>MED</td>
+<td>no <code>.github/workflows/</code></td>
+<td>Minimal CI: lint (<code>ruff check</code>), test (<code>pytest -q</code>), <code>docker buildx build --platform linux/arm64 --check</code> on PR. GitHub Actions free tier covers it.</td>
+</tr>
+<tr>
+<td>G-05</td>
+<td>Cloudflare token, DB password, future API keys → no secret management plan. With multi-RPI, secrets sprawl is inevitable.</td>
+<td>MED</td>
+<td>C-01, C-02</td>
+<td>For now: per-RPI <code>.env</code> (gitignored), committed <code>.env.example</code>. Mid-term: doppler / 1Password Connect / HashiCorp Vault.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-recommended-commit-first-list-before-next-rpi-ship">4.1 Recommended commit-first list (before next RPI ship)</h3>
+<ol>
+<li><code>docker-compose.yml</code> (cleaned: token externalised, healthchecks added, init+stop_grace_period)</li>
+<li><code>docker-compose.local.yml</code>, <code>docker-compose.dev.yml</code>, <code>Dockerfile*</code> (with pinned base images, .dockerignore)</li>
+<li><code>scripts/bootstrap_rpi.sh</code>, <code>scripts/restore_db.sh</code></li>
+<li><code>.env.example</code></li>
+<li><code>docs/rpi-provisioning.md</code></li>
+<li><code>HANDOFF.md</code>, <code>README.md</code></li>
+</ol>
+<h3 id="42-aggressive-gitignore-additions">4.2 Aggressive .gitignore additions</h3>
+<pre><code>.env
+.env.*
+!.env.example
+*.dump
+*.dump.gz
+*.sql.gz
+.bkit/
+agentic-runs/
+reports/                # or whitelist .html only
+.claude/worktrees/
+ksys_app/**/*_backup_*.py
+ksys_app/**/*.bak
+ksys_app/**/*.disabled
+</code></pre>
+<hr />
+<h2 id="5-timescaledb-arm-pg_cron-specifics">5. TimescaleDB / ARM / pg_cron Specifics</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>Evidence</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-01</td>
+<td><strong>pg_cron ABI mismatch between Alpine 1.6.7 build (PG18) and TimescaleDB:latest-pg17 base.</strong> Dev workaround in compose drops pg_cron from preload; RPI prod still loads it. Risk: next <code>docker pull</code> on RPI flips the same image, pg_cron fails to load, DB won't start, all Virtual Tag calcs stop.</td>
+<td>CRITICAL</td>
+<td><code>HANDOFF.md:71-75</code>, <code>docker-compose.dev.yml:17-25</code></td>
+<td>Pin DB image to a known-good digest. Optionally compile pg_cron from source against PG17 in the Dockerfile to bypass Alpine package version churn.</td>
+</tr>
+<tr>
+<td>T-02</td>
+<td>Hypertable + continuous aggregate setup is <strong>partially scripted</strong>. <code>migrations/</code> has 13 SQL files (init virtual tags, pg_cron migration, training/forecast schema). But continuous aggregates (5 views) failed to import on the dev DB rebuild due to 2.21.3 → 2.27 catalog drift (HANDOFF.md).</td>
+<td>HIGH</td>
+<td><code>migrations/</code> listing, <code>HANDOFF.md:88-89</code></td>
+<td>Add <code>migrations/000_reset_caggs.sql</code> that drops and recreates all CAGGs at a known TimescaleDB version. Apply automatically in <code>bootstrap_rpi.sh</code>.</td>
+</tr>
+<tr>
+<td>T-03</td>
+<td><code>migrations/</code> lacks a numeric ordering convention. <code>001_alarm_indexes.sql</code> and <code>01_init_virtual_tags.sql</code> mix 3-digit and 2-digit prefixes; <code>20251014_*</code> is date-prefixed. No applied/not-applied tracking.</td>
+<td>MED</td>
+<td><code>migrations/</code> directory listing</td>
+<td>Adopt either golang-migrate or alembic. Or at minimum: rename to 4-digit (<code>0001_*</code>, <code>0002_*</code>) and maintain a <code>schema_migrations</code> table that <code>bootstrap_rpi.sh</code> consults.</td>
+</tr>
+<tr>
+<td>T-04</td>
+<td>No documented PG17 / TimescaleDB version compatibility matrix for the app. App expects <code>timescaledb 2.21.3</code> (per restore procedure). If RPI pulls a newer base image, hypertable functions may differ.</td>
+<td>MED</td>
+<td><code>HANDOFF.md:81-82</code></td>
+<td>Document required <code>timescaledb</code> extension version in <code>README.md</code>. <code>bootstrap_rpi.sh</code> asserts version, refuses to proceed on mismatch.</td>
+</tr>
+<tr>
+<td>T-05</td>
+<td>Backup procedure documented but not automated. No cron/systemd timer that produces <code>ecoanp_full_$(date).dump</code> on each RPI. The <code>backup/</code> volume on RPI prod will grow forever or stay empty.</td>
+<td>MED</td>
+<td><code>docker-compose.yml:18</code> bind mount <code>./backup</code>; no cron entry in repo</td>
+<td>Add a <code>backup-cron</code> service to compose: lightweight alpine image with <code>pg_dump</code> weekly via crond. Push to off-RPI store (NAS / S3) for DR.</td>
+</tr>
+<tr>
+<td>T-06</td>
+<td>No verification that the bundled <code>timescale/timescaledb:latest-pg17</code> is multi-arch (it is, but unpinned). ARM64 manifest version may differ from amd64 dev.</td>
+<td>LOW</td>
+<td><code>Dockerfile.rpi-pgcron:6</code></td>
+<td>Pin by digest captures the per-arch manifest. Same fix as D-01 / T-01.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a-top-3-ship-blockers-before-next-rpi">A. Top 3 Ship-Blockers Before Next RPI</h2>
+<table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Blocker</th>
+<th>Owner action</th>
+<th>Eta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Cloudflare Tunnel token in plaintext at <code>docker-compose.yml:130</code> + <code>postgres:postgres</code> everywhere</td>
+<td>Rotate token in CF dashboard. Move to <code>.env</code>. Generate per-RPI DB password. Update all compose <code>${VAR}</code> references.</td>
+<td>0.5 day</td>
+</tr>
+<tr>
+<td>2</td>
+<td>No <code>bootstrap_rpi.sh</code> + <code>restore_db.sh</code> → every new RPI is manual SSH + tribal knowledge</td>
+<td>Write both scripts (Bash). Test on a wiped RPI (or VM with ARM64 qemu). Land in <code>scripts/</code>.</td>
+<td>2 days</td>
+</tr>
+<tr>
+<td>3</td>
+<td>DB image pinned to <code>latest-pg17</code> + pg_cron ABI fragility</td>
+<td>Pin image to digest; verify pg_cron loads on a clean rebuild; document the version-lock in README.</td>
+<td>1 day</td>
+</tr>
+</tbody>
+</table>
+<p>If any of those three slip, sending a second RPI is rolling dice.</p>
+<h2 id="b-multi-rpi-rollout-readiness-checklist">B. Multi-RPI Rollout Readiness Checklist</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fresh-RPI bootstrap script</td>
+<td><strong>No</strong></td>
+<td><code>scripts/deploy_gcp.sh</code> is empty; only Windows <code>.bat</code> exists</td>
+</tr>
+<tr>
+<td>Per-RPI config externalised (<code>.env</code>)</td>
+<td><strong>No</strong></td>
+<td>All values hardcoded in compose</td>
+</tr>
+<tr>
+<td>Secrets removed from repo (token, DB pwd)</td>
+<td><strong>No</strong></td>
+<td>CF token + DB password committed plaintext</td>
+</tr>
+<tr>
+<td>DB restore scripted (TimescaleDB-aware)</td>
+<td><strong>No</strong></td>
+<td>Procedure exists in HANDOFF + RPI_PGCRON_DEPLOYMENT.md, not codified</td>
+</tr>
+<tr>
+<td>Golden DB seed defined and stored off-host</td>
+<td>Partial</td>
+<td>Dumps in <code>backup/</code>, gitignored, no off-RPI mirror documented</td>
+</tr>
+<tr>
+<td>Image registry (pull instead of build)</td>
+<td><strong>No</strong></td>
+<td>Every RPI runs <code>docker build</code></td>
+</tr>
+<tr>
+<td>Multi-arch build / <code>buildx</code> workflow</td>
+<td><strong>No</strong></td>
+<td>No <code>--platform</code>; builds whatever host arch is</td>
+</tr>
+<tr>
+<td>Healthchecks on all services</td>
+<td>Partial</td>
+<td>DB only</td>
+</tr>
+<tr>
+<td>Resource limits (RPI is 8 GB shared)</td>
+<td><strong>No</strong></td>
+<td>Risk of scheduler OOM killing DB</td>
+</tr>
+<tr>
+<td><code>init: true</code> + <code>stop_grace_period</code> in prod compose</td>
+<td><strong>No</strong></td>
+<td>Only in local compose, after the zombie-socket incident</td>
+</tr>
+<tr>
+<td>Per-RPI hostname / Cloudflare hostname strategy</td>
+<td><strong>No</strong></td>
+<td>Single tunnel token = single hostname; collision if N&gt;1</td>
+</tr>
+<tr>
+<td>Git remote verified + push cadence enforced</td>
+<td>Partial</td>
+<td>Remote exists; uncommitted prod-compose changes at HEAD</td>
+</tr>
+<tr>
+<td>Branch protection / PR review on <code>master</code></td>
+<td><strong>No</strong></td>
+<td>Single-machine push</td>
+</tr>
+<tr>
+<td>CI (lint + test + build) on PR</td>
+<td><strong>No</strong></td>
+<td>No <code>.github/workflows/</code></td>
+</tr>
+<tr>
+<td>Automated DB backup cron on RPI</td>
+<td><strong>No</strong></td>
+<td>Bind mount exists, nothing writes to it on a schedule</td>
+</tr>
+<tr>
+<td>Centralised log/metrics for fleet</td>
+<td><strong>No</strong></td>
+<td>Acceptable for N=1, blocker for N&gt;3</td>
+</tr>
+<tr>
+<td>Migration tracking (which RPI ran which SQL)</td>
+<td><strong>No</strong></td>
+<td>No <code>schema_migrations</code> table</td>
+</tr>
+<tr>
+<td>TimescaleDB extension version assertion</td>
+<td><strong>No</strong></td>
+<td>Restore docs say 2.21.3 — not enforced at runtime</td>
+</tr>
+<tr>
+<td>pg_cron extension confirmed loadable on pinned image</td>
+<td>Partial</td>
+<td>Works on current RPI; fragile vs Alpine upstream churn</td>
+</tr>
+<tr>
+<td>Documented rollback procedure per RPI</td>
+<td>Partial</td>
+<td>RPI_PGCRON_DEPLOYMENT.md §rollback exists, but pre-pg_cron only</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Score</strong>: 0 fully-met / 4 partial / 16 not-met out of 20.</p>
+<p><strong>Bottom line</strong>: at current readiness, deploying RPI #2 will be a manual repeat of RPI #1, taking ~half a day per unit and accumulating drift. With the three blockers fixed and items R-01 / R-02 / R-04 in place, per-RPI deploy time drops to ~30 minutes and fleet drift becomes detectable.</p>
+<hr />
+<p><em>End of audit.</em></p>
+</body></html>

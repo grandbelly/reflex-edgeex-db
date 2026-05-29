@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_04_PRD</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="ksys-reverse-engineered-product-requirements-document-prd">KSYS — Reverse-Engineered Product Requirements Document (PRD)</h1>
+<blockquote>
+<p><strong>Type:</strong> Reverse-Engineered PRD (as-built, not as-designed)<br />
+<strong>Source specs:</strong> spec_01_frontend_pages.md · spec_02_backend_states_services.md · spec_03_database_schedulers.md<br />
+<strong>Generated:</strong> 2026-05-28<br />
+<strong>Status:</strong> Draft — Awaiting Engineering Sign-off</p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li><a href="#1-product-identity">Product Identity</a></li>
+<li><a href="#2-users--personas">Users &amp; Personas</a></li>
+<li><a href="#3-feature-catalog-by-user-journey">Feature Catalog by User Journey</a></li>
+<li><a href="#4-4-perspective-value-table">4-Perspective Value Table</a></li>
+<li><a href="#5-feature-priority-matrix-m1--m2--m3">Feature Priority Matrix (M1 / M2 / M3)</a></li>
+<li><a href="#6-cleanup-recommendations">Cleanup Recommendations</a></li>
+<li><a href="#7-gaps-vs-industry-expectations">Gaps vs Industry Expectations</a></li>
+</ol>
+<hr />
+<h2 id="1-product-identity">1. Product Identity</h2>
+<p>KSYS is a <strong>water treatment / desalination plant SCADA-adjacent monitoring and predictive analytics platform</strong> — a web-based operational dashboard that ingests real-time IoT sensor data, evaluates threshold-based quality rules (QC) at 10-second intervals, generates and displays multi-horizon ML forecasts (Prophet / Auto-ARIMA / XGBoost) on a rolling 10-minute schedule, and provides an operator-facing alarm lifecycle from detection through acknowledgment through history query. The platform is deployed as a single-site Reflex (Python full-stack) application running in Docker on a Raspberry Pi, targeting a small operations team rather than an enterprise multi-plant deployment.</p>
+<p><strong>Evidence (5 bullets):</strong></p>
+<ol>
+<li><strong><code>influx_qc_rule</code> table</strong> stores <code>min_val</code>, <code>max_val</code>, <code>warning_low/high</code>, <code>critical_low/high</code> — standard process-variable safe-operating-range thresholds consistent with water treatment or desalination sensor monitoring (spec_03 §2.3).</li>
+<li><strong><code>RangeMonitor._initialize_thresholds()</code></strong> hard-codes <code>TMP</code> (막간차압, trans-membrane pressure) and <code>DP</code> (차압, differential pressure) — sensor names diagnostic of a <strong>membrane-based desalination or filtration process</strong> (spec_03 §6.4).</li>
+<li><strong>Hardcoded virtual tags</strong> <code>PRESSURE_DIFF</code>, <code>RECOVERY_RATE</code>, <code>OPERATING_TIME</code>, <code>TOTAL_PRODUCT_VOLUME_1H</code> in migration 08 (spec_03 §2.3) are standard desalination KPIs (recovery rate = product water / feed water).</li>
+<li><strong>Alarm page</strong> uses <strong>ISA-18.2</strong> priority vocabulary (P1 Advisory, P2 Caution, P3 Warning, P4 Emergency) — the dominant alarm management standard in process industries (water, oil &amp; gas, chemical) (spec_01 §Page 2).</li>
+<li><strong><code>RPI_NODE_ID</code> environment variable</strong> and single-site Docker deployment on Raspberry Pi suggest a <strong>per-plant embedded controller</strong>, not a cloud SAAS product (spec_03 §5 container architecture note).</li>
+</ol>
+<hr />
+<h2 id="2-users-personas">2. Users &amp; Personas</h2>
+<h3 id="21-persona-a-plant-operator">2.1 Persona A — Plant Operator</h3>
+<p><strong>Description:</strong> On-shift control room operator monitoring live plant state, responding to alarms, and confirming sensor status. Limited ML or data analysis skill. Needs fast situational awareness.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top 3 jobs-to-be-done</td>
+<td>1. Know immediately when any sensor goes out of range. 2. Acknowledge alarms and document response (ISA-18.2 loop). 3. Verify that the real-time dashboard reflects current plant state.</td>
+</tr>
+<tr>
+<td>Top 3 pages</td>
+<td><code>/</code> (Dashboard), <code>/alarms</code> (unified alarm dashboard), <code>/alarms_rt</code> (sensor card grid)</td>
+</tr>
+<tr>
+<td>Success metrics</td>
+<td>Alarm acknowledgment latency &lt; 2 min; dashboard refresh cycle ≤ 30 s; zero missed P4 Emergency alarms per shift</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key event handlers used:</strong> <code>DashboardRealtimeState.start_streaming</code> · <code>AlarmsState.acknowledge_alarm</code> · <code>AlarmsState.acknowledge_selected</code> · <code>AlarmRTState.acknowledge_alarm</code> · <code>AlarmsState.set_hours_filter</code></p>
+<hr />
+<h3 id="22-persona-b-data-analyst-process-engineer">2.2 Persona B — Data Analyst / Process Engineer</h3>
+<p><strong>Description:</strong> Engineer reviewing historical trends, investigating anomalies, training and evaluating ML models, and exporting data for reports. Needs drill-down capability and configurable views.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top 3 jobs-to-be-done</td>
+<td>1. Plot historical sensor data at adjustable aggregation to diagnose process changes. 2. Train and compare ML models for sensor value forecasting. 3. Export clean time-series data for off-platform analysis.</td>
+</tr>
+<tr>
+<td>Top 3 pages</td>
+<td><code>/trend</code> (trend analysis + CSV export), <code>/training-wizard</code> (6-step ML training), <code>/model-performance</code> (algorithm comparison)</td>
+</tr>
+<tr>
+<td>Success metrics</td>
+<td>CSV export completes in &lt; 10 s for 30-day datasets; training wizard 6-step flow completes without error; MAPE of deployed model &lt; 10% on validation set</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key event handlers used:</strong> <code>TrendState.load_series_data</code> · <code>TrendState.export_csv_all</code> · <code>TrainingWizardState.start_wizard_training</code> · <code>TrainingState.save_model</code> · <code>ModelPerformanceState.deploy_model</code></p>
+<hr />
+<h3 id="23-persona-c-system-administrator">2.3 Persona C — System Administrator</h3>
+<p><strong>Description:</strong> Technical administrator configuring sensor visibility, deploying/reverting ML models, monitoring data sync health, and managing tag metadata. Has DB access or equivalent technical authority.</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top 3 jobs-to-be-done</td>
+<td>1. Control which tags appear on each screen (dashboard / alarm / trend / model). 2. Deploy the best-performing trained model so forecasts run automatically. 3. Investigate communication quality or data-sync failures.</td>
+</tr>
+<tr>
+<td>Top 3 pages</td>
+<td><code>/viewer-tag</code> (tag visibility admin), <code>/model-performance</code> (deploy/undeploy/delete), <code>/comm</code> (communication success rate)</td>
+</tr>
+<tr>
+<td>Success metrics</td>
+<td>Tag visibility toggle persists immediately; model deployment triggers forecast within next 10-min cycle; communication heatmap shows ≥ 95% success rate as baseline</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key event handlers used:</strong> <code>ViewerTagState.toggle_dashboard/alarm/trend/model</code> · <code>ViewerTagState.add_tag</code> · <code>ViewerTagState.delete_tag</code> · <code>ModelPerformanceState.deploy_model</code> · <code>ModelPerformanceState.undeploy_model</code> · <code>ModelPerformanceState.delete_model</code> · <code>DashboardRealtimeState.save_sensor_info</code></p>
+<hr />
+<h2 id="3-feature-catalog-by-user-journey">3. Feature Catalog by User Journey</h2>
+<hr />
+<h3 id="31-monitor-real-time-plant-state">3.1 Monitor Real-Time Plant State</h3>
+<p><strong>Pages:</strong> <code>/</code> (Dashboard) · <code>/alarms_rt</code> · <code>/alarms_rt_new</code></p>
+<p><strong>Description:</strong> The primary operational view. The dashboard shows all configured sensors as a status table with NORMAL / WARNING / CRITICAL badges, risk bars, and live values refreshed every 30 seconds via a WebSocket streaming loop.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>DashboardRealtimeState.start_streaming</code> (bg loop, 30s) · <code>DashboardRealtimeState._fetch_data</code> · <code>DashboardRealtimeState.save_sensor_info</code> (edit QC thresholds inline)</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>influx_latest</code> (view on <code>influx_hist</code>) · <code>influx_qc_rule</code> · <code>influx_tag</code> · <code>model_registry</code> (forecast overlay) · <code>predictions</code> (overlay)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Live sensor table with status badges; risk bar per row; system-level KPI summary (total / normal / warning / critical counts)</td>
+</tr>
+<tr>
+<td>Known issues</td>
+<td><code>/alarms_rt</code> and <code>/alarms_rt_new</code> are duplicate pages for the same <code>AlarmRTState</code>; filter bar is hardcoded (not wired to state) on both; "Load More" / "Next" pagination buttons are dead (spec_01 Issues 2, 3, 4)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="32-investigate-and-acknowledge-alarms">3.2 Investigate and Acknowledge Alarms</h3>
+<p><strong>Pages:</strong> <code>/alarms</code> · <code>/alarms_rt</code> · <code>/alarms_rt_new</code></p>
+<p><strong>Description:</strong> Operator-facing alarm lifecycle. Active view shows current threshold violations; History view supports ISA-18.2 priority filtering, time-range selection, search, and paginated acknowledgment.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>AlarmsState.acknowledge_alarm</code> (line 588) · <code>AlarmsState.acknowledge_selected</code> (line 555) · <code>AlarmsState.set_hours_filter</code> · <code>AlarmsState.set_severity_filter</code> · <code>AlarmsState.set_search_query</code> · <code>AlarmRTState.acknowledge_alarm</code> (line 225) · <code>AlarmRTState.acknowledge_all</code> (line 241) · <code>AlarmRTState.cleanup_old_alarms</code> (line 256)</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>alarm_history</code> (acknowledge UPDATE, history SELECT) · <code>influx_latest</code> (active sensor status) · <code>influx_qc_rule</code></td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>ISA-18.2 P1–P4 priority cards; alarm rows with acknowledged/unacknowledged status; bulk-ack capability; paginated history with search</td>
+</tr>
+<tr>
+<td>Alarm generation</td>
+<td><code>AlarmMonitor</code> (10s loop) writes to <code>alarm_history</code>, sends <code>pg_notify('alarm_event')</code> → <code>DatabaseEventListener</code> → frontend push</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="33-query-alarm-history">3.3 Query Alarm History</h3>
+<p><strong>Pages:</strong> <code>/alarms_hist</code> · <code>/alarms_hist_new</code> · <code>/alarms</code> (History tab)</p>
+<p><strong>Description:</strong> Historical alarm query for post-shift or investigation purposes. Date-range picker, severity checkbox filters, and pagination.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>AlarmHistState.fetch_history</code> (line 120) · <code>AlarmHistState.search_alarms</code> · <code>AlarmHistState.set_date_range</code> · <code>AlarmHistState.toggle_critical/warning/info</code> · <code>AlarmHistState.export_excel</code> (line 328 — xlsx file write)</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>alarm_history</code> (SELECT with dynamic WHERE + pagination)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Filterable alarm list; stat cards (total / most-triggered sensor / avg level / resolution rate); Excel export download</td>
+</tr>
+<tr>
+<td>Known issues</td>
+<td>Two near-duplicate pages <code>/alarms_hist</code> and <code>/alarms_hist_new</code> backed by same state (spec_01 Issue 4)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="34-analyze-historical-sensor-trends">3.4 Analyze Historical Sensor Trends</h3>
+<p><strong>Pages:</strong> <code>/trend</code></p>
+<p><strong>Description:</strong> Engineering drill-down into time-series sensor data. Supports 4 aggregation levels (1m / 10m / 1h / 1d), multiple chart types, brush range-sync between top and bottom chart, and CSV export.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>TrendState.load_series_data</code> · <code>TrendState.set_tag_select</code> · <code>TrendState.set_aggregation_view</code> · <code>TrendState.set_time_range</code> · <code>TrendState.export_csv_all</code> (line 271) · <code>TrendState.export_csv_page</code> (line 304)</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>influx_tag</code> (tag list) · <code>influx_agg_1m</code> / <code>influx_agg_10m</code> / <code>influx_agg_1h</code> / <code>influx_agg_1d</code> (continuous aggregates) · <code>influx_latest</code> (real-time overlay)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Area/Line/Bar chart with brush zoom; data completeness badge; missing-data rows highlighted in red; CSV download (all data or current page)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="35-train-ml-forecasting-model">3.5 Train ML Forecasting Model</h3>
+<p><strong>Pages:</strong> <code>/training-wizard</code> (6-step wizard)</p>
+<p><strong>Description:</strong> Guided offline model training flow. Engineer selects a sensor, picks an algorithm (Prophet / Auto-ARIMA / XGBoost), configures lag/rolling/temporal feature engineering, sets walk-forward cross-validation parameters, triggers training, and saves the resulting model to the registry.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wizard steps</td>
+<td>Step 1: Sensor selection · Step 2: Algorithm selection · Step 3: Feature config (lag/rolling/temporal) · Step 4: Training params (walk-forward CV) · Step 5: Execute training · Step 6: Results (MAPE/R², fold table, residual diagnostics, ACF/PACF)</td>
+</tr>
+<tr>
+<td>Key event handlers</td>
+<td><code>TrainingState.create_feature_config</code> (line 303) · <code>TrainingState.start_training</code> (line 364) · <code>TrainingState.save_model</code> (line 713) · <code>TrainingWizardState.start_wizard_training</code> · <code>TrainingWizardState.monitor_training_completion</code></td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>influx_hist</code> (training data read) · <code>feature_store</code> (engineered features write) · <code>model_registry</code> (model pickle + metrics write) · <code>predictions</code> (offline backtest write) · <code>training_evaluation</code> (fold results write)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Trained model stored in <code>model_registry.model_pickle</code>; performance charts (fold MAPE, residuals histogram, QQ plot, ACF/PACF); model ready for deployment</td>
+</tr>
+<tr>
+<td>Service layer</td>
+<td><code>FeatureConfigService</code> (final version) · <code>FeatureEngineeringService</code> · module-level <code>_training_cache</code> (in-memory, lost on restart)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="36-manage-deployed-forecast-models">3.6 Manage Deployed Forecast Models</h3>
+<p><strong>Pages:</strong> <code>/model-performance</code> · <code>/forecast</code> (deploy confirmation panel)</p>
+<p><strong>Description:</strong> Administrator view for comparing trained models per sensor, deploying the best model, undeploying the active one, and deleting old models.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>ModelPerformanceState.deploy_model</code> (line 502) · <code>ModelPerformanceState.undeploy_model</code> (line 611) · <code>ModelPerformanceState.delete_model</code> (line 564) · <code>ModelPerformanceState.load_all_saved_models</code></td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>model_registry</code> (is_deployed UPDATE · soft DELETE) · <code>drift_monitoring</code> (drift history read) · <code>prediction_performance</code> (accuracy read)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Algorithm MAPE comparison bar chart; "Best Algorithm" highlight card; saved models table with Deploy buttons; currently deployed model card; top-3 ML pipeline detail cards</td>
+</tr>
+<tr>
+<td>Downstream effect</td>
+<td>Setting <code>is_deployed=TRUE</code> causes <code>ForecastScheduler</code> to include model in next 10-min forecast run</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="37-view-live-forecast-predictions">3.7 View Live Forecast Predictions</h3>
+<p><strong>Pages:</strong> <code>/forecast</code></p>
+<p><strong>Description:</strong> Online ML prediction player showing rolling-window chart (past actual + predicted + confidence interval), MAPE/NRMSE accuracy cards, horizontal data table, and scheduler countdown.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>ForecastPlayerState.load_deployed_models</code> · <code>ForecastPlayerState.select_model</code> · <code>ForecastPlayerState.load_predictions</code> · <code>ForecastPlayerState.trigger_forecast_now</code> (line 1499 — manual run) · <code>ForecastPlayerState.start_countdown_monitor</code></td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>forecast_player_cache</code> (primary read — pre-computed JSONB) · <code>model_registry</code> (deployed list) · <code>predictions</code> (raw predictions fallback)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Composed chart with T0 red line, past zone (blue), future zone (orange/green); MAPE / NRMSE / accuracy metric cards; horizontal table (actual vs predicted, absolute and relative error per time point); next-prediction countdown</td>
+</tr>
+<tr>
+<td>Background data flow</td>
+<td><code>ForecastScheduler</code> (10 min) → writes <code>predictions</code> + <code>forecast_player_cache</code> → UI reads <code>forecast_player_cache</code> on next refresh</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="38-compare-rule-based-vs-ai-alarm-methods">3.8 Compare Rule-Based vs AI Alarm Methods</h3>
+<p><strong>Pages:</strong> <code>/scada-alarm-comparison</code> · <code>/scada-alarms</code></p>
+<p><strong>Description:</strong> Diagnostic view comparing classical threshold-rule alarms against AI-based alarm detection for the same time window. Supports evaluating whether the AI alarm engine adds value over fixed rules.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>ScadaAlarmComparisonState.load_comparison_data</code> · <code>ScadaAlarmComparisonState.generate_test_data</code> (DB seed — admin only) · <code>ScadaAlarmState.load_alarm_logs</code> · <code>ScadaAlarmState.toggle_streaming</code> (Postgres LISTEN/NOTIFY)</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>scada_alarm_log</code> (SCADA source alarm log) · <code>alarm_history</code> (system-generated alarms)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Dual table view (rule-based blue badges / AI-based purple badges); stat cards for counts per method; real-time SCADA alarm log with severity filter</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="39-monitor-sensor-communication-quality">3.9 Monitor Sensor Communication Quality</h3>
+<p><strong>Pages:</strong> <code>/comm</code></p>
+<p><strong>Description:</strong> Operational diagnostic showing data collection completeness per sensor per hour, surfacing communication failures between the upstream data source and the local database.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>CommunicationState.initialize</code> · <code>CommunicationState.set_selected_tag</code> · <code>CommunicationState.set_selected_days_str</code> · <code>CommunicationState.refresh_data</code></td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>influx_tag</code> (available tags) · <code>influx_agg_1m</code> (hourly record count vs expected count)</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Hourly heatmap grid (color = success rate); daily trend area chart with 95% reference line; overall success rate stat</td>
+</tr>
+<tr>
+<td>Known issue</td>
+<td><code>overall_success_rate</code> is capped at 100% via code fix dated 2025-11-26 (spec_02 CommunicationState vars)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="310-configure-sensor-tag-visibility">3.10 Configure Sensor Tag Visibility</h3>
+<p><strong>Pages:</strong> <code>/viewer-tag</code></p>
+<p><strong>Description:</strong> Admin panel controlling which tags appear on each screen. Toggle switches per tag per screen (dashboard / alarm / trend / model). Changes propagate immediately via DB-level view filtering.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Key event handlers</td>
+<td><code>ViewerTagState.toggle_dashboard/alarm/trend/model</code> · <code>ViewerTagState.update_order</code> · <code>ViewerTagState.add_tag</code> · <code>ViewerTagState.delete_tag</code> · <code>ViewerTagState.show_all_dashboard</code> / <code>hide_all_dashboard</code></td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>viewer_tag</code> (UPDATE show_* columns) — changes immediately affect <code>influx_latest</code>, <code>influx_latest_alarm</code>, <code>influx_latest_trend</code>, <code>influx_latest_model</code> views</td>
+</tr>
+<tr>
+<td>Expected output</td>
+<td>Tag table with toggle switches; add/delete dialog; bulk show-all / hide-all for dashboard</td>
+</tr>
+<tr>
+<td>Cascade impact</td>
+<td>Disabling a tag on "dashboard" removes it from <code>influx_latest</code> view → disappears from Dashboard and Alarms pages immediately</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="311-ai-chat-sensor-insights-currently-dead-gap">3.11 AI Chat Sensor Insights — CURRENTLY DEAD (Gap)</h3>
+<p><strong>Pages:</strong> <code>/ai</code> — <strong>NOT REGISTERED in <code>ksys_app.py</code> (spec_01 §Dead Pages)</strong></p>
+<p><strong>Description:</strong> A full chat interface backed by a multi-RAG-engine AI layer (pgvector, GraphRAG, LlamaIndex, 5W1H agent, hallucination prevention). The implementation is complete on the backend (<code>AIState</code>, <code>AIService</code>, 18 <code>ai_engine</code> modules) but the page module is never imported into the app, making the route return 404.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Why dead</td>
+<td><code>pages/ai_insights.py</code> defines <code>@rx.page("/ai")</code> but is not imported in <code>ksys_app/ksys_app.py</code> (spec_01 line 37). <code>ENABLE_AI_FEATURES</code> env guard exists but the import itself is missing.</td>
+</tr>
+<tr>
+<td>Backend readiness</td>
+<td><code>AIState</code> (7 events, 32 vars) · <code>AIService</code> · <code>rag_engine.py</code> (OpenAI API) · <code>rag_engine_pgvector.py</code> · <code>graph_rag_engine.py</code> · <code>agent_orchestrator.py</code> · <code>audit_agent_system.py</code> · <code>five_w1h_agent.py</code> · 5 additional engine modules</td>
+</tr>
+<tr>
+<td>DB tables touched</td>
+<td><code>knowledge_base</code> · <code>chat_history</code> · <code>influx_latest</code> · <code>influx_qc_rule</code> (would be used if activated)</td>
+</tr>
+<tr>
+<td>Resolution path</td>
+<td>Add <code>from ksys_app.pages import ai_insights</code> to <code>ksys_app.py</code> conditionally gated by <code>ENABLE_AI_FEATURES</code> env var</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-4-perspective-value-table">4. 4-Perspective Value Table</h2>
+<table>
+<thead>
+<tr>
+<th>Perspective</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Problem</strong></td>
+<td>Plant operators at a small desalination / water treatment site have no integrated tool to simultaneously monitor real-time sensor health, act on threshold alarms, review historical trends, and predict near-future sensor values. Anomalies are discovered late; alarm fatigue increases from unfiltered raw alerts; model performance degrades silently.</td>
+</tr>
+<tr>
+<td><strong>Solution</strong></td>
+<td>KSYS provides a unified web dashboard that combines real-time sensor monitoring (30s refresh), ISA-18.2-compliant alarm management with acknowledgment, historical trend analysis with CSV export, online ML forecast at 10-minute intervals, and a guided wizard for retraining and deploying new models — all accessible from a single Reflex application on the plant network.</td>
+</tr>
+<tr>
+<td><strong>Functional UX Effect</strong></td>
+<td>Operators see plant state at a glance through color-coded status badges and risk bars, acknowledge alarms directly in the UI, drill into any sensor's 30-day history with configurable aggregation, and view forecast confidence intervals for proactive decision support — without switching tools or requiring data-science expertise.</td>
+</tr>
+<tr>
+<td><strong>Core Value</strong></td>
+<td>Reduced time-to-alarm-response, evidence-based model-driven early warning of impending threshold violations, and a complete audit trail from alarm generation through acknowledgment — lowering operational risk at a site where process uptime directly affects water production volume.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-feature-priority-matrix-m1-m2-m3">5. Feature Priority Matrix (M1 / M2 / M3)</h2>
+<h3 id="m1-must-work-correctly-production-critical">M1 — Must Work Correctly (Production-Critical)</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Pages / Handlers</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Real-time sensor monitoring</td>
+<td><code>/</code> · <code>DashboardRealtimeState.start_streaming</code></td>
+<td>Core situational awareness; 30s data staleness = blind to live anomalies</td>
+</tr>
+<tr>
+<td>Alarm generation pipeline</td>
+<td><code>AlarmMonitor</code> 10s loop → <code>alarm_history</code> INSERT → <code>pg_notify</code></td>
+<td>ISA-18.2 compliance; missed alarm = safety / compliance risk</td>
+</tr>
+<tr>
+<td>Alarm acknowledgment</td>
+<td><code>AlarmsState.acknowledge_alarm</code> · <code>AlarmRTState.acknowledge_alarm</code></td>
+<td>Operator action record; required for shift handover and audit</td>
+</tr>
+<tr>
+<td>Bulk alarm acknowledgment</td>
+<td><code>AlarmsState.acknowledge_selected</code> · <code>AlarmRTState.acknowledge_all</code></td>
+<td>Efficient recovery from multi-alarm events</td>
+</tr>
+<tr>
+<td>QC threshold persistence</td>
+<td><code>DashboardRealtimeState.save_sensor_info</code> → <code>SensorService.update_sensor_metadata</code></td>
+<td>Changes must persist to <code>influx_qc_rule</code>; wrong thresholds → wrong alarms</td>
+</tr>
+<tr>
+<td>Forecast scheduler (10-min cycle)</td>
+<td><code>ForecastScheduler</code> · <code>predictions</code> table</td>
+<td>Core predictive feature; model deployed → predictions must flow</td>
+</tr>
+<tr>
+<td>Actual value backfill</td>
+<td><code>ActualValueUpdater</code></td>
+<td>Without backfill, MAPE metrics are NULL; accuracy display is broken</td>
+</tr>
+<tr>
+<td>Model deploy / undeploy</td>
+<td><code>ModelPerformanceState.deploy_model</code> · <code>undeploy_model</code></td>
+<td>Gate on forecast pipeline; setting <code>is_deployed=TRUE</code> activates live forecasting</td>
+</tr>
+<tr>
+<td>Tag visibility control</td>
+<td><code>ViewerTagState</code> all DB-write handlers</td>
+<td>Controls what data all other pages show; misconfigured = empty dashboards</td>
+</tr>
+<tr>
+<td>Continuous aggregates</td>
+<td><code>influx_agg_1m/10m/1h/1d</code> (TimescaleDB)</td>
+<td>Underpins Trend, Communication, and Forecast pages; stale = broken charts</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="m2-important-but-not-critical">M2 — Important But Not Critical</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Pages / Handlers</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>6-step training wizard</td>
+<td><code>/training-wizard</code> · <code>TrainingState.start_training</code> + <code>save_model</code></td>
+<td>Needed to retrain models when data distribution drifts; not needed for daily operation</td>
+</tr>
+<tr>
+<td>Historical trend analysis + CSV export</td>
+<td><code>/trend</code> · <code>TrendState.export_csv_all</code></td>
+<td>Engineering analysis and data extraction; not real-time critical</td>
+</tr>
+<tr>
+<td>Alarm history query + Excel export</td>
+<td><code>/alarms_hist</code> · <code>AlarmHistState.fetch_history</code> + <code>export_excel</code></td>
+<td>Post-shift investigation; important but asynchronous</td>
+</tr>
+<tr>
+<td>Communication quality heatmap</td>
+<td><code>/comm</code> · <code>CommunicationState</code></td>
+<td>Diagnostic tool for data ingestion health; needed weekly not per-shift</td>
+</tr>
+<tr>
+<td>Model performance comparison</td>
+<td><code>/model-performance</code> · algorithm comparison chart</td>
+<td>Needed before deploying a new model; not a continuous-use feature</td>
+</tr>
+<tr>
+<td>SCADA alarm comparison</td>
+<td><code>/scada-alarm-comparison</code> · <code>/scada-alarms</code></td>
+<td>Valuable for tuning alarm strategy; not a per-shift requirement</td>
+</tr>
+<tr>
+<td>Forecast player — manual trigger</td>
+<td><code>/forecast</code> · <code>ForecastPlayerState.trigger_forecast_now</code></td>
+<td>On-demand forecast run; useful for testing, not production-critical</td>
+</tr>
+<tr>
+<td>Virtual tag scheduler</td>
+<td><code>VirtualTagScheduler</code> + <code>pg_cron</code></td>
+<td>KPIs like <code>RECOVERY_RATE</code> depend on this; if stopped, derived KPI sensors go stale</td>
+</tr>
+<tr>
+<td>Performance aggregator</td>
+<td><code>PerformanceAggregator</code> (hourly)</td>
+<td>Feeds model-performance page; degraded metrics display if stopped but forecasts still run</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="m3-nice-to-have-or-currently-broken">M3 — Nice-to-Have or Currently Broken</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Pages / Handlers</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/ai</code> — AI chat sensor insights</td>
+<td><code>AIState</code> · <code>ai_engine/</code> (18 modules)</td>
+<td><strong>Dead route (404)</strong>. Backend complete; page not registered. Requires single import to activate.</td>
+</tr>
+<tr>
+<td><code>/design-system-demo</code></td>
+<td><code>design_system_demo.py</code></td>
+<td><strong>Dead route (404)</strong>. Developer-only component showcase. Zero user impact.</td>
+</tr>
+<tr>
+<td><code>/alarms_rt_new</code> (duplicate)</td>
+<td>Same <code>AlarmRTState</code> as <code>/alarms_rt</code></td>
+<td>Parallel version under active development; filter bar still hardcoded; "Next" pagination dead.</td>
+</tr>
+<tr>
+<td><code>/alarms_hist_new</code> (duplicate)</td>
+<td>Same <code>AlarmHistState</code> as <code>/alarms_hist</code></td>
+<td>Similar — improved UX in progress; functional parity not yet reached.</td>
+</tr>
+<tr>
+<td><code>DailyTrainingScheduler</code></td>
+<td><code>schedulers/daily_training.py</code></td>
+<td>Code exists but <strong>not wired into <code>SchedulerManager.start_all()</code></strong> — never runs. Intended for nightly automatic retraining.</td>
+</tr>
+<tr>
+<td><code>SyncMonitorState</code></td>
+<td><code>states/sync_monitor_state.py</code></td>
+<td>Orphan — no page binds this state; manual sync monitoring has no UI.</td>
+</tr>
+<tr>
+<td><code>TrendStateEnhanced</code> / multi-tag trend</td>
+<td><code>states/trend_state_enhanced.py</code></td>
+<td>Orphan — partially developed TagHierarchy-aware multi-sensor trend. Not surfaced in any page.</td>
+</tr>
+<tr>
+<td><code>AlarmsEnhancedState</code></td>
+<td><code>states/alarms_enhanced.py</code></td>
+<td>Orphan — TagHierarchy-aware alarm state. In-progress refactor, not activated.</td>
+</tr>
+<tr>
+<td><code>DashboardRealtimeGroupedState</code></td>
+<td><code>states/dashboard_realtime_grouped.py</code></td>
+<td>Orphan — grouped-sensor dashboard variant. Not activated.</td>
+</tr>
+<tr>
+<td>Forecast step navigation</td>
+<td><code>ForecastPlayerState.go_to_step</code> · <code>load_forecast_steps</code></td>
+<td>UI for navigating individual forecast horizons exists but is secondary to the main chart view.</td>
+</tr>
+<tr>
+<td><code>overall_success_rate</code> cap</td>
+<td><code>CommunicationState</code> (line 66)</td>
+<td>Fixed 2025-11-26; regression test should confirm cap at 100% holds.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-cleanup-recommendations">6. Cleanup Recommendations</h2>
+<p>The following actions are ordered by effort-to-impact ratio (quickest wins first).</p>
+<hr />
+<h3 id="cr-01-register-ai-route-or-formally-disable-it">CR-01: Register <code>/ai</code> route or formally disable it</h3>
+<p><strong>Action:</strong> Add <code>from ksys_app.pages import ai_insights</code> to <code>ksys_app/ksys_app.py</code>, guarded by <code>if os.getenv("ENABLE_AI_FEATURES", "false").lower() == "true":</code><br />
+<strong>Effort:</strong> 0.5h (code) + 1h (smoke test with <code>ENABLE_AI_FEATURES=true</code>)<br />
+<strong>Regression risk:</strong> Low — the page was written in isolation; no other page imports <code>AIState</code><br />
+<strong>Alternative if AI is out-of-scope:</strong> Delete <code>pages/ai_insights.py</code>, <code>states/ai_state.py</code>, <code>services/ai_service.py</code>, <code>components/ai_visualizations.py</code>, and the entire <code>ai_engine/</code> directory. This removes ~5,000 lines of unreachable code including known SQL injection vectors in <code>knowledge_search.py</code> and <code>pandas_analysis_engine.py</code> (spec_02 §AI/RAG Domain security note).</p>
+<hr />
+<h3 id="cr-02-pick-canonical-realtime-alarm-page-and-redirect-the-other">CR-02: Pick canonical realtime alarm page and redirect the other</h3>
+<p><strong>Action:</strong> Choose one of <code>/alarms_rt</code> or <code>/alarms_rt_new</code> as the production route. Wire the filter bar (<code>on_search</code>, <code>on_severity_change</code>, <code>on_status_change</code> props) to <code>AlarmRTState</code> setters. Implement the "Load More" / "Next" pagination handler (<code>AlarmRTState</code> has <code>start_auto_refresh</code> bg loop but no page-offset model). Redirect the abandoned route to the canonical one or remove it.<br />
+<strong>Effort:</strong> 3–4h (fix filter wiring + pagination) + 1h (redirect)<br />
+<strong>Regression risk:</strong> Medium — both pages share <code>AlarmRTState</code>; state mutation changes affect both until one is removed<br />
+<strong>Evidence:</strong> spec_01 Issues 2, 3, 4; spec_01 page 3 note "filter_bar is rendered with hardcoded <code>search_value=\"\"</code>"</p>
+<hr />
+<h3 id="cr-03-pick-canonical-alarm-history-page-and-redirect-the-other">CR-03: Pick canonical alarm history page and redirect the other</h3>
+<p><strong>Action:</strong> Same as CR-02 applied to <code>/alarms_hist</code> vs <code>/alarms_hist_new</code>. The <code>/alarms_hist_new</code> version has a better UX (quick-select buttons, severity checkboxes) and should be the canonical route.<br />
+<strong>Effort:</strong> 1h (remove <code>/alarms_hist</code>, add redirect)<br />
+<strong>Regression risk:</strong> Low — the two pages share <code>AlarmHistState</code>; one can be deleted without state change</p>
+<hr />
+<h3 id="cr-04-merge-trend_statepy-and-trend_state_enhancedpy">CR-04: Merge <code>trend_state.py</code> and <code>trend_state_enhanced.py</code></h3>
+<p><strong>Action:</strong> <code>TrendStateEnhanced</code> extends <code>TrendState</code> with <code>TagHierarchyState</code> multi-tag support (spec_02 §TrendStateEnhanced). The two are ~90% identical. If multi-tag trend analysis is desired, promote <code>TrendStateEnhanced</code> to the active state in <code>trend_enhanced_v2.py</code>. If not, delete <code>trend_state_enhanced.py</code>.<br />
+<strong>Effort:</strong> 2h (page binding change + test) or 0.5h (delete)<br />
+<strong>Regression risk:</strong> Medium if promoting (new mixin may cause unexpected state inheritance); Low if deleting</p>
+<hr />
+<h3 id="cr-05-wire-dailytrainingscheduler-into-schedulermanager">CR-05: Wire <code>DailyTrainingScheduler</code> into <code>SchedulerManager</code></h3>
+<p><strong>Action:</strong> <code>schedulers/daily_training.py</code> is written but never called from <code>SchedulerManager.start_all()</code> (spec_03 §5.6). Add it to the scheduler chain. Activating it enables automatic nightly model retraining, which feeds the forecast pipeline without manual wizard runs.<br />
+<strong>Effort:</strong> 1h (add to scheduler manager + environment gate)<br />
+<strong>Regression risk:</strong> Medium — first activation may trigger unexpected training runs if <code>is_deployed</code> models exist; recommend gating behind <code>ENABLE_DAILY_TRAINING</code> env var</p>
+<hr />
+<h3 id="cr-06-fix-alarmrtstate-hardcoded-filter-literals-in-alarms_rt">CR-06: Fix <code>AlarmRTState</code> hardcoded filter literals in <code>/alarms_rt</code></h3>
+<p><strong>Action:</strong> <code>alarms_rt_simple.py</code> calls <code>filter_bar(search_value="", severity_filter="all", status_filter="all")</code> with string literals instead of state vars. Wire to <code>AlarmRTState.search_query</code>, <code>AlarmRTState.severity_filter</code>, <code>AlarmRTState.status_filter</code> (spec_01 Issue 2).<br />
+<strong>Effort:</strong> 1h<br />
+<strong>Regression risk:</strong> Low — additive change; no DB writes</p>
+<hr />
+<h3 id="cr-07-delete-design_system_demopy">CR-07: Delete <code>design_system_demo.py</code></h3>
+<p><strong>Action:</strong> The file defines <code>@rx.page(route="/design-system-demo")</code> but is never imported (spec_01 §Dead Pages). It is a developer reference, not user-facing.<br />
+<strong>Effort:</strong> 0.25h (delete file + confirm no imports)<br />
+<strong>Regression risk:</strong> None</p>
+<hr />
+<h3 id="cr-08-consolidate-feature_config_service-family-3-versions">CR-08: Consolidate <code>feature_config_service</code> family (3 versions)</h3>
+<p><strong>Action:</strong> Three files exist: <code>feature_config_service.py</code>, <code>feature_config_service_v2.py</code>, <code>feature_config_service_final.py</code>. Only <code>_final</code> is imported by <code>training_state/state.py</code> (spec_02 §Services). Delete the two legacy versions.<br />
+<strong>Effort:</strong> 0.5h (verify no other imports + delete)<br />
+<strong>Regression risk:</strong> Low — confirm grep shows zero non-test imports before deleting</p>
+<hr />
+<h3 id="cr-09-create-a-sync-page-binding-syncmonitorstate">CR-09: Create a <code>/sync</code> page binding <code>SyncMonitorState</code></h3>
+<p><strong>Action:</strong> <code>SyncMonitorState</code> has 4 background event handlers (<code>sync_tags</code>, <code>sync_realtime</code>, <code>sync_historical</code>, <code>refresh_data</code>) but no UI page. Without a UI, administrators cannot manually trigger sync or see sync status (spec_02 §SyncMonitorState).<br />
+<strong>Effort:</strong> 3–4h (create page, add to <code>ksys_app.py</code>, add nav link)<br />
+<strong>Regression risk:</strong> Low — new page only</p>
+<hr />
+<h2 id="7-gaps-vs-typical-scada-iot-industry-expectations">7. Gaps vs Typical SCADA / IoT Industry Expectations</h2>
+<hr />
+<h3 id="gap-1-no-user-authentication">Gap 1: No User Authentication</h3>
+<p><strong>Finding:</strong> Zero of 201 <code>@rx.event</code> handlers check a user session, token, or role. Any user who can reach the network can access all pages, perform alarm acknowledgment, deploy/delete ML models, and modify sensor QC thresholds. There is no login page, no session state, and no middleware.<br />
+<strong>Evidence:</strong> spec_02 §Cross-Cutting Concerns — "179 events with no auth" (originally noted in audit; 201 total handlers none of which call an auth guard).<br />
+<strong>Industry expectation:</strong> IEC 62443 (industrial cybersecurity) and NIST SP 800-82 require authentication for HMI access. ISA-18.2 alarm management assumes operator identity for the <code>acknowledged_by</code> field — currently this field would be NULL or a hardcoded string.<br />
+<strong>Risk level:</strong> High for any internet-accessible deployment; medium for air-gapped LAN.</p>
+<hr />
+<h3 id="gap-2-no-role-based-access-control-rbac">Gap 2: No Role-Based Access Control (RBAC)</h3>
+<p><strong>Finding:</strong> All pages and all event handlers are accessible to all users. There is no differentiation between Operator (read + acknowledge), Engineer (train + configure), and Admin (deploy + delete + tag management).<br />
+<strong>Evidence:</strong> spec_01 §Master Route Table — 14 routes, none gated. spec_02 shows destructive handlers (<code>delete_model</code>, <code>cleanup_old_alarms</code>, <code>generate_test_data</code>) with no role check.<br />
+<strong>Industry expectation:</strong> SCADA platforms (OSIsoft PI, Wonderware, Ignition) enforce role separation; alarm acknowledgment is typically Operator-level, model deployment is Engineer/Admin-level.</p>
+<hr />
+<h3 id="gap-3-no-operator-action-audit-log-beyond-alarms">Gap 3: No Operator Action Audit Log (Beyond Alarms)</h3>
+<p><strong>Finding:</strong> <code>alarm_history.acknowledged_by</code> provides a partial audit trail for alarm acknowledgments, but the field is likely NULL or a fixed string since there is no user authentication (Gap 1). No other operator actions (model deployment, sensor threshold edit, tag visibility change) are logged.<br />
+<strong>Evidence:</strong> spec_03 §2.3 shows <code>alarm_history</code> has <code>acknowledged_by VARCHAR</code> and <code>acknowledged_at TIMESTAMPTZ</code> — but these can only be meaningful if the user identity is captured. <code>DashboardRealtimeState.save_sensor_info</code> writes to <code>influx_qc_rule</code> with no write-log table. <code>ModelPerformanceState.deploy_model</code> sets <code>deployed_by</code> in <code>model_registry</code> (spec_03 §2.3) but the value would come from an unauthenticated session.<br />
+<strong>Industry expectation:</strong> 21 CFR Part 11 (pharma), FDA, and water treatment regulations require tamper-evident audit logs of configuration changes.</p>
+<hr />
+<h3 id="gap-4-no-multi-plant-multi-tenant-support">Gap 4: No Multi-Plant / Multi-Tenant Support</h3>
+<p><strong>Finding:</strong> The system is hard-coded for a single plant. Table schemas have no <code>plant_id</code> or <code>site_id</code> column. <code>RPI_NODE_ID</code> env var suggests per-site differentiation at the infrastructure level, but not at the data model level.<br />
+<strong>Evidence:</strong> spec_03 §2.3 <code>influx_hist</code>, <code>influx_qc_rule</code>, <code>model_registry</code> — no site partition column. <code>RangeMonitor._initialize_thresholds()</code> hard-codes sensor names for a specific plant (spec_03 §6.4).<br />
+<strong>Industry expectation:</strong> Commercial SCADA SaaS (Samsara, Aveva, Osisoft Cloud Services) support multi-facility views. Even on-premise Ignition supports enterprise-level multi-plant tags.</p>
+<hr />
+<h3 id="gap-5-no-mobile-responsive-design">Gap 5: No Mobile-Responsive Design</h3>
+<p><strong>Finding:</strong> The UI has not been tested for mobile viewports. Playwright tests referenced in project history (spec introduction mentions "Playwright tested desktop only"). The Reflex framework generates React components that may not adapt to small screens without explicit responsive CSS.<br />
+<strong>Evidence:</strong> spec_01 §Page 3 notes "responsive 2→6 column card grid for all sensors" on <code>/alarms_rt</code> as the only explicit responsive annotation — the rest of the app is untested on mobile.<br />
+<strong>Industry expectation:</strong> Plant operators increasingly use tablets for walkabout inspections. Ignition Perspective and similar modern SCADA platforms are mobile-first.</p>
+<hr />
+<h3 id="gap-6-mixed-korean-english-ui-no-i18n-framework">Gap 6: Mixed Korean / English UI (No i18n Framework)</h3>
+<p><strong>Finding:</strong> Page titles, button labels, and column headers use a mixture of Korean and English with no internationalization library. Korean strings are hardcoded directly in Python source files.<br />
+<strong>Evidence:</strong> spec_01 route table — "실시간 알람 상태" · "알람 이력 분석" alongside "Trend Analysis" · "AI Alarms". Button labels include "조회", "새로고침", "이전/다음" interspersed with English.<br />
+<strong>Industry expectation:</strong> For a single-language deployment this is acceptable. For any export or international deployment, i18n scaffolding (e.g., gettext or Lingui) would be required. The current state makes automated UI testing with English-only tooling fragile.</p>
+<hr />
+<h3 id="gap-7-background-loop-cancellation-not-fully-implemented">Gap 7: Background Loop Cancellation Not Fully Implemented</h3>
+<p><strong>Finding:</strong> <code>BaseState</code> declares <code>_polling_task: Optional[asyncio.Task]</code> but never assigns it. Most infinite streaming loops (<code>DashboardRealtimeState.start_streaming</code>, <code>ForecastPlayerState.start_streaming</code>, <code>AlarmRTState.start_auto_refresh</code>) use a <code>while self.is_streaming:</code> pattern with a setter <code>stop_streaming()</code>, but there is no <code>asyncio.Task</code> handle stored, meaning task cancellation on page navigation may not reliably stop the background coroutine — creating zombie DB connections.<br />
+<strong>Evidence:</strong> spec_02 §Background event accounting — "Cancellation pattern: most use <code>while self.is_streaming:</code> + setter — but no asyncio task tracking on most states. Risk of zombie loops on page navigation."<br />
+<strong>Industry expectation:</strong> Long-running IoT applications must guarantee connection release on session disconnect to prevent DB connection pool exhaustion.</p>
+<hr />
+<p><em>End of spec_04_PRD.md</em></p>
+</body></html>

@@ -136,6 +136,38 @@
   <div class="stats">AI 활성화 Critical: ksys_app.py import 1줄 추가만으로 라우트 활성. SQL injection 추가 사이트 발견</div>
 </div>
 
+<h2>📑 Phase C/D/E — 정통 SI Spec 시퀀스 (기능 / 프로세스 / 기획 / SRS)</h2>
+
+<div class="spec-card">
+  <a href="spec_12_functional_spec.html">spec_12_functional_spec.html — 기능 명세서 (Functional Spec)</a>
+  <div class="desc">201 @rx.event handlers를 97 features × 9 도메인 (ALM 15·DSH 10·FCT 12·TRN 15·TRD 8·SNR 12·COM 6·AI 5·SYS 14)로 그룹화. 각 feature 마다 IPO + Pre/Post-conditions + Business Rules + Error Handling + Cross-references. <strong>code-analyzer</strong> 작성.</div>
+  <div class="stats">M1 40 / M2 40 / M3 17 (DEAD 12 포함). 결함 있는 features 8건. Test coverage 평균 ~50%</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_13_process_spec.html">spec_13_process_spec.html — 프로세스 명세서 (데이터 흐름 + 비즈니스 + 시스템)</a>
+  <div class="desc">15 프로세스 — 데이터 5 (센서 ingest, cont agg, virtual tag, upstream sync, training data prep) + 비즈니스 6 (알람/SCADA/이력/학습/forecast/모델 lifecycle) + 시스템 4 (boot, RPI bootstrap, backup/restore, tunnel routing). 각 프로세스 ASCII 다이어그램 + 단계별 표 + SLA + cross-spec 결함 매핑. <strong>bkend-expert + 메인 세션</strong> 작성.</div>
+  <div class="stats">Critical Path: PROC-010 알람 발생→화면 ≤15s, PROC-014 forecast 1 cycle ≤5min. SLA 측정 인프라 부재가 가장 큰 gap</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_14_operations_spec.html">spec_14_operations_spec.html — 운영 명세서 (Operations Runbook)</a>
+  <div class="desc">22 runbooks × 6 카테고리 (Provisioning 4 / Backup 3 / Monitoring 4 / Incident 4 / Security 4 / Capacity 3). 인프라 토폴로지 ASCII + 서비스별 운영 표 + Multi-RPI 매트릭스 + 운영 KPI 10종. <strong>infra-architect</strong> 작성.</div>
+  <div class="stats">Multi-RPI 배포 가능 (bootstrap_rpi.sh + restore_db.sh + measure_rpi_baseline.sh 준비됨). RBAC matrix 6×6 (auth 도입 후 적용)</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_15_planning.html">spec_15_planning.html — 기획서 (Product Planning / Vision)</a>
+  <div class="desc">비전 + 미션 + 시장 정의 + 4 분기 로드맵 (Q1 안정화 → Q2 인증+멀티RPI → Q3 성능+관찰성 → Q4 사업화) + 7 ADR (Reflex/TimescaleDB/Cloudflare/RPI5/Pickle/Monolith/asyncio) + 18 KPIs + 12 RAID items. <strong>product-manager</strong> 작성.</div>
+  <div class="stats">비전: "RPI 5 위 소규모 수처리·해수담수화 전용 IoT 관제 + AI 예측 플랫폼, 저비용 엣지 우선"</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_16_SRS.html">spec_16_SRS.html — SRS 요구사항 명세서 (IEEE 830 / ISO 29148)</a>
+  <div class="desc">161 requirements 총 — F 93 (9 domains) + NF 55 (7 categories: PRF/REL/SEC/USB/MTN/CMP/OPS) + I 8 + RTM 112+행. SHALL 61% / SHOULD 32% / MAY 7%. <strong>enterprise-expert</strong> 작성.</div>
+  <div class="stats">변경 통제: 기획→PRD→SRS→기능spec→화면spec→test plan→코드→TC. 안전 critical: REQ-F-ALM-* + REQ-NF-REL-002 (알람 누락 0건)</div>
+</div>
+
 <h2>🔢 산출물 요약 — 한눈에 보는 시스템</h2>
 
 <h3>제품 정체성 (PRD §1 추론)</h3>

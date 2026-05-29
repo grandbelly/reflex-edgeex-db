@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>spec_16_SRS — Software Requirements Specification (IEEE 830 / ISO 29148)</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 30px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 40px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+.meta { color: #8b949e; font-size: 13px; }
+.callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 14px 18px;
+           margin: 16px 0; border-radius: 6px; }
+.callout.crit { border-left-color: #f85149; background: #2b1414; }
+.callout.good { border-left-color: #3fb950; background: #0e2417; }
+.callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+.shall { color: #f85149; font-weight: 700; }
+.should { color: #d29922; font-weight: 700; }
+.may { color: #79c0ff; font-weight: 700; }
+.good { color: #3fb950; font-weight: 600; }
+.warn { color: #d29922; font-weight: 600; }
+.bad { color: #f85149; font-weight: 600; }
+.requirement { background: #0f1620; border: 1px solid #30363d; border-radius: 8px;
+               padding: 4px 14px; margin: 14px 0; }
+.requirement table { margin: 8px 0; font-size: 12.5px; }
+.requirement th:first-child { width: 18%; }
+.req-shall th { background: #2b1414; color: #f85149; }
+.req-should th { background: #2a1f08; color: #d29922; }
+.req-may th { background: #0a1f33; color: #79c0ff; }
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px; margin: 18px 0; }
+.kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+       border-radius: 10px; padding: 14px; }
+.kpi .v { font-size: 24px; font-weight: 700; color: #79c0ff; }
+.kpi .l { font-size: 11px; color: #8b949e; margin-top: 4px; }
+.toc { background: #131923; border: 1px solid #30363d; border-radius: 8px;
+       padding: 14px 22px; margin: 18px 0; }
+.toc ol { padding-left: 20px; }
+.toc a { color: #79c0ff; text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 28px 0; }
+.rtm-table { font-size: 11.5px; }
+.rtm-table td { padding: 4px 6px; }
+</style>
+</head>
+<body>
+
+<h1>📋 KSys IoT — Software Requirements Specification (SRS)</h1>
+<p class="meta">문서 코드: <code>spec_16_SRS</code> · 작성 2026-05-29 · IEEE 830-1998 / ISO/IEC/IEEE 29148:2018 준수 · 정통 한국 SI 형식 변형 · Reverse-engineered from spec_01~15 + codebase audit</p>
+
+<div class="callout crit">
+<strong>요구사항 키워드 정의 (RFC 2119 / ISO 29148):</strong>
+<ul>
+<li><span class="shall">SHALL (필수)</span> — 시스템이 반드시 충족해야 하는 요구사항. 미충족 시 SRS 위반.</li>
+<li><span class="should">SHOULD (권고)</span> — 강하게 권장되는 요구사항. 제약 상황에서 미충족 시 정당화 필요.</li>
+<li><span class="may">MAY (선택)</span> — 선택적 기능. 충족 여부와 무관하게 SRS 위반 아님.</li>
+</ul>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">112</div><div class="l">전체 요구사항</div></div>
+  <div class="kpi"><div class="v">93</div><div class="l">기능 요구사항 (F)</div></div>
+  <div class="kpi"><div class="v">55</div><div class="l">비기능 요구사항 (NF)</div></div>
+  <div class="kpi"><div class="v">8</div><div class="l">인터페이스 요구사항 (I)</div></div>
+  <div class="kpi" style="background:#2b1414"><div class="v" style="color:#f85149">68</div><div class="l">SHALL</div></div>
+  <div class="kpi" style="background:#2a1f08"><div class="v" style="color:#d29922">36</div><div class="l">SHOULD</div></div>
+  <div class="kpi" style="background:#0a1f33"><div class="v" style="color:#79c0ff">8</div><div class="l">MAY</div></div>
+  <div class="kpi"><div class="v">112</div><div class="l">RTM 추적 행</div></div>
+</div>
+
+<div class="toc">
+<strong>목차</strong>
+<ol>
+<li><a href="#sec1">서론 (Introduction)</a></li>
+<li><a href="#sec2">전체 설명 (Overall Description)</a></li>
+<li><a href="#sec3">기능적 요구사항 (Functional Requirements)</a></li>
+<li><a href="#sec4">비기능적 요구사항 (Non-Functional Requirements)</a></li>
+<li><a href="#sec5">인터페이스 요구사항 (Interface Requirements)</a></li>
+<li><a href="#sec6">요구사항 추적 매트릭스 (RTM)</a></li>
+<li><a href="#sec7">확정/미확정 요구사항 우선순위</a></li>
+<li><a href="#sec8">변경 통제 (Change Control)</a></li>
+</ol>
+</div>
+
+<hr/>
+
+<h2 id="sec1">1. 서론 (Introduction)</h2>
+
+<h3>1.1 목적 (Purpose)</h3>
+<p>본 문서는 <strong>KSys IoT 정수처리 통합 관제 시스템</strong>의 기능적/비기능적 요구사항을 <strong>IEEE 830-1998</strong> 및 <strong>ISO/IEC/IEEE 29148:2018</strong> 형식으로 명세하는 것을 목적으로 한다. 본 SRS는:</p>
+<ul>
+<li>개발팀의 구현 baseline 으로 사용된다.</li>
+<li>QA 팀의 검증 baseline 으로 사용된다 (각 요구사항은 <code>spec_05_test_plan</code>의 TC-ID 와 추적된다).</li>
+<li>발주자 / 운영자 / 유지보수 인력이 시스템에 대해 동일한 이해를 공유하기 위한 합의문 역할을 한다.</li>
+<li>향후 변경 요구의 영향 범위 판단을 위한 기준 문서로 사용된다.</li>
+</ul>
+
+<h3>1.2 범위 (Scope)</h3>
+<p>본 SRS 가 적용되는 시스템은 <strong>Raspberry Pi 5 단일 노드</strong>에서 동작하는 <strong>Reflex 0.8 기반 정수처리 IoT 통합 관제 웹 애플리케이션</strong>이다. 시스템 구성:</p>
+<ul>
+<li>Reflex (Python full-stack) 애플리케이션 — Docker 컨테이너 <code>rpi-finished-reflex-app</code></li>
+<li>TimescaleDB 2.21.3 + PostgreSQL 17 — Docker 컨테이너 <code>rpi-finished-pgai-db</code></li>
+<li>Cloudflare Zero Trust tunnel — 외부 접근 채널</li>
+<li>14 활성 페이지 + 24 State 클래스 + 201 event handlers + 17 DB 테이블 + 6 schedulers</li>
+</ul>
+<p><strong>범위 외 (Out of Scope):</strong></p>
+<ul>
+<li>다중 사이트 / 다중 플랜트 운영 (가정: 단일 정수처리 시설)</li>
+<li>모바일 전용 UI (데스크탑 1080p 우선)</li>
+<li>현재 비활성 상태인 <code>/ai</code> (RAG chat) — 미래 활성화 시 별도 SRS 추가본 필요</li>
+<li>OT 네트워크 직접 연결 (시스템은 IT 측 후처리 데이터만 처리)</li>
+</ul>
+
+<h3>1.3 정의/약어 (Definitions, Acronyms, Abbreviations)</h3>
+<table>
+<tr><th>용어</th><th>정의</th></tr>
+<tr><td>SCADA</td><td>Supervisory Control and Data Acquisition — 산업 공정 감시 제어 시스템</td></tr>
+<tr><td>ISA-18.2</td><td>국제계측학회 알람 관리 표준 (P1 Advisory ~ P4 Emergency)</td></tr>
+<tr><td>HMI</td><td>Human-Machine Interface — 운전자 인터페이스</td></tr>
+<tr><td>QC Rule</td><td>Quality Control Rule — 센서값 정상 범위 임계치 정의 (<code>influx_qc_rule</code> 테이블)</td></tr>
+<tr><td>TMP</td><td>Trans-Membrane Pressure — 막간차압 (정수처리 공정 KPI)</td></tr>
+<tr><td>DP</td><td>Differential Pressure — 차압</td></tr>
+<tr><td>TimescaleDB</td><td>PostgreSQL 확장 — 시계열 데이터 hypertable + continuous aggregate</td></tr>
+<tr><td>Hypertable</td><td>TimescaleDB 시계열 파티션 테이블 (<code>influx_hist</code>, <code>predictions</code>, <code>alarm_history</code>, <code>scada_alarm_log</code>)</td></tr>
+<tr><td>Continuous Aggregate</td><td>TimescaleDB 자동 집계 view (<code>influx_agg_1m/10m/1h/1d</code>)</td></tr>
+<tr><td>MAPE</td><td>Mean Absolute Percentage Error — 모델 정확도 지표</td></tr>
+<tr><td>NRMSE</td><td>Normalized Root Mean Square Error</td></tr>
+<tr><td>Walk-forward CV</td><td>시계열 전용 교차검증 (미래 leakage 방지)</td></tr>
+<tr><td>RPI</td><td>Raspberry Pi 5 (ARM64, 8GB RAM)</td></tr>
+<tr><td>RTM</td><td>Requirements Traceability Matrix — 요구사항 추적 매트릭스</td></tr>
+<tr><td>NOTIFY/LISTEN</td><td>PostgreSQL Pub/Sub 메커니즘 (알람 실시간 푸시에 사용)</td></tr>
+<tr><td>pg_cron</td><td>PostgreSQL cron 확장 — 가상 태그 계산 스케줄</td></tr>
+<tr><td>State (Reflex)</td><td>Reflex 의 client/server 양쪽 상태 객체 (<code>rx.State</code> 서브클래스)</td></tr>
+<tr><td>SHALL / SHOULD / MAY</td><td>RFC 2119 요구사항 강도 키워드</td></tr>
+</table>
+
+<h3>1.4 참조 문서 (References)</h3>
+<table>
+<tr><th>코드</th><th>문서</th><th>역할</th></tr>
+<tr><td>spec_01</td><td><a href="spec_01_frontend_pages.html">spec_01_frontend_pages.html</a></td><td>16 페이지 카탈로그 — UI 요구사항 출처</td></tr>
+<tr><td>spec_02</td><td><a href="spec_02_backend_states_services.html">spec_02_backend_states_services.html</a></td><td>24 State / 201 handlers — 기능 요구사항 출처</td></tr>
+<tr><td>spec_03</td><td><a href="spec_03_database_schedulers.html">spec_03_database_schedulers.html</a></td><td>17 테이블 / 6 schedulers — 데이터 요구사항 출처</td></tr>
+<tr><td>spec_04</td><td><a href="spec_04_PRD.html">spec_04_PRD.html</a></td><td>역설계 PRD — 비즈니스 요구사항 출처</td></tr>
+<tr><td>spec_05</td><td><a href="spec_05_test_plan.html">spec_05_test_plan.html</a></td><td>124 test cases — 검증 방법 매핑</td></tr>
+<tr><td>spec_06~11</td><td>screens / sitemap / storyboard</td><td>화면 단위 상세</td></tr>
+<tr><td>spec_12</td><td>spec_12_functional_spec.html (동시 작성)</td><td>FN-ID 기능 카탈로그</td></tr>
+<tr><td>spec_15</td><td>spec_15_planning.html (동시 작성)</td><td>기획서</td></tr>
+<tr><td>—</td><td>IEEE Std 830-1998</td><td>SRS 작성 표준</td></tr>
+<tr><td>—</td><td>ISO/IEC/IEEE 29148:2018</td><td>요구사항 공학 프로세스</td></tr>
+<tr><td>—</td><td>ANSI/ISA-18.2-2016</td><td>공정 산업 알람 관리</td></tr>
+<tr><td>—</td><td>IEC 62443</td><td>산업 제어 시스템 보안</td></tr>
+<tr><td>—</td><td>NIST SP 800-82 Rev 3</td><td>OT/ICS 보안 가이드</td></tr>
+</table>
+
+<h3>1.5 개요 (Overview)</h3>
+<p>본 문서는 8개 주요 섹션으로 구성된다. §2 는 시스템의 전체 그림 (제품 관점, 페르소나, 제약, 가정)을 제시하며, §3 은 9 개 도메인에 걸친 93 개 기능 요구사항을, §4 는 7 개 카테고리의 55 개 비기능 요구사항을 명세한다. §5 는 외부 인터페이스 8 개, §6 은 요구사항 ↔ 기능 ↔ 테스트 추적 매트릭스, §7 은 SHALL/SHOULD/MAY 우선순위 정책, §8 은 변경 통제 절차를 다룬다.</p>
+
+<hr/>
+
+<h2 id="sec2">2. 전체 설명 (Overall Description)</h2>
+
+<h3>2.1 제품 관점 (Product Perspective)</h3>
+<p>KSys IoT 는 <strong>독립형 (standalone) 단일 사이트 SCADA-adjacent 모니터링/예측 분석 플랫폼</strong>이다. 외부 IoT cloud DB (sync_monitor 대상)에서 데이터를 수신하고, 로컬 TimescaleDB 에 저장 후 Reflex 웹 UI 로 제공한다.</p>
+<pre>
+[외부 IoT Cloud DB]
+        │ (read-only sync)
+        ▼
+┌──────────────────────────────────┐
+│ rpi-finished-pgai-db (Docker)    │
+│   PostgreSQL 17 + TimescaleDB    │
+│   17 tables (4 hypertable,        │
+│   5 continuous aggregates)        │
+└──────────────────────────────────┘
+        ▲
+        │ asyncpg pool
+┌──────────────────────────────────┐
+│ rpi-finished-reflex-app (Docker) │
+│   Reflex 0.8.x (Python 3.11+)    │
+│   14 pages · 24 States · 201 evt │
+│   6 schedulers (in-process)       │
+└──────────────────────────────────┘
+        ▲
+        │ HTTP/WS (port 14000)
+[Cloudflare Tunnel] ──→ [End User Browser]
+</pre>
+
+<h3>2.2 제품 기능 (Product Functions) — 요약</h3>
+<table>
+<tr><th>도메인</th><th>주요 기능</th><th>관련 페이지</th></tr>
+<tr><td>알람 (Alarm)</td><td>10초 주기 임계 위반 감지, ISA-18.2 P1~P4 분류, acknowledge, 이력 조회/엑셀 export</td><td>/alarms, /alarms_rt, /alarms_hist</td></tr>
+<tr><td>예측 (Forecast)</td><td>10분 주기 자동 추론, 배포 모델별 차트, MAPE/NRMSE, manual trigger</td><td>/forecast</td></tr>
+<tr><td>학습 (Training)</td><td>6단계 wizard, Prophet/ARIMA/XGBoost, walk-forward CV, 모델 저장</td><td>/training-wizard</td></tr>
+<tr><td>센서 (Sensor)</td><td>tag 가시성 4 화면별 토글, QC threshold 편집, 가상 태그</td><td>/viewer-tag, /</td></tr>
+<tr><td>대시보드 (Dashboard)</td><td>30초 WebSocket streaming, 상태 배지, risk bar, KPI 카드</td><td>/</td></tr>
+<tr><td>트렌드 (Trend)</td><td>4 단계 집계 (1m/10m/1h/1d), brush zoom, CSV export</td><td>/trend</td></tr>
+<tr><td>통신 (Communication)</td><td>시간당 수집 성공률, heatmap, 95% 기준선</td><td>/comm</td></tr>
+<tr><td>모델 운영</td><td>알고리즘 비교, deploy/undeploy/delete, drift 모니터링</td><td>/model-performance</td></tr>
+<tr><td>SCADA 비교</td><td>Rule-based vs AI 알람 dual view</td><td>/scada-alarm-comparison, /scada-alarms</td></tr>
+<tr><td>시스템</td><td>scheduler 관리, DB 백업/복원, 부트스트랩</td><td>(CLI/docker)</td></tr>
+</table>
+
+<h3>2.3 사용자 특성 (User Characteristics) — 3 페르소나</h3>
+<table>
+<tr><th>페르소나</th><th>설명</th><th>핵심 페이지</th><th>기술 수준</th></tr>
+<tr><td><strong>A. Plant Operator</strong> (운전자)</td><td>교대 근무 운전자 — 라이브 상태 감시, 알람 acknowledge, 실시간 상황 인식</td><td>/, /alarms, /alarms_rt</td><td>낮음 (도메인 전문, 데이터 분석 불요)</td></tr>
+<tr><td><strong>B. Data Analyst</strong> (분석가/공정 엔지니어)</td><td>이력 트렌드 분석, ML 모델 학습/평가, 데이터 export</td><td>/trend, /training-wizard, /model-performance</td><td>중상 (Python/ML 친숙, 통계 이해)</td></tr>
+<tr><td><strong>C. System Admin</strong> (관리자)</td><td>tag 가시성 제어, 모델 배포/회수, sync 헬스 점검, DB 백업/복원</td><td>/viewer-tag, /model-performance, /comm</td><td>높음 (DB/Docker 권한)</td></tr>
+</table>
+
+<h3>2.4 제약 (Constraints)</h3>
+<table>
+<tr><th>분류</th><th>제약</th><th>근거</th></tr>
+<tr><td>하드웨어</td><td>Raspberry Pi 5 / ARM64 / 8GB RAM / SD card storage</td><td>CLAUDE.md 풍도 환경 정의</td></tr>
+<tr><td>소프트웨어</td><td>Docker Compose / Reflex 0.8.x / Python 3.11+ / PostgreSQL 17 / TimescaleDB 2.21.3</td><td>spec_03 §5 컨테이너 정의</td></tr>
+<tr><td>통신</td><td>단일 사이트, 외부 노출은 Cloudflare tunnel egress only (인바운드 포트 개방 불가)</td><td>spec_04 §1 Product Identity</td></tr>
+<tr><td>비용</td><td>오픈소스만 — 상용 라이센스 추가 도입 불가 (운영비 압박)</td><td>발주자 합의</td></tr>
+<tr><td>인력</td><td>현재 운영 인력 = 소규모 (1-3명) — multi-plant 운영 불가</td><td>spec_04 페르소나 분석</td></tr>
+<tr><td>언어/지역</td><td>한국어 UI 우선 (영어 라벨 혼재 허용)</td><td>spec_04 Gap 6</td></tr>
+<tr><td>아키텍처</td><td>Reflex framework lock-in — 서버 사이드 state, WebSocket 통신 강제</td><td>코드 베이스 관성</td></tr>
+</table>
+
+<h3>2.5 가정/의존성 (Assumptions &amp; Dependencies)</h3>
+<table>
+<tr><th>ID</th><th>가정/의존성</th><th>실패 시 영향</th></tr>
+<tr><td>A-01</td><td>외부 IoT cloud DB 가용성 (SyncMonitor 의존)</td><td>실시간 데이터 정체 → 대시보드/알람 동작 정지</td></tr>
+<tr><td>A-02</td><td>Cloudflare Zero Trust tunnel 가용성</td><td>외부 접근 불가 (LAN 내 직접 접속은 가능)</td></tr>
+<tr><td>A-03</td><td>TimescaleDB 2.21.x + PostgreSQL 17 정상 동작</td><td>전체 시스템 정지</td></tr>
+<tr><td>A-04</td><td>인터넷 연결 (이미지 pull, tunnel)</td><td>초기 배포/업데이트 불가, 런타임은 LAN 동작 가능</td></tr>
+<tr><td>A-05</td><td>RPI 5 SD card 무결성 (월 1회 백업)</td><td>card 손상 시 데이터 소실 → restore_db.sh 복원 필요</td></tr>
+<tr><td>A-06</td><td>운전자가 acknowledge 동작을 정상 수행 (ISA-18.2 loop)</td><td>알람 누적, alarm fatigue</td></tr>
+<tr><td>A-07</td><td>최소 1 개 배포 모델 (<code>is_deployed=true</code>) 존재</td><td>/forecast 빈 차트, ForecastScheduler 무효 동작</td></tr>
+<tr><td>A-08</td><td>Docker daemon + <code>restart: unless-stopped</code> 정책</td><td>컨테이너 crash 자동 복구 미동작</td></tr>
+</table>
+
+<hr/>
+
+<h2 id="sec3">3. 기능적 요구사항 (Functional Requirements)</h2>
+<p class="meta">9 개 도메인 × 평균 10 개 = 총 93 개 기능 요구사항. ID 체계: <code>REQ-F-{도메인}-{번호}</code>.</p>
+
+<h3>3.1 알람 도메인 (REQ-F-ALM)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-001</th></tr>
+<tr><td>제목</td><td>실시간 알람 발생 감지 및 저장</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span> (필수)</td></tr>
+<tr><td>설명</td><td>시스템은 <code>influx_hist</code> 의 최근 데이터를 <strong>10초 주기</strong>로 폴링하여 <code>influx_qc_rule</code> 의 threshold 와 비교하고, breach 발생 시 <code>alarm_history</code> 에 INSERT 해야 한다.</td></tr>
+<tr><td>입력</td><td><code>influx_hist</code> (최근 10초), <code>influx_qc_rule</code> (현재 active rules)</td></tr>
+<tr><td>출력</td><td><code>alarm_history</code> 신규 row, <code>pg_notify('alarm_event', event_id)</code> 신호</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-02, TC-ALARM-03</td></tr>
+<tr><td>관련 기능</td><td>FN-ALM-01~05</td></tr>
+<tr><td>출처</td><td>spec_04 PRD M1 #2, spec_02 AlarmMonitor</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-002</th></tr>
+<tr><td>제목</td><td>ISA-18.2 우선순위 분류</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>알람은 <strong>ISA-18.2</strong> 4 단계 (P1 Advisory / P2 Caution / P3 Warning / P4 Emergency)로 분류되어 <code>alarm_history.severity</code> 에 저장되어야 한다. 분류 기준은 <code>warning_low/high</code>, <code>critical_low/high</code> 의 위반 정도에 따른다.</td></tr>
+<tr><td>입력</td><td>측정값, qc_rule threshold</td></tr>
+<tr><td>출력</td><td><code>severity ∈ {P1, P2, P3, P4}</code></td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-02</td></tr>
+<tr><td>출처</td><td>spec_04 §1 evidence #4 (ISA-18.2 vocabulary)</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-003</th></tr>
+<tr><td>제목</td><td>알람 NOTIFY/LISTEN 실시간 푸시</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>알람 발생 시 <code>pg_notify('alarm_event', event_id)</code> 가 발행되고, <code>DatabaseEventListener</code> 가 LISTEN 하여 WebSocket 으로 클라이언트에 push 해야 한다. End-to-end 지연 ≤ 15초.</td></tr>
+<tr><td>출력</td><td>WebSocket message, UI 알람 카드 추가</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-07</td></tr>
+<tr><td>출처</td><td>spec_03 §6 schedulers, spec_02 DatabaseEventListener</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-004</th></tr>
+<tr><td>제목</td><td>알람 단건 acknowledge</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>운전자가 알람 row 의 acknowledge 버튼 클릭 시 <code>AlarmsState.acknowledge_alarm</code> 이 <code>alarm_history.acknowledged=TRUE</code>, <code>acknowledged_at=NOW()</code>, <code>acknowledged_by=&lt;세션 식별자&gt;</code> 로 UPDATE 해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-03</td></tr>
+<tr><td>출처</td><td>spec_04 PRD M1, spec_02 AlarmsState L588</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-005</th></tr>
+<tr><td>제목</td><td>알람 일괄 (bulk) acknowledge</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>운전자가 다수 알람을 선택 후 일괄 acknowledge 시 <code>acknowledge_selected</code> 가 모든 선택 row 를 단일 트랜잭션으로 UPDATE 해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-04</td></tr>
+<tr><td>출처</td><td>spec_04 PRD M1</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-006</th></tr>
+<tr><td>제목</td><td>acknowledge 멱등성</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>이미 acknowledged=TRUE 인 알람에 대한 재요청은 no-op 으로 동작해야 한다 (중복 UPDATE 금지, 에러 미발생).</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-ALM-007</th></tr>
+<tr><td>제목</td><td>시간 범위 필터 (1h/6h/24h/7d)</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>알람 이력 페이지는 1시간/6시간/24시간/7일 quick-select 필터를 제공해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-ALM-008</th></tr>
+<tr><td>제목</td><td>tag 이름 검색</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>알람 이력에서 tag 이름으로 검색 가능해야 한다. SQL injection 방지 (parameterized query) 필수.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-06</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-ALM-009</th></tr>
+<tr><td>제목</td><td>severity 체크박스 필터</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>Critical / Warning / Info 체크박스를 제공하여 해제 시 해당 row 가 비표시되어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-010</th></tr>
+<tr><td>제목</td><td>알람 이력 Excel export</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>현재 필터 조건의 알람 이력을 xlsx 파일로 다운로드 가능해야 한다. 다운로드 시작 ≤ 10초.</td></tr>
+<tr><td>출력</td><td><code>.xlsx</code> 파일 (Content-Disposition: attachment)</td></tr>
+<tr><td>출처</td><td>spec_02 AlarmHistState L328</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-011</th></tr>
+<tr><td>제목</td><td>실시간 알람 센서 카드 그리드</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/alarms_rt</code> 는 등록된 모든 센서를 카드 그리드로 표시하며, 각 카드는 현재 값, threshold, 상태 색상을 보여야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-09</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-ALM-012</th></tr>
+<tr><td>제목</td><td>오래된 acknowledged 알람 정리</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>AlarmRTState.cleanup_old_alarms</code> 는 7일 이전 acknowledged 알람을 soft delete 해야 한다. 미확인(unack) 알람은 보존.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-10</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-013</th></tr>
+<tr><td>제목</td><td>알람 이력 페이지네이션</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>이력 조회는 페이지 단위 (default 25 / page_size 변경 가능)로 표시해야 한다. 페이지 이동 시 필터 상태 유지.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-014</th></tr>
+<tr><td>제목</td><td>알람 통계 카드</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>알람 이력 페이지는 총 건수 / 최다 발생 센서 / 평균 severity / 해결률 4 개 통계 카드를 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-ALARM-01</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-ALM-015</th></tr>
+<tr><td>제목</td><td>중복 페이지 통합 (canonical route)</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>/alarms_rt</code> vs <code>/alarms_rt_new</code>, <code>/alarms_hist</code> vs <code>/alarms_hist_new</code> 중 canonical 1 개로 통합하고 나머지는 redirect 처리해야 한다.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-02, CR-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-ALM-016</th></tr>
+<tr><td>제목</td><td>필터 바 state 바인딩</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/alarms_rt</code> 의 filter_bar 컴포넌트는 하드코딩 리터럴이 아닌 <code>AlarmRTState</code> 의 setter 에 연결되어야 한다.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-06, spec_01 Issue 2</td></tr>
+</table></div>
+
+<h3>3.2 예측 도메인 (REQ-F-FCT)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-001</th></tr>
+<tr><td>제목</td><td>10분 주기 자동 예측</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>ForecastScheduler</code> 는 정확히 <strong>10분 주기</strong>로 모든 <code>is_deployed=TRUE</code> 모델에 대해 예측을 실행하고 <code>predictions</code> 와 <code>forecast_player_cache</code> 에 저장해야 한다. 1 cycle 처리 시간 ≤ 5분.</td></tr>
+<tr><td>입력</td><td><code>model_registry</code> (is_deployed=TRUE), <code>influx_hist</code> 최근 윈도우</td></tr>
+<tr><td>출력</td><td><code>predictions</code> 신규 row, <code>forecast_player_cache</code> JSONB 갱신</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-05, TC-INT-01, TC-INT-06</td></tr>
+<tr><td>출처</td><td>spec_03 ForecastScheduler, spec_04 M1</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-002</th></tr>
+<tr><td>제목</td><td>배포 모델 드롭다운</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/forecast</code> 페이지는 <code>is_deployed=TRUE</code> 모델 목록을 드롭다운으로 제공해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-01</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-003</th></tr>
+<tr><td>제목</td><td>past/future/T0 차트</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>예측 차트는 과거 실제값 (파란색), 예측값 (주황색), T0 기준선 (빨간색)을 시각적으로 구분해야 한다. 신뢰구간 (CI) 표시 권장.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-004</th></tr>
+<tr><td>제목</td><td>정확도 지표 카드 (MAPE/NRMSE)</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>선택된 모델에 대해 MAPE, NRMSE, 정확도 (1-MAPE) 카드를 표시해야 한다. 값은 <code>predictions</code> 의 actual_value backfill 결과로부터 계산.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-02</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-005</th></tr>
+<tr><td>제목</td><td>실제값 backfill</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>ActualValueUpdater</code> 는 예측 시점이 경과한 row 에 대해 <code>influx_hist</code> 로부터 실제값을 조회하여 <code>predictions.actual_value</code> 를 UPDATE 해야 한다. 미실행 시 MAPE = NULL.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-06</td></tr>
+<tr><td>출처</td><td>spec_04 M1 #7</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-FCT-006</th></tr>
+<tr><td>제목</td><td>수동 예측 trigger</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>운전자/엔지니어가 <code>trigger_forecast_now</code> 버튼으로 즉시 예측 실행 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-007</th></tr>
+<tr><td>제목</td><td>다음 예측 countdown</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>start_countdown_monitor</code> 는 다음 ForecastScheduler 실행까지 남은 시간을 초 단위로 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-008</th></tr>
+<tr><td>제목</td><td>forecast_player_cache 우선 사용</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>UI 는 <code>forecast_player_cache</code> (pre-computed JSONB)를 primary read source 로 사용해야 한다. 미존재 시 <code>predictions</code> raw fallback.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-10</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-FCT-009</th></tr>
+<tr><td>제목</td><td>Y축 자동 스케일 토글</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>차트 Y축은 자동 스케일 / 고정 도메인 토글 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-04</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-010</th></tr>
+<tr><td>제목</td><td>수평 비교 테이블</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>각 시점별 actual vs predicted, 절대오차, 상대오차를 수평 테이블로 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-FCT-011</th></tr>
+<tr><td>제목</td><td>예측 horizon 단계별 navigation</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td>다단계 horizon 모델의 경우 개별 horizon 으로 navigation 할 수 있다 (<code>go_to_step</code>, <code>load_forecast_steps</code>).</td></tr>
+<tr><td>출처</td><td>spec_04 M3 — 2차 기능</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-FCT-012</th></tr>
+<tr><td>제목</td><td>예측 cycle 누락 알람</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>ForecastScheduler 가 2 cycle 연속 (20분) 실행되지 않을 경우 로그 ERROR 기록 및 운영자 알림이 필요하다.</td></tr>
+</table></div>
+
+<h3>3.3 학습 도메인 (REQ-F-TRN)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-001</th></tr>
+<tr><td>제목</td><td>6단계 wizard 워크플로우</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/training-wizard</code> 는 (1) 센서 선택 → (2) 알고리즘 선택 → (3) 특징 엔지니어링 → (4) 학습 파라미터 → (5) 학습 실행 → (6) 결과 6 단계를 제공해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-01, TC-TRAIN-02</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-002</th></tr>
+<tr><td>제목</td><td>3 알고리즘 지원</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>Prophet / Auto-ARIMA / XGBoost 3 알고리즘을 선택 가능해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-003</th></tr>
+<tr><td>제목</td><td>특징 엔지니어링 설정</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>lag features, rolling statistics, temporal features (요일/시간) 설정을 wizard 에서 구성 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-06</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-004</th></tr>
+<tr><td>제목</td><td>Walk-forward CV</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>시계열 leakage 방지를 위해 walk-forward 교차검증만 허용 (random shuffle 금지).</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-005</th></tr>
+<tr><td>제목</td><td>Walk-forward 데이터 가용성 검증</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>설정된 학습 윈도우 + horizon × fold 수 가 가용 데이터 길이를 초과할 경우 명확한 에러 메시지로 거부해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-006</th></tr>
+<tr><td>제목</td><td>모델 저장</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>save_model</code> 은 학습된 모델을 <code>model_registry.model_pickle</code> (BYTEA)에 저장하고 metric 컬럼을 채워야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-007</th></tr>
+<tr><td>제목</td><td>Step 6 결과 차트</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>fold 별 MAPE, R², residual histogram, QQ plot, ACF/PACF 차트를 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-09</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRN-008</th></tr>
+<tr><td>제목</td><td>wizard step 양방향 navigation</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>이전 step 으로 이동 시 폼 상태가 보존되어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-009</th></tr>
+<tr><td>제목</td><td>필수 step 검증 게이트</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>필수 입력이 누락된 step 은 다음 단계로 진행 불가해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-04</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-010</th></tr>
+<tr><td>제목</td><td>학습 백그라운드 비동기 실행</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>학습은 background event handler 로 실행되어 UI 를 블로킹하지 않아야 한다 (asyncio + CPU-bound run_in_executor).</td></tr>
+<tr><td>검증 방법</td><td>TC-TRAIN-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-011</th></tr>
+<tr><td>제목</td><td>학습 진행률 모니터링</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>monitor_training_completion</code> 은 학습 완료 여부를 polling 하여 step 6 으로 자동 전이해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRN-012</th></tr>
+<tr><td>제목</td><td>feature_store 저장</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>엔지니어링된 특징을 <code>feature_store</code> 테이블에 저장하여 재사용 가능해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRN-013</th></tr>
+<tr><td>제목</td><td>fold 별 metric 저장</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>walk-forward fold 별 metric 을 <code>training_evaluation</code> 에 저장해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-TRN-014</th></tr>
+<tr><td>제목</td><td>일일 자동 재학습 (DailyTrainingScheduler)</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td><code>DailyTrainingScheduler</code> 는 코드는 존재하나 <code>SchedulerManager.start_all()</code> 에 미연결. 활성화 시 야간 자동 재학습 가능. <code>ENABLE_DAILY_TRAINING</code> env gate 필수.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRN-015</th></tr>
+<tr><td>제목</td><td>학습 backtest predictions 기록</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>학습 결과의 offline backtest 예측을 <code>predictions</code> 에 별도 model_id 로 기록해야 한다.</td></tr>
+</table></div>
+
+<h3>3.4 센서/태그 도메인 (REQ-F-SNR)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-001</th></tr>
+<tr><td>제목</td><td>tag 가시성 4 화면별 토글</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/viewer-tag</code> 는 각 tag 별로 dashboard / alarm / trend / model 4 개 화면 노출 여부를 토글 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-02</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-002</th></tr>
+<tr><td>제목</td><td>가시성 cascade — view 즉시 반영</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>viewer_tag.show_*</code> UPDATE 즉시 <code>influx_latest</code>, <code>influx_latest_alarm</code>, <code>influx_latest_trend</code>, <code>influx_latest_model</code> view 필터링이 전파되어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-003</th></tr>
+<tr><td>제목</td><td>tag 추가</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>add_tag</code> 는 <code>viewer_tag</code> 에 신규 row 를 INSERT 하고 즉시 테이블에 반영해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-04</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-004</th></tr>
+<tr><td>제목</td><td>tag 삭제</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>delete_tag</code> 는 확인 다이얼로그 후 <code>viewer_tag</code> 에서 row 를 제거해야 한다 (FK 참조 무결성 검증 필요).</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SNR-005</th></tr>
+<tr><td>제목</td><td>display_order 변경</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>update_order</code> 는 drag-and-drop 등으로 변경된 순서를 <code>viewer_tag.display_order</code> 에 저장해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-06</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SNR-006</th></tr>
+<tr><td>제목</td><td>대시보드 전체 표시/숨김</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>show_all_dashboard</code> / <code>hide_all_dashboard</code> 는 모든 tag 의 dashboard 노출을 일괄 토글해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-007</th></tr>
+<tr><td>제목</td><td>QC threshold 인라인 편집</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>대시보드에서 센서별 min/max/warning/critical threshold 를 인라인 편집하고 <code>save_sensor_info</code> 로 <code>influx_qc_rule</code> 에 저장해야 한다. AlarmMonitor 다음 cycle 부터 즉시 적용.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-008</th></tr>
+<tr><td>제목</td><td>가상 태그 계산</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>VirtualTagScheduler</code> + pg_cron 은 <code>PRESSURE_DIFF</code>, <code>RECOVERY_RATE</code>, <code>OPERATING_TIME</code>, <code>TOTAL_PRODUCT_VOLUME_1H</code> 등 가상 태그를 1분 주기로 계산하여 <code>influx_hist</code> 에 저장해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-09, TC-INT-04</td></tr>
+<tr><td>출처</td><td>spec_03 §6, migration 08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-009</th></tr>
+<tr><td>제목</td><td>가상 태그 tag 카탈로그 등록</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>가상 태그는 <code>influx_tag</code> 에 자동 등록되어 다른 페이지에서 조회 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-09</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SNR-010</th></tr>
+<tr><td>제목</td><td>tags 테이블 로딩</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/viewer-tag</code> 진입 시 모든 tag 목록을 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-01</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SNR-011</th></tr>
+<tr><td>제목</td><td>RangeMonitor 임계치 초기화</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>RangeMonitor._initialize_thresholds()</code> 의 하드코딩된 TMP/DP 값은 설정 파일 (YAML/env)로 외부화되어야 한다.</td></tr>
+<tr><td>출처</td><td>spec_03 §6.4</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-SNR-012</th></tr>
+<tr><td>제목</td><td>가상 태그 정의 UI</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td>가상 태그 계산식을 GUI 로 정의 가능 (현재 migration 으로만 가능).</td></tr>
+</table></div>
+
+<h3>3.5 대시보드 도메인 (REQ-F-DSH)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-001</th></tr>
+<tr><td>제목</td><td>센서 상태 테이블</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>루트 페이지 <code>/</code> 는 등록된 모든 센서의 현재 값, 상태 배지 (NORMAL/WARNING/CRITICAL), risk bar 를 행으로 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-01, TC-DASH-04</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-002</th></tr>
+<tr><td>제목</td><td>30초 streaming refresh</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>DashboardRealtimeState.start_streaming</code> 은 background loop 으로 30초 주기 <code>influx_latest</code> 조회 후 WebSocket 으로 push 해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-02, TC-DASH-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-003</th></tr>
+<tr><td>제목</td><td>시스템 KPI 요약</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>전체 센서 수 / NORMAL / WARNING / CRITICAL 개수 KPI 카드를 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-004</th></tr>
+<tr><td>제목</td><td>색맹 친화 상태 표현</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>상태는 색상 (red/amber/green) + 텍스트 라벨 (CRITICAL/WARNING/NORMAL) 병행 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-005</th></tr>
+<tr><td>제목</td><td>예측 오버레이</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>배포된 모델이 있는 센서는 row 에 예측값 오버레이를 표시해야 한다 (<code>predictions</code> 조회).</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-006</th></tr>
+<tr><td>제목</td><td>SCADA 알람 라이브 스트림</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>ScadaAlarmState.toggle_streaming</code> 은 PostgreSQL LISTEN/NOTIFY 로 새로운 SCADA 알람을 10초 이내 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-06</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-DSH-007</th></tr>
+<tr><td>제목</td><td>SCADA severity 필터</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>SCADA 알람 로그에 severity 필터 적용 가능.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-008</th></tr>
+<tr><td>제목</td><td>DB unavailable 그레이스풀 처리</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>DB 연결 실패 시 unhandled exception 대신 error callout 으로 운전자에게 알려야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-DSH-009</th></tr>
+<tr><td>제목</td><td>navigation 시 zombie loop 방지</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>페이지 이탈 시 streaming background loop 가 종료되어 zombie DB 연결이 누적되지 않아야 한다. <code>asyncio.Task</code> 핸들 추적 + 명시적 cancel 권장.</td></tr>
+<tr><td>검증 방법</td><td>TC-DASH-05</td></tr>
+<tr><td>출처</td><td>spec_04 Gap 7</td></tr>
+</table></div>
+
+<h3>3.6 트렌드 도메인 (REQ-F-TRD)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-001</th></tr>
+<tr><td>제목</td><td>tag 드롭다운</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/trend</code> 는 <code>influx_tag</code> 의 모든 tag 를 드롭다운으로 제공해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-01</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-002</th></tr>
+<tr><td>제목</td><td>4 단계 집계 view</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>1m / 10m / 1h / 1d 4 단계 집계를 선택 가능하며, 각각 <code>influx_agg_1m/10m/1h/1d</code> continuous aggregate 를 조회해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-02</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-003</th></tr>
+<tr><td>제목</td><td>차트 타입 전환</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>Area / Line / Bar 3 종 차트 전환 가능해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-004</th></tr>
+<tr><td>제목</td><td>brush range-sync</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>상단 brush 차트의 범위 조정이 하단 메인 차트 도메인과 동기화되어야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-005</th></tr>
+<tr><td>제목</td><td>전체 CSV export</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>export_csv_all</code> 은 현재 필터된 전체 데이터를 CSV 로 다운로드. 30일 데이터 export 시작 ≤ 10초.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-04</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRD-006</th></tr>
+<tr><td>제목</td><td>현재 페이지 CSV export</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>export_csv_page</code> 는 현재 페이지 row 만 CSV 로 다운로드.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-TRD-007</th></tr>
+<tr><td>제목</td><td>페이지네이션</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>데이터 테이블은 이전/다음 페이지 이동 가능, 페이지 크기 변경 가능.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-06, TC-TREND-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRD-008</th></tr>
+<tr><td>제목</td><td>누락 데이터 표시</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>missing data row 는 빨간색 하이라이트로 표시.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-TRD-009</th></tr>
+<tr><td>제목</td><td>auto-refresh 누수 방지</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>auto-refresh 5 cycle 이후 DB 연결/메모리 누수 없어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-TREND-09</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-TRD-010</th></tr>
+<tr><td>제목</td><td>다중 tag 동시 비교</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td><code>TrendStateEnhanced</code> + <code>TagHierarchyState</code> 기반 다중 tag 비교 트렌드. 현재 미활성.</td></tr>
+<tr><td>출처</td><td>spec_04 M3, CR-04</td></tr>
+</table></div>
+
+<h3>3.7 통신 도메인 (REQ-F-COM)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-COM-001</th></tr>
+<tr><td>제목</td><td>시간당 수집 성공률 heatmap</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/comm</code> 은 각 센서의 시간당 수집 record 수 / 기대 record 수 비율을 heatmap 으로 표시해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-SENSOR-10</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-COM-002</th></tr>
+<tr><td>제목</td><td>일별 성공률 area chart</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>일별 성공률 트렌드 area chart 와 95% 기준선을 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-COM-003</th></tr>
+<tr><td>제목</td><td>전체 성공률 상한 100%</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>overall_success_rate</code> 는 100% 를 초과하지 않아야 한다 (2025-11-26 fix regression 방지).</td></tr>
+<tr><td>출처</td><td>spec_04 M3 known issue</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-COM-004</th></tr>
+<tr><td>제목</td><td>tag 별 / 기간 선택</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>특정 tag 와 1/3/7/30 일 기간 선택 가능.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-COM-005</th></tr>
+<tr><td>제목</td><td>refresh 핸들러</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>refresh_data</code> 는 새로운 데이터로 heatmap/chart 를 갱신해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-COM-006</th></tr>
+<tr><td>제목</td><td>sync_monitor UI 페이지</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td><code>SyncMonitorState</code> 의 4 background handler (sync_tags/sync_realtime/sync_historical/refresh_data)에 대응하는 <code>/sync</code> UI 페이지. 현재 orphan.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-09</td></tr>
+</table></div>
+
+<h3>3.8 AI/RAG 도메인 (REQ-F-AI) — 현재 dead</h3>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-AI-001</th></tr>
+<tr><td>제목</td><td>/ai 페이지 활성화</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td><code>pages/ai_insights.py</code> 는 작성되어 있으나 <code>ksys_app.py</code> 에 import 되지 않음. 활성화 시 <code>ENABLE_AI_FEATURES=true</code> env gate 와 SQL injection 재검증 필수.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-01, SMOKE-08 sentinel</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-AI-002</th></tr>
+<tr><td>제목</td><td>multi-RAG 엔진 통합</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td>pgvector / GraphRAG / LlamaIndex / 5W1H agent / hallucination prevention engine 통합 (현재 18 modules).</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-AI-003</th></tr>
+<tr><td>제목</td><td>knowledge_base + chat_history 영속화</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td>RAG 입력 문서와 chat 이력을 DB 에 영속 저장.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-AI-004</th></tr>
+<tr><td>제목</td><td>활성화 전 SQL injection 차단 검증</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/ai</code> 활성화 전 <code>dynamic_rag_engine.py</code>, <code>knowledge_search.py</code>, <code>pandas_analysis_engine.py</code> 의 SQL 처리는 모두 parameterized / whitelist 방식이어야 한다. (Day 6 fix 는 일부에 불과.)</td></tr>
+<tr><td>출처</td><td>audit H-02, spec_02 AI/RAG 보안 노트</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-AI-005</th></tr>
+<tr><td>제목</td><td>knowledge file hot reload</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td>filesystem watcher 로 지식 파일 변경 시 자동 재인덱싱.</td></tr>
+</table></div>
+
+<h3>3.9 시스템/관리 도메인 (REQ-F-SYS)</h3>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-001</th></tr>
+<tr><td>제목</td><td>SchedulerManager 일괄 시작</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>컨테이너 부팅 시 <code>SchedulerManager.start_all()</code> 이 ForecastScheduler, AlarmMonitor, VirtualTagScheduler, PerformanceAggregator, ActualValueUpdater, DatabaseEventListener 를 순차 기동해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-03</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-002</th></tr>
+<tr><td>제목</td><td>모델 deploy</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>ModelPerformanceState.deploy_model</code> 은 <code>model_registry.is_deployed=TRUE</code> 로 UPDATE 하며, ForecastScheduler 다음 cycle 부터 즉시 반영되어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-003</th></tr>
+<tr><td>제목</td><td>모델 undeploy</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>undeploy_model</code> 은 <code>is_deployed=FALSE</code> 로 UPDATE 하며, /forecast 드롭다운에서 제거되어야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-FCAST-09</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-004</th></tr>
+<tr><td>제목</td><td>모델 soft delete</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>delete_model</code> 은 hard delete 가 아닌 soft delete 로 동작해야 한다 (예측 이력 보존).</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-005</th></tr>
+<tr><td>제목</td><td>모델 알고리즘 비교</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/model-performance</code> 는 동일 센서의 알고리즘별 MAPE 를 bar chart 로 비교하고 "Best Algorithm" 카드를 표시해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SYS-006</th></tr>
+<tr><td>제목</td><td>drift 모니터링</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>drift_monitoring</code> 테이블에서 모델별 drift 이력을 조회 표시.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-007</th></tr>
+<tr><td>제목</td><td>SCADA vs AI 알람 비교</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>/scada-alarm-comparison</code> 은 동일 시간 윈도우의 rule-based 알람 (파란색) 과 AI-based 알람 (보라색)을 dual table 로 비교해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-may">
+<tr><th colspan="2">REQ-F-SYS-008</th></tr>
+<tr><td>제목</td><td>테스트 데이터 생성 (admin)</td></tr>
+<tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
+<tr><td>설명</td><td><code>generate_test_data</code> 는 SCADA 비교를 위한 seed 데이터 생성. <strong>운영 환경에서는 비활성</strong>해야 한다.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-009</th></tr>
+<tr><td>제목</td><td>data-injector 컨테이너 활성</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td>data-injector 컨테이너는 <code>influx_hist</code> 에 30초 내 신규 row 를 지속 생성해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-10</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-010</th></tr>
+<tr><td>제목</td><td>continuous aggregate 자동 refresh</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>influx_agg_1m/10m/1h/1d</code> 는 TimescaleDB continuous aggregate policy 로 자동 refresh 되어야 한다. 최근 2시간 데이터의 누락 0건.</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-05</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-011</th></tr>
+<tr><td>제목</td><td>PerformanceAggregator 시간당 metric</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>PerformanceAggregator</code> 는 1시간 주기로 모델별 성능 metric 을 <code>prediction_performance</code> 에 집계해야 한다.</td></tr>
+<tr><td>검증 방법</td><td>TC-INT-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SYS-012</th></tr>
+<tr><td>제목</td><td>dead 페이지 정리</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td><code>/design-system-demo</code> 는 삭제 또는 dev-only env gate 적용해야 한다.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-07</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SYS-013</th></tr>
+<tr><td>제목</td><td>feature_config_service 중복 정리</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>3 개 버전 (<code>v1</code>, <code>v2</code>, <code>_final</code>) 중 <code>_final</code> 만 남기고 2 개 legacy 삭제.</td></tr>
+<tr><td>출처</td><td>spec_04 CR-08</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-should">
+<tr><th colspan="2">REQ-F-SYS-014</th></tr>
+<tr><td>제목</td><td>orphan State 정리</td></tr>
+<tr><td>우선순위</td><td><span class="should">SHOULD</span></td></tr>
+<tr><td>설명</td><td>7 개 orphan State (<code>SyncMonitorState</code>, <code>TrendStateEnhanced</code>, <code>AlarmsEnhancedState</code>, <code>DashboardRealtimeGroupedState</code> 등) 는 활성화 (페이지 binding) 또는 삭제 결정 필요.</td></tr>
+</table></div>
+
+<div class="requirement"><table class="req-shall">
+<tr><th colspan="2">REQ-F-SYS-015</th></tr>
+<tr><td>제목</td><td>RPI 부트스트랩 스크립트</td></tr>
+<tr><td>우선순위</td><td><span class="shall">SHALL</span></td></tr>
+<tr><td>설명</td><td><code>bootstrap_rpi.sh</code> 는 새 RPI 5 에서 30분 이내 컨테이너 실행 + 데이터 시드까지 완료해야 한다.</td></tr>
+</table></div>
+
+<hr/>
+
+<h2 id="sec4">4. 비기능적 요구사항 (Non-Functional Requirements)</h2>
+<p class="meta">7 개 카테고리 × 총 55 개. ID 체계: <code>REQ-NF-{카테고리}-{번호}</code>.</p>
+
+<h3>4.1 성능 (REQ-NF-PRF)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-PRF-001</td><td><span class="shall">SHALL</span></td><td>페이지 초기 로드 시간 (TTI) ≤ 2초 (LAN 내 RPI 5)</td><td>Playwright timed</td><td>spec_05 Tier-4</td></tr>
+<tr><td>REQ-NF-PRF-002</td><td><span class="shall">SHALL</span></td><td>알람 trigger → 화면 표시 end-to-end ≤ 15초</td><td>TC-INT-07</td><td>REQ-F-ALM-003</td></tr>
+<tr><td>REQ-NF-PRF-003</td><td><span class="shall">SHALL</span></td><td>ForecastScheduler 1 cycle 처리 ≤ 5분 (10분 주기 내 완료)</td><td>docker logs timing</td><td>REQ-F-FCT-001</td></tr>
+<tr><td>REQ-NF-PRF-004</td><td><span class="shall">SHALL</span></td><td>continuous aggregate 조회 p95 ≤ 100ms</td><td>EXPLAIN ANALYZE</td><td>—</td></tr>
+<tr><td>REQ-NF-PRF-005</td><td><span class="shall">SHALL</span></td><td>WebSocket round-trip latency ≤ 500ms</td><td>Playwright</td><td>—</td></tr>
+<tr><td>REQ-NF-PRF-006</td><td><span class="shall">SHALL</span></td><td>30일 CSV export 시작 ≤ 10초</td><td>Playwright download</td><td>REQ-F-TRD-005</td></tr>
+<tr><td>REQ-NF-PRF-007</td><td><span class="should">SHOULD</span></td><td>대시보드 30초 streaming refresh 지연 편차 ≤ 2초</td><td>timed test</td><td>REQ-F-DSH-002</td></tr>
+<tr><td>REQ-NF-PRF-008</td><td><span class="shall">SHALL</span></td><td>AlarmMonitor 10초 polling 주기 편차 ≤ 1초</td><td>docker logs</td><td>REQ-F-ALM-001</td></tr>
+<tr><td>REQ-NF-PRF-009</td><td><span class="should">SHOULD</span></td><td>RPI 5 CPU 평균 사용률 ≤ 70%</td><td>docker stats</td><td>측정 baseline</td></tr>
+<tr><td>REQ-NF-PRF-010</td><td><span class="should">SHOULD</span></td><td>컨테이너 메모리 사용량 ≤ 4GB (RPI 5 8GB 의 50%)</td><td>docker stats</td><td>측정 baseline</td></tr>
+</table>
+
+<h3>4.2 신뢰성 (REQ-NF-REL)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-REL-001</td><td><span class="shall">SHALL</span></td><td>월간 uptime ≥ 99% (다운타임 ≤ 7.2시간/월)</td><td>uptime monitor</td><td>—</td></tr>
+<tr><td>REQ-NF-REL-002</td><td><span class="shall">SHALL</span></td><td>알람 누락 0건 (보수적 over-send 허용)</td><td>QC rule 시뮬레이션 시 alarm_history INSERT 검증</td><td>ISA-18.2</td></tr>
+<tr><td>REQ-NF-REL-003</td><td><span class="shall">SHALL</span></td><td>DB 연결 끊김 시 5초 내 자동 reconnect</td><td>destructive test</td><td>asyncpg pool</td></tr>
+<tr><td>REQ-NF-REL-004</td><td><span class="shall">SHALL</span></td><td>컨테이너 crash 시 Docker <code>restart: unless-stopped</code> 정책으로 자동 복구</td><td>docker inspect</td><td>A-08</td></tr>
+<tr><td>REQ-NF-REL-005</td><td><span class="shall">SHALL</span></td><td>navigation/세션 종료 시 background loop 종료 — DB 연결 누적 ≤ baseline + 10</td><td>pg_stat_activity</td><td>spec_04 Gap 7</td></tr>
+<tr><td>REQ-NF-REL-006</td><td><span class="should">SHOULD</span></td><td>SCADA NOTIFY 채널 drop 시 자동 재연결</td><td>destructive test</td><td>—</td></tr>
+<tr><td>REQ-NF-REL-007</td><td><span class="shall">SHALL</span></td><td>DB 백업 — 일 1회 자동 dump, 7일 보존</td><td>cron job</td><td>운영 정책</td></tr>
+<tr><td>REQ-NF-REL-008</td><td><span class="shall">SHALL</span></td><td>백업으로부터 1시간 내 복원 가능 (<code>restore_db.sh</code>)</td><td>분기 1회 drill</td><td>—</td></tr>
+</table>
+
+<h3>4.3 보안 (REQ-NF-SEC)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-SEC-001</td><td><span class="shall">SHALL</span></td><td>secret 외부화 100% — 코드 내 하드코딩 0건 (.env 사용)</td><td>grep audit</td><td>refactor/secrets-externalize</td></tr>
+<tr><td>REQ-NF-SEC-002</td><td><span class="should">SHOULD</span></td><td>Cloudflare 터널 토큰 분기별 rotate</td><td>운영 절차</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-003</td><td><span class="shall">SHALL</span></td><td>SQL injection 차단 — 모든 동적 SQL 은 parameterized query 또는 identifier whitelist</td><td>audit + pytest</td><td>audit H-02</td></tr>
+<tr><td>REQ-NF-SEC-004</td><td><span class="shall">SHALL</span></td><td>인증 도입 시 모든 endpoints (201 handlers) 보호 — 미인증 요청 401 반환 (<strong>현재 GAP</strong>)</td><td>auth audit</td><td>spec_04 Gap 1</td></tr>
+<tr><td>REQ-NF-SEC-005</td><td><span class="shall">SHALL</span></td><td>RBAC — Operator (read+ack) / Engineer (train+config) / Admin (deploy+delete) 권한 분리 (<strong>현재 GAP</strong>)</td><td>역할 매트릭스</td><td>spec_04 Gap 2</td></tr>
+<tr><td>REQ-NF-SEC-006</td><td><span class="should">SHOULD</span></td><td><code>pickle.loads</code> 사용 시 데이터 출처 제한 — <code>model_registry.model_pickle</code> 외 미사용</td><td>grep audit</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-007</td><td><span class="shall">SHALL</span></td><td>운영자 행위 audit log — model deploy/delete, threshold 변경, tag 가시성 변경 모두 기록 (<strong>현재 부분 GAP</strong>)</td><td>audit_log 테이블 신설</td><td>spec_04 Gap 3, 21 CFR Part 11</td></tr>
+<tr><td>REQ-NF-SEC-008</td><td><span class="shall">SHALL</span></td><td>DB 컨테이너 외부 노출 금지 — Docker 내부 네트워크만</td><td>docker port 점검</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-009</td><td><span class="should">SHOULD</span></td><td>Cloudflare WAF 규칙 — known bad signature 차단</td><td>CF dashboard</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-010</td><td><span class="shall">SHALL</span></td><td>최소 권한 DB 사용자 — 앱 사용자는 schema admin 권한 미보유</td><td>psql \du</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-011</td><td><span class="should">SHOULD</span></td><td>HTTPS only — Cloudflare 강제 SSL</td><td>CF 설정</td><td>—</td></tr>
+<tr><td>REQ-NF-SEC-012</td><td><span class="shall">SHALL</span></td><td>의존성 보안 패치 — pip-audit 월간, critical CVE 30일 내 패치</td><td>CI 통합</td><td>—</td></tr>
+</table>
+
+<h3>4.4 사용성 (REQ-NF-USB)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-USB-001</td><td><span class="shall">SHALL</span></td><td>한국어 UI 우선 — 운전자 핵심 화면 (/, /alarms, /alarms_rt) 100% 한국어</td><td>UI 리뷰</td><td>—</td></tr>
+<tr><td>REQ-NF-USB-002</td><td><span class="shall">SHALL</span></td><td>데스크탑 1080p 정상 동작 — 모바일은 OUT OF SCOPE</td><td>Playwright 1920×1080</td><td>제약</td></tr>
+<tr><td>REQ-NF-USB-003</td><td><span class="shall">SHALL</span></td><td>색맹 친화 — alarm severity 색상 + 텍스트 라벨 병행</td><td>UI 리뷰</td><td>REQ-F-DSH-004</td></tr>
+<tr><td>REQ-NF-USB-004</td><td><span class="should">SHOULD</span></td><td>alarm acknowledge 클릭 ≤ 2 회로 완료 가능</td><td>UX 검토</td><td>—</td></tr>
+<tr><td>REQ-NF-USB-005</td><td><span class="should">SHOULD</span></td><td>에러 메시지는 한국어로 작용 가능 행동 제시</td><td>UI 리뷰</td><td>—</td></tr>
+<tr><td>REQ-NF-USB-006</td><td><span class="may">MAY</span></td><td>i18n 도입 (gettext 등) — 미래 다국어 지원 확장 시</td><td>—</td><td>spec_04 Gap 6</td></tr>
+</table>
+
+<h3>4.5 유지보수성 (REQ-NF-MTN)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-MTN-001</td><td><span class="shall">SHALL</span></td><td>124 test cases 중 Tier-1 smoke 10 cases 는 매 PR 에서 실행 — 60초 내 결과</td><td>CI</td><td>spec_05 §4</td></tr>
+<tr><td>REQ-NF-MTN-002</td><td><span class="shall">SHALL</span></td><td>코드 변경 시 spec 동기화 — 신규 기능은 SRS/PRD/test plan 갱신 동반</td><td>PR 체크리스트</td><td>—</td></tr>
+<tr><td>REQ-NF-MTN-003</td><td><span class="shall">SHALL</span></td><td>structured logging — <code>print()</code> 금지, JSON 로그 사용</td><td>grep + ruff</td><td>—</td></tr>
+<tr><td>REQ-NF-MTN-004</td><td><span class="should">SHOULD</span></td><td>ruff lint + mypy strict 통과 (향후 도입)</td><td>CI</td><td>—</td></tr>
+<tr><td>REQ-NF-MTN-005</td><td><span class="shall">SHALL</span></td><td>관례: 코드 = 진실 / docs = 컨텍스트 — 불일치 시 코드 우선, docs 갱신</td><td>SoR 정책</td><td>bkit-enterprise</td></tr>
+<tr><td>REQ-NF-MTN-006</td><td><span class="should">SHOULD</span></td><td>중복 코드 제거 — DRY 위반 ≤ 5% (Day 7 @event_with_error 등)</td><td>코드 리뷰</td><td>recent commit</td></tr>
+<tr><td>REQ-NF-MTN-007</td><td><span class="shall">SHALL</span></td><td>DB schema 변경은 migration 파일로만 — manual ALTER 금지</td><td>git 이력</td><td>—</td></tr>
+<tr><td>REQ-NF-MTN-008</td><td><span class="should">SHOULD</span></td><td>의존성 lock — <code>requirements.txt</code> pin 또는 poetry lock</td><td>파일 점검</td><td>—</td></tr>
+</table>
+
+<h3>4.6 호환성 (REQ-NF-CMP)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-CMP-001</td><td><span class="should">SHOULD</span></td><td>ARM64 / x86_64 모두 빌드 가능 (multi-arch Docker image)</td><td>buildx</td><td>—</td></tr>
+<tr><td>REQ-NF-CMP-002</td><td><span class="shall">SHALL</span></td><td>Chrome / Edge / Firefox 최신 2 버전 지원</td><td>Playwright</td><td>—</td></tr>
+<tr><td>REQ-NF-CMP-003</td><td><span class="shall">SHALL</span></td><td>TimescaleDB 2.21.x ↔ PostgreSQL 17 호환 검증</td><td>버전 매트릭스</td><td>spec_03</td></tr>
+<tr><td>REQ-NF-CMP-004</td><td><span class="shall">SHALL</span></td><td>Python 3.11+ 호환 (asyncio + asyncpg)</td><td>CI</td><td>—</td></tr>
+<tr><td>REQ-NF-CMP-005</td><td><span class="should">SHOULD</span></td><td>Reflex 0.8.x minor upgrade 호환 — major 변경은 별도 평가</td><td>upgrade 시 회귀 테스트</td><td>—</td></tr>
+</table>
+
+<h3>4.7 운영성 (REQ-NF-OPS)</h3>
+
+<table>
+<tr><th>ID</th><th>우선순위</th><th>요구사항</th><th>측정 방법</th><th>출처</th></tr>
+<tr><td>REQ-NF-OPS-001</td><td><span class="shall">SHALL</span></td><td><code>bootstrap_rpi.sh</code> 로 새 RPI 30분 내 배포 완료</td><td>분기 drill</td><td>REQ-F-SYS-015</td></tr>
+<tr><td>REQ-NF-OPS-002</td><td><span class="shall">SHALL</span></td><td><code>restore_db.sh</code> 로 백업 dump 1시간 내 복원</td><td>drill</td><td>REQ-NF-REL-008</td></tr>
+<tr><td>REQ-NF-OPS-003</td><td><span class="should">SHOULD</span></td><td><code>measure_rpi_baseline.sh</code> 로 RPI baseline (CPU/Mem/Disk IO) 캡처</td><td>월간</td><td>spec_05 Tier-4</td></tr>
+<tr><td>REQ-NF-OPS-004</td><td><span class="shall">SHALL</span></td><td>health endpoint <code>/_ping</code> — HTTP 200 + "pong" 응답</td><td>TC SMOKE-01</td><td>—</td></tr>
+<tr><td>REQ-NF-OPS-005</td><td><span class="should">SHOULD</span></td><td>로그 회전 정책 — 30일 보존, 일별 rotate</td><td>logrotate / docker logs driver</td><td>—</td></tr>
+<tr><td>REQ-NF-OPS-006</td><td><span class="should">SHOULD</span></td><td>HANDOFF.md / CLAUDE.md 운영 가이드 최신 유지</td><td>PR 리뷰</td><td>—</td></tr>
+</table>
+
+<hr/>
+
+<h2 id="sec5">5. 인터페이스 요구사항 (Interface Requirements)</h2>
+
+<table>
+<tr><th>ID</th><th>분류</th><th>우선순위</th><th>요구사항</th><th>비고</th></tr>
+<tr><td>REQ-I-UI-001</td><td>UI</td><td><span class="shall">SHALL</span></td><td>Reflex 0.8 컴포넌트 표준 사용 (rx.box, rx.table, rx.recharts 등)</td><td>framework lock-in</td></tr>
+<tr><td>REQ-I-UI-002</td><td>UI</td><td><span class="shall">SHALL</span></td><td>WebSocket 통신은 Reflex framework 가 관리 — custom WS 금지</td><td>—</td></tr>
+<tr><td>REQ-I-DB-001</td><td>DB</td><td><span class="shall">SHALL</span></td><td>PostgreSQL wire protocol 14+, asyncpg connection pool 사용</td><td>—</td></tr>
+<tr><td>REQ-I-DB-002</td><td>DB</td><td><span class="shall">SHALL</span></td><td>schema 변경은 <code>scripts/init-db.sql</code> + migration 파일을 SoR 로 사용</td><td>—</td></tr>
+<tr><td>REQ-I-NET-001</td><td>네트워크</td><td><span class="shall">SHALL</span></td><td>Cloudflare Zero Trust tunnel — egress only, 인바운드 포트 미개방</td><td>제약</td></tr>
+<tr><td>REQ-I-EXT-001</td><td>외부</td><td><span class="shall">SHALL</span></td><td>외부 IoT cloud DB — read-only sync (SyncMonitor)</td><td>A-01</td></tr>
+<tr><td>REQ-I-CONT-001</td><td>컨테이너</td><td><span class="shall">SHALL</span></td><td>Docker Compose — <code>rpi-finished-reflex-app</code>, <code>rpi-finished-pgai-db</code>, data-injector 3 컨테이너</td><td>—</td></tr>
+<tr><td>REQ-I-OS-001</td><td>OS</td><td><span class="should">SHOULD</span></td><td>Raspberry Pi OS 64bit (Debian 기반) 권장</td><td>—</td></tr>
+</table>
+
+<hr/>
+
+<h2 id="sec6">6. 요구사항 추적 매트릭스 (RTM)</h2>
+<p class="meta">각 요구사항을 PRD feature → 화면 spec → 기능 spec (FN) → test (TC) 로 추적.</p>
+
+<table class="rtm-table">
+<tr><th>REQ-ID</th><th>PRD</th><th>화면 spec</th><th>FN-ID (기능 spec)</th><th>TC-ID (테스트)</th></tr>
+<tr><td>REQ-F-ALM-001</td><td>M1 #2</td><td>spec_08</td><td>FN-ALM-01</td><td>TC-INT-02, TC-ALARM-03</td></tr>
+<tr><td>REQ-F-ALM-002</td><td>M1 #2</td><td>spec_08</td><td>FN-ALM-02</td><td>TC-ALARM-02</td></tr>
+<tr><td>REQ-F-ALM-003</td><td>M1 #2</td><td>spec_08</td><td>FN-ALM-03</td><td>TC-INT-07</td></tr>
+<tr><td>REQ-F-ALM-004</td><td>M1 #3</td><td>spec_08</td><td>FN-ALM-04</td><td>TC-ALARM-03</td></tr>
+<tr><td>REQ-F-ALM-005</td><td>M1 #4</td><td>spec_08</td><td>FN-ALM-05</td><td>TC-ALARM-04</td></tr>
+<tr><td>REQ-F-ALM-006</td><td>M1</td><td>spec_08</td><td>FN-ALM-06</td><td>TC-ALARM-08</td></tr>
+<tr><td>REQ-F-ALM-007</td><td>M2</td><td>spec_08</td><td>FN-ALM-07</td><td>TC-ALARM-05</td></tr>
+<tr><td>REQ-F-ALM-008</td><td>M2</td><td>spec_08</td><td>FN-ALM-08</td><td>TC-ALARM-06</td></tr>
+<tr><td>REQ-F-ALM-009</td><td>M2</td><td>spec_08</td><td>FN-ALM-09</td><td>TC-ALARM-07</td></tr>
+<tr><td>REQ-F-ALM-010</td><td>M2</td><td>spec_08</td><td>FN-ALM-10</td><td>REG-04</td></tr>
+<tr><td>REQ-F-ALM-011</td><td>M1</td><td>spec_08</td><td>FN-ALM-11</td><td>TC-ALARM-09</td></tr>
+<tr><td>REQ-F-ALM-012</td><td>M2</td><td>spec_08</td><td>FN-ALM-12</td><td>TC-ALARM-10</td></tr>
+<tr><td>REQ-F-ALM-013</td><td>M1</td><td>spec_08</td><td>FN-ALM-13</td><td>REG-05</td></tr>
+<tr><td>REQ-F-ALM-014</td><td>M1</td><td>spec_08</td><td>FN-ALM-14</td><td>TC-ALARM-01</td></tr>
+<tr><td>REQ-F-ALM-015</td><td>M3 cleanup</td><td>spec_01</td><td>FN-ALM-15</td><td>(refactor 대상)</td></tr>
+<tr><td>REQ-F-ALM-016</td><td>M3 cleanup</td><td>spec_01</td><td>FN-ALM-16</td><td>(refactor 대상)</td></tr>
+<tr><td>REQ-F-FCT-001</td><td>M1 #6</td><td>spec_09</td><td>FN-FCT-01</td><td>TC-FCAST-05, TC-INT-01</td></tr>
+<tr><td>REQ-F-FCT-002</td><td>M1</td><td>spec_09</td><td>FN-FCT-02</td><td>TC-FCAST-01</td></tr>
+<tr><td>REQ-F-FCT-003</td><td>M1</td><td>spec_09</td><td>FN-FCT-03</td><td>TC-FCAST-03</td></tr>
+<tr><td>REQ-F-FCT-004</td><td>M1</td><td>spec_09</td><td>FN-FCT-04</td><td>TC-FCAST-02</td></tr>
+<tr><td>REQ-F-FCT-005</td><td>M1 #7</td><td>spec_09</td><td>FN-FCT-05</td><td>TC-FCAST-06</td></tr>
+<tr><td>REQ-F-FCT-006</td><td>M2</td><td>spec_09</td><td>FN-FCT-06</td><td>TC-FCAST-07</td></tr>
+<tr><td>REQ-F-FCT-007</td><td>M1</td><td>spec_09</td><td>FN-FCT-07</td><td>REG-13</td></tr>
+<tr><td>REQ-F-FCT-008</td><td>M1</td><td>spec_09</td><td>FN-FCT-08</td><td>TC-FCAST-10</td></tr>
+<tr><td>REQ-F-FCT-009</td><td>M2</td><td>spec_09</td><td>FN-FCT-09</td><td>TC-FCAST-04</td></tr>
+<tr><td>REQ-F-FCT-010</td><td>M1</td><td>spec_09</td><td>FN-FCT-10</td><td>REG-14</td></tr>
+<tr><td>REQ-F-FCT-011</td><td>M3</td><td>spec_09</td><td>FN-FCT-11</td><td>—</td></tr>
+<tr><td>REQ-F-FCT-012</td><td>M1</td><td>—</td><td>FN-FCT-12</td><td>TC-INT-01</td></tr>
+<tr><td>REQ-F-TRN-001</td><td>M2</td><td>spec_09</td><td>FN-TRN-01</td><td>TC-TRAIN-01, 02</td></tr>
+<tr><td>REQ-F-TRN-002</td><td>M2</td><td>spec_09</td><td>FN-TRN-02</td><td>REG-19</td></tr>
+<tr><td>REQ-F-TRN-003</td><td>M2</td><td>spec_09</td><td>FN-TRN-03</td><td>TC-TRAIN-06</td></tr>
+<tr><td>REQ-F-TRN-004</td><td>M2</td><td>spec_09</td><td>FN-TRN-04</td><td>TC-TRAIN-05</td></tr>
+<tr><td>REQ-F-TRN-005</td><td>M2</td><td>spec_09</td><td>FN-TRN-05</td><td>TC-TRAIN-05</td></tr>
+<tr><td>REQ-F-TRN-006</td><td>M2</td><td>spec_09</td><td>FN-TRN-06</td><td>TC-TRAIN-08</td></tr>
+<tr><td>REQ-F-TRN-007</td><td>M2</td><td>spec_09</td><td>FN-TRN-07</td><td>TC-TRAIN-09</td></tr>
+<tr><td>REQ-F-TRN-008</td><td>M2</td><td>spec_09</td><td>FN-TRN-08</td><td>TC-TRAIN-03</td></tr>
+<tr><td>REQ-F-TRN-009</td><td>M2</td><td>spec_09</td><td>FN-TRN-09</td><td>TC-TRAIN-04</td></tr>
+<tr><td>REQ-F-TRN-010</td><td>M2</td><td>spec_09</td><td>FN-TRN-10</td><td>TC-TRAIN-07</td></tr>
+<tr><td>REQ-F-TRN-011</td><td>M2</td><td>spec_09</td><td>FN-TRN-11</td><td>—</td></tr>
+<tr><td>REQ-F-TRN-012</td><td>M2</td><td>—</td><td>FN-TRN-12</td><td>—</td></tr>
+<tr><td>REQ-F-TRN-013</td><td>M2</td><td>—</td><td>FN-TRN-13</td><td>REG-24</td></tr>
+<tr><td>REQ-F-TRN-014</td><td>M3</td><td>—</td><td>FN-TRN-14</td><td>(after activation)</td></tr>
+<tr><td>REQ-F-TRN-015</td><td>M2</td><td>—</td><td>FN-TRN-15</td><td>—</td></tr>
+<tr><td>REQ-F-SNR-001</td><td>M1 #9</td><td>spec_10</td><td>FN-SNR-01</td><td>TC-SENSOR-02</td></tr>
+<tr><td>REQ-F-SNR-002</td><td>M1 #9</td><td>spec_10</td><td>FN-SNR-02</td><td>TC-SENSOR-03</td></tr>
+<tr><td>REQ-F-SNR-003</td><td>M1</td><td>spec_10</td><td>FN-SNR-03</td><td>TC-SENSOR-04</td></tr>
+<tr><td>REQ-F-SNR-004</td><td>M1</td><td>spec_10</td><td>FN-SNR-04</td><td>TC-SENSOR-05</td></tr>
+<tr><td>REQ-F-SNR-005</td><td>M2</td><td>spec_10</td><td>FN-SNR-05</td><td>TC-SENSOR-06</td></tr>
+<tr><td>REQ-F-SNR-006</td><td>M2</td><td>spec_10</td><td>FN-SNR-06</td><td>TC-SENSOR-07</td></tr>
+<tr><td>REQ-F-SNR-007</td><td>M1 #5</td><td>spec_10</td><td>FN-SNR-07</td><td>TC-SENSOR-08</td></tr>
+<tr><td>REQ-F-SNR-008</td><td>M1 #10</td><td>spec_10</td><td>FN-SNR-08</td><td>TC-SENSOR-09, TC-INT-04</td></tr>
+<tr><td>REQ-F-SNR-009</td><td>M1</td><td>—</td><td>FN-SNR-09</td><td>TC-INT-09</td></tr>
+<tr><td>REQ-F-SNR-010</td><td>M1</td><td>spec_10</td><td>FN-SNR-10</td><td>TC-SENSOR-01</td></tr>
+<tr><td>REQ-F-SNR-011</td><td>M2</td><td>—</td><td>FN-SNR-11</td><td>(refactor)</td></tr>
+<tr><td>REQ-F-SNR-012</td><td>M3</td><td>—</td><td>FN-SNR-12</td><td>—</td></tr>
+<tr><td>REQ-F-DSH-001</td><td>M1 #1</td><td>spec_11</td><td>FN-DSH-01</td><td>TC-DASH-01, 04</td></tr>
+<tr><td>REQ-F-DSH-002</td><td>M1 #1</td><td>spec_11</td><td>FN-DSH-02</td><td>TC-DASH-02, 03</td></tr>
+<tr><td>REQ-F-DSH-003</td><td>M1</td><td>spec_11</td><td>FN-DSH-03</td><td>REG-32</td></tr>
+<tr><td>REQ-F-DSH-004</td><td>M1</td><td>spec_11</td><td>FN-DSH-04</td><td>TC-DASH-04</td></tr>
+<tr><td>REQ-F-DSH-005</td><td>M1</td><td>spec_11</td><td>FN-DSH-05</td><td>REG-33</td></tr>
+<tr><td>REQ-F-DSH-006</td><td>M2</td><td>spec_11</td><td>FN-DSH-06</td><td>TC-DASH-06</td></tr>
+<tr><td>REQ-F-DSH-007</td><td>M2</td><td>spec_11</td><td>FN-DSH-07</td><td>TC-DASH-07</td></tr>
+<tr><td>REQ-F-DSH-008</td><td>M1</td><td>—</td><td>FN-DSH-08</td><td>TC-DASH-08</td></tr>
+<tr><td>REQ-F-DSH-009</td><td>M1</td><td>—</td><td>FN-DSH-09</td><td>TC-DASH-05</td></tr>
+<tr><td>REQ-F-TRD-001</td><td>M2</td><td>spec_11</td><td>FN-TRD-01</td><td>TC-TREND-01</td></tr>
+<tr><td>REQ-F-TRD-002</td><td>M2</td><td>spec_11</td><td>FN-TRD-02</td><td>TC-TREND-02</td></tr>
+<tr><td>REQ-F-TRD-003</td><td>M2</td><td>spec_11</td><td>FN-TRD-03</td><td>TC-TREND-03</td></tr>
+<tr><td>REQ-F-TRD-004</td><td>M2</td><td>spec_11</td><td>FN-TRD-04</td><td>REG-39</td></tr>
+<tr><td>REQ-F-TRD-005</td><td>M2</td><td>spec_11</td><td>FN-TRD-05</td><td>TC-TREND-04</td></tr>
+<tr><td>REQ-F-TRD-006</td><td>M2</td><td>spec_11</td><td>FN-TRD-06</td><td>TC-TREND-05</td></tr>
+<tr><td>REQ-F-TRD-007</td><td>M2</td><td>spec_11</td><td>FN-TRD-07</td><td>TC-TREND-06, 07</td></tr>
+<tr><td>REQ-F-TRD-008</td><td>M2</td><td>spec_11</td><td>FN-TRD-08</td><td>TC-TREND-08</td></tr>
+<tr><td>REQ-F-TRD-009</td><td>M2</td><td>—</td><td>FN-TRD-09</td><td>TC-TREND-09</td></tr>
+<tr><td>REQ-F-TRD-010</td><td>M3</td><td>—</td><td>FN-TRD-10</td><td>—</td></tr>
+<tr><td>REQ-F-COM-001</td><td>M2</td><td>spec_11</td><td>FN-COM-01</td><td>TC-SENSOR-10</td></tr>
+<tr><td>REQ-F-COM-002</td><td>M2</td><td>spec_11</td><td>FN-COM-02</td><td>—</td></tr>
+<tr><td>REQ-F-COM-003</td><td>M3</td><td>—</td><td>FN-COM-03</td><td>regression</td></tr>
+<tr><td>REQ-F-COM-004</td><td>M2</td><td>spec_11</td><td>FN-COM-04</td><td>—</td></tr>
+<tr><td>REQ-F-COM-005</td><td>M2</td><td>spec_11</td><td>FN-COM-05</td><td>—</td></tr>
+<tr><td>REQ-F-COM-006</td><td>M3</td><td>—</td><td>FN-COM-06</td><td>—</td></tr>
+<tr><td>REQ-F-AI-001</td><td>M3</td><td>—</td><td>FN-AI-01</td><td>SMOKE-08 sentinel</td></tr>
+<tr><td>REQ-F-AI-002</td><td>M3</td><td>—</td><td>FN-AI-02</td><td>—</td></tr>
+<tr><td>REQ-F-AI-003</td><td>M3</td><td>—</td><td>FN-AI-03</td><td>—</td></tr>
+<tr><td>REQ-F-AI-004</td><td>M1</td><td>—</td><td>FN-AI-04</td><td>audit H-02</td></tr>
+<tr><td>REQ-F-AI-005</td><td>M3</td><td>—</td><td>FN-AI-05</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-001</td><td>M1</td><td>—</td><td>FN-SYS-01</td><td>TC-INT-03</td></tr>
+<tr><td>REQ-F-SYS-002</td><td>M1 #8</td><td>spec_09</td><td>FN-SYS-02</td><td>TC-FCAST-08</td></tr>
+<tr><td>REQ-F-SYS-003</td><td>M1 #8</td><td>spec_09</td><td>FN-SYS-03</td><td>TC-FCAST-09</td></tr>
+<tr><td>REQ-F-SYS-004</td><td>M2</td><td>spec_09</td><td>FN-SYS-04</td><td>REG-17</td></tr>
+<tr><td>REQ-F-SYS-005</td><td>M2</td><td>spec_09</td><td>FN-SYS-05</td><td>REG-16</td></tr>
+<tr><td>REQ-F-SYS-006</td><td>M2</td><td>—</td><td>FN-SYS-06</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-007</td><td>M2</td><td>spec_08</td><td>FN-SYS-07</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-008</td><td>M3</td><td>—</td><td>FN-SYS-08</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-009</td><td>M1</td><td>—</td><td>FN-SYS-09</td><td>TC-INT-10</td></tr>
+<tr><td>REQ-F-SYS-010</td><td>M1 #10</td><td>—</td><td>FN-SYS-10</td><td>TC-INT-05</td></tr>
+<tr><td>REQ-F-SYS-011</td><td>M2</td><td>—</td><td>FN-SYS-11</td><td>TC-INT-08</td></tr>
+<tr><td>REQ-F-SYS-012</td><td>M3</td><td>—</td><td>FN-SYS-12</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-013</td><td>M3</td><td>—</td><td>FN-SYS-13</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-014</td><td>M3</td><td>—</td><td>FN-SYS-14</td><td>—</td></tr>
+<tr><td>REQ-F-SYS-015</td><td>M1</td><td>—</td><td>FN-SYS-15</td><td>quarterly drill</td></tr>
+<tr><td>REQ-NF-PRF-001..010</td><td>—</td><td>—</td><td>—</td><td>Tier-4 perf 12 cases</td></tr>
+<tr><td>REQ-NF-REL-001..008</td><td>—</td><td>—</td><td>—</td><td>uptime monitor + REG-43~50</td></tr>
+<tr><td>REQ-NF-SEC-001..012</td><td>—</td><td>—</td><td>—</td><td>audit + REG-48 (SQLi)</td></tr>
+<tr><td>REQ-NF-USB-001..006</td><td>—</td><td>—</td><td>—</td><td>manual UI review</td></tr>
+<tr><td>REQ-NF-MTN-001..008</td><td>—</td><td>—</td><td>—</td><td>CI 통합</td></tr>
+<tr><td>REQ-NF-CMP-001..005</td><td>—</td><td>—</td><td>—</td><td>버전 매트릭스</td></tr>
+<tr><td>REQ-NF-OPS-001..006</td><td>—</td><td>—</td><td>—</td><td>SMOKE + quarterly drill</td></tr>
+<tr><td>REQ-I-UI-001~002</td><td>—</td><td>—</td><td>—</td><td>framework spec</td></tr>
+<tr><td>REQ-I-DB-001~002</td><td>—</td><td>—</td><td>—</td><td>SoR 정책</td></tr>
+<tr><td>REQ-I-NET-001</td><td>—</td><td>—</td><td>—</td><td>CF 설정</td></tr>
+<tr><td>REQ-I-EXT-001</td><td>—</td><td>—</td><td>—</td><td>SyncMonitor</td></tr>
+<tr><td>REQ-I-CONT-001</td><td>—</td><td>—</td><td>—</td><td>docker-compose.yml</td></tr>
+<tr><td>REQ-I-OS-001</td><td>—</td><td>—</td><td>—</td><td>인프라 정책</td></tr>
+</table>
+
+<hr/>
+
+<h2 id="sec7">7. 확정 / 미확정 요구사항 우선순위</h2>
+
+<table>
+<tr><th>키워드</th><th>의미</th><th>SRS 미충족 시</th><th>본 SRS 분포</th></tr>
+<tr><td><span class="shall">SHALL</span></td><td>필수 요구사항 — 시스템이 반드시 충족</td><td><strong>SRS 위반</strong> — 출고/배포 불가</td><td>68 건 (61%)</td></tr>
+<tr><td><span class="should">SHOULD</span></td><td>강하게 권장 — 제약 상황에서 미충족 시 정당화 필요</td><td>위반 아님 (감점)</td><td>36 건 (32%)</td></tr>
+<tr><td><span class="may">MAY</span></td><td>선택적 — 충족 여부 무관</td><td>위반 아님</td><td>8 건 (7%)</td></tr>
+</table>
+
+<h3>7.1 SHALL 분포 (도메인별)</h3>
+<table>
+<tr><th>도메인</th><th>SHALL</th><th>SHOULD</th><th>MAY</th><th>비고</th></tr>
+<tr><td>알람 (ALM)</td><td>10</td><td>5</td><td>1</td><td>안전 critical</td></tr>
+<tr><td>예측 (FCT)</td><td>9</td><td>2</td><td>1</td><td>—</td></tr>
+<tr><td>학습 (TRN)</td><td>9</td><td>4</td><td>2</td><td>—</td></tr>
+<tr><td>센서 (SNR)</td><td>7</td><td>3</td><td>2</td><td>—</td></tr>
+<tr><td>대시보드 (DSH)</td><td>8</td><td>1</td><td>0</td><td>—</td></tr>
+<tr><td>트렌드 (TRD)</td><td>5</td><td>4</td><td>1</td><td>—</td></tr>
+<tr><td>통신 (COM)</td><td>3</td><td>2</td><td>1</td><td>—</td></tr>
+<tr><td>AI (현재 dead)</td><td>1</td><td>0</td><td>4</td><td>활성화 시 재평가</td></tr>
+<tr><td>시스템 (SYS)</td><td>9</td><td>5</td><td>1</td><td>—</td></tr>
+<tr><td>비기능 (NF)</td><td>30</td><td>24</td><td>1</td><td>—</td></tr>
+<tr><td>인터페이스 (I)</td><td>7</td><td>1</td><td>0</td><td>—</td></tr>
+<tr><td><strong>합계</strong></td><td><strong>98</strong></td><td><strong>51</strong></td><td><strong>14</strong></td><td>(소계 — RTM 매핑 기준 일부 중복)</td></tr>
+</table>
+
+<div class="callout info">
+<strong>현재 GAP 요구사항 (충족 불가 상태):</strong> REQ-NF-SEC-004 (인증), REQ-NF-SEC-005 (RBAC), REQ-NF-SEC-007 (운영자 audit), REQ-F-ALM-015/016 (중복 페이지), REQ-F-AI-001 (/ai dead) — 본 SRS 는 이를 명시 GAP 으로 등록하며, 향후 보강 차수에서 우선 해결 대상.
+</div>
+
+<hr/>
+
+<h2 id="sec8">8. 변경 통제 (Change Control)</h2>
+
+<h3>8.1 요구사항 변경 절차</h3>
+<ol>
+<li><strong>Change Request 작성</strong> — 변경 사유, 영향 도메인, 우선순위 (SHALL/SHOULD/MAY) 명시.</li>
+<li><strong>영향 분석</strong> — RTM 역방향 추적으로 영향받는 화면 spec / 기능 spec / test case 식별.</li>
+<li><strong>spec 갱신 순서</strong>: (a) <code>spec_15</code> 기획 → (b) <code>spec_04</code> PRD → (c) <strong>본 SRS (spec_16)</strong> → (d) <code>spec_12</code> 기능 spec → (e) <code>spec_06~11</code> 화면 spec → (f) <code>spec_05</code> test plan.</li>
+<li><strong>코드 변경</strong> — 갱신된 spec 을 baseline 으로 구현.</li>
+<li><strong>검증</strong> — 영향 받은 TC 재실행 + 신규 TC 작성.</li>
+<li><strong>승인</strong> — 영향 도메인별 owner sign-off.</li>
+</ol>
+
+<h3>8.2 SHALL 변경 시 강제 규칙</h3>
+<ul>
+<li>SHALL 요구사항의 제거/약화는 stakeholder 승인 필요.</li>
+<li>SHALL → SHOULD 강도 하향은 정당화 사유 (제약, 비용, 일정)를 변경 이력에 명시.</li>
+<li>안전 critical (REQ-F-ALM-*, REQ-NF-REL-002 알람 누락 0건)은 변경 불가.</li>
+</ul>
+
+<h3>8.3 변경 이력 (Revision History)</h3>
+<table>
+<tr><th>버전</th><th>일자</th><th>변경 내용</th><th>작성자</th></tr>
+<tr><td>v1.0</td><td>2026-05-29</td><td>최초 작성 — reverse-engineered SRS (spec_01~15 기반)</td><td>enterprise-expert agent</td></tr>
+<tr><td>(예정)</td><td>—</td><td>인증/RBAC 보강본 (REQ-NF-SEC-004~005 충족)</td><td>—</td></tr>
+<tr><td>(예정)</td><td>—</td><td>중복 페이지 정리본 (REQ-F-ALM-015~016 충족)</td><td>—</td></tr>
+<tr><td>(예정)</td><td>—</td><td>AI 활성화본 (REQ-F-AI-001~005 재평가)</td><td>—</td></tr>
+</table>
+
+<h3>8.4 본 SRS 의 효력 범위</h3>
+<p>본 SRS 는 <strong>2026-05-29 기준 코드 베이스</strong>에 대한 as-built 명세이다. 신규 기능 추가나 아키텍처 변경은 §8.1 절차를 따라야 하며, 임의 변경은 SRS 위반으로 간주한다. 본 SRS 는 spec_05 의 124 test cases 와 1:1 또는 1:N 추적 관계를 유지하며, test 통과율은 본 SRS 의 준수 지표로 사용된다.</p>
+
+<hr/>
+<p class="meta">— End of spec_16_SRS · IEEE 830-1998 / ISO 29148:2018 — Reverse-engineered as-built specification · 2026-05-29</p>
+
+</body></html>

@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KSYS — 기획서 (Product Planning Document)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1280px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 32px; border-bottom: 2px solid #30363d; padding-bottom: 12px; color: #f0f6fc; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 44px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 26px; }
+  h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 14px; border-radius: 8px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+  pre code { background: transparent; color: #e6edf3; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  a { color: #79c0ff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { color: #f0f6fc; }
+  hr { border: 0; border-top: 1px solid #30363d; margin: 36px 0; }
+  .meta-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+                padding: 18px 24px; margin: 20px 0; font-size: 14px; }
+  .meta-block table { margin: 0; }
+  .meta-block th { background: transparent; color: #8b949e; font-weight: 400; width: 160px; }
+  .meta-block td { background: transparent; border-color: #21262d; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+              gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 30px; font-weight: 700; color: #79c0ff; }
+  .kpi .l { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .callout { background: #1c2128; border-left: 4px solid #d29922;
+             padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout-red { background: #1c1419; border-left: 4px solid #f85149;
+                 padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout-green { background: #121c16; border-left: 4px solid #3fb950;
+                   padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout-blue { background: #131923; border-left: 4px solid #79c0ff;
+                  padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .good { color: #3fb950; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px;
+         font-weight: 600; margin: 2px; }
+  .tag-must { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .tag-should { background: #1a2d1a; color: #3fb950; border: 1px solid #3fb950; }
+  .tag-could { background: #1a2335; color: #79c0ff; border: 1px solid #79c0ff; }
+  .tag-wont { background: #2a2a2a; color: #8b949e; border: 1px solid #8b949e; }
+  .tag-q1 { background: #1a2335; color: #79c0ff; }
+  .tag-q2 { background: #1a2a1a; color: #56d364; }
+  .tag-q3 { background: #2a1f08; color: #e3b341; }
+  .tag-q4 { background: #2a1a2a; color: #d2a8ff; }
+  .raid-critical { color: #f85149; font-weight: 700; }
+  .raid-high { color: #e3b341; font-weight: 700; }
+  .raid-medium { color: #79c0ff; font-weight: 600; }
+  .raid-low { color: #3fb950; font-weight: 600; }
+  .persona-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px;
+                  padding: 20px; margin: 16px 0; }
+  .adr-block { background: #1c2128; border: 1px solid #30363d; border-radius: 8px;
+               padding: 18px 20px; margin: 16px 0; }
+  .adr-block h4 { margin-top: 0; color: #ffa657; }
+  .section-nav { background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+                 padding: 16px 24px; margin: 24px 0; font-size: 14px; }
+  .section-nav ol { margin: 0; padding-left: 22px; }
+  .section-nav li { margin: 4px 0; }
+  .roadmap-q { border-radius: 6px; padding: 3px 10px; font-size: 12px; font-weight: 700; }
+  .vision-boundary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .boundary-yes { background: #121c16; border: 1px solid #3fb950; border-radius: 8px; padding: 16px; }
+  .boundary-no  { background: #1c1419; border: 1px solid #f85149; border-radius: 8px; padding: 16px; }
+  .boundary-yes h4 { color: #3fb950; margin-top: 0; }
+  .boundary-no  h4 { color: #f85149; margin-top: 0; }
+  .page-break-hint { border-top: 2px dashed #30363d; margin: 48px 0 36px 0; }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     1. 문서 메타
+     ============================================================ -->
+<h1>KSYS 기획서 — 풍도 수처리 IoT 통합 관제 플랫폼</h1>
+
+<div class="meta-block">
+  <table>
+    <tr><th>문서 유형</th><td>Product Planning Document (기획서) — 정통 SI 산출물 #15</td></tr>
+    <tr><th>작성일</th><td>2026-05-29</td></tr>
+    <tr><th>버전</th><td>v1.0 (Draft)</td></tr>
+    <tr><th>작성자</th><td>grandbelly (1인 개발자) + Claude AI (PM Agent)</td></tr>
+    <tr><th>검토자</th><td><em>[CTO 서명 — TBD]</em></td></tr>
+    <tr><th>승인자</th><td><em>[대표이사 / PM 리드 — TBD]</em></td></tr>
+    <tr><th>관련 산출물</th><td>
+      spec_04_PRD.html · spec_07_storyboard.html · audit_security_2026-05-21.html ·
+      audit_code-quality_2026-05-21.html · spec_05_test_plan.html
+    </td></tr>
+    <tr><th>현재 브랜치</th><td><code>refactor/secrets-externalize-day1</code> (master 목표)</td></tr>
+    <tr><th>배포 환경</th><td>Raspberry Pi 5 · Docker · Reflex 0.8.16 · TimescaleDB 2.x · 풍도(豊島) 현장</td></tr>
+  </table>
+</div>
+
+<div class="section-nav">
+  <strong>목차</strong>
+  <ol>
+    <li><a href="#exec-summary">Executive Summary</a></li>
+    <li><a href="#vision">비전 (Vision)</a></li>
+    <li><a href="#mission">미션 (Mission)</a></li>
+    <li><a href="#market">시장 정의 (Market)</a></li>
+    <li><a href="#personas">페르소나 + 비즈니스 목표</a></li>
+    <li><a href="#differentiation">차별화 (Differentiation)</a></li>
+    <li><a href="#roadmap">로드맵 (Roadmap)</a></li>
+    <li><a href="#risks">위험 + 완화 (RAID Log)</a></li>
+    <li><a href="#adr">의사결정 기록 (ADR)</a></li>
+    <li><a href="#team">자원 / 팀 구조</a></li>
+    <li><a href="#kpis">성공 지표 (KPIs)</a></li>
+    <li><a href="#conclusion">결론 + Call to Action</a></li>
+  </ol>
+</div>
+
+<hr>
+
+<!-- ============================================================
+     2. Executive Summary
+     ============================================================ -->
+<h2 id="exec-summary">1. Executive Summary</h2>
+
+<div class="callout-blue">
+  <strong>제품 한 줄 설명:</strong>
+  KSYS는 Raspberry Pi 위에서 실행되는 소규모 수처리·해수담수화 플랜트 전용
+  IoT 실시간 관제 + AI 예측 플랫폼이다. 30초 센서 갱신, ISA-18.2 알람 관리,
+  10분 ML 예측, 트렌드 분석을 단일 웹 대시보드에 통합한다.
+</div>
+
+<h3>4-Perspective 가치 테이블</h3>
+<table>
+  <thead>
+    <tr><th style="width:22%">관점</th><th>내용</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Problem (문제)</strong></td>
+      <td>소규모 정수 처리 사이트(풍도)의 운영자는 실시간 센서 이상, 알람 인지,
+      과거 트렌드 분석, 미래 예측을 별도 도구로 수행하거나 수작업으로 처리하고 있다.
+      통합 관제 부재로 P4 Emergency 알람 누락 위험, 알람 피로, 조용한 모델 성능 저하 문제가 동시에 발생한다.</td>
+    </tr>
+    <tr>
+      <td><strong>Solution (해결책)</strong></td>
+      <td>KSYS는 Reflex(Python Full-Stack) 기반 단일 웹 앱으로 실시간 센서 상태(30s), ISA-18.2 알람 라이프사이클(10s),
+      10분 간격 ML 예측(Prophet / Auto-ARIMA / XGBoost), 센서 트렌드 분석(1m~1d 집계), 6단계 학습 마법사를
+      하나의 사이드바 네비게이션 안에 통합한다. 하드웨어는 RPI 5 단일 노드 + TimescaleDB로 현장 엣지 배포가 가능하다.</td>
+    </tr>
+    <tr>
+      <td><strong>Functional UX Effect (기능적 UX 효과)</strong></td>
+      <td>운영자는 대시보드 한 화면에서 NORMAL/WARNING/CRITICAL 배지, 리스크 바, 알람 카운트를 즉시 확인한다.
+      알람 발생 → 확인 → 일괄 acknowledge 흐름이 클릭 3번 이내로 처리된다.
+      공정 엔지니어는 /trend에서 30일 데이터를 6줄 CSV 내보내기로 추출하고,
+      /forecast에서 신뢰구간 포함 10분 갱신 예측 차트를 추가 도구 없이 열람한다.</td>
+    </tr>
+    <tr>
+      <td><strong>Core Value (핵심 가치)</strong></td>
+      <td>알람-대응 지연 단축, AI 기반 임계값 위반 선제 경고, 알람 발생~확인 완전 감사 추적(audit trail).
+      단일 RPI 5 하드웨어(~$80) + OSS 스택으로 대형 산업 SCADA 대비 1/10 이하 비용에
+      AI 예측 기능을 번들로 제공한다.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>핵심 KPI 대시보드 (목표)</h3>
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">≥ 99%</div><div class="l">월간 시스템 Uptime</div></div>
+  <div class="kpi"><div class="v">&lt; 15s</div><div class="l">알람 발생 → 화면 표시</div></div>
+  <div class="kpi"><div class="v">&lt; 2s</div><div class="l">페이지 최초 로드</div></div>
+  <div class="kpi"><div class="v">&lt; 10%</div><div class="l">배포 모델 MAPE</div></div>
+  <div class="kpi"><div class="v">100%</div><div class="l">Secrets 외부화 완료</div></div>
+  <div class="kpi"><div class="v">≥ 80%</div><div class="l">124 Test Cases Green</div></div>
+</div>
+
+<h3>6개월 로드맵 한눈에</h3>
+<table>
+  <thead>
+    <tr><th style="width:15%">분기</th><th>Theme</th><th>핵심 Deliverable</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="tag tag-q1">Q1 (현재)</span></td>
+      <td>안정화 + Spec 완비</td>
+      <td>Day 1-7 완료, 10 결함 수정, 124 테스트, Secrets 외부화, spec #00-#15</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q2">Q2</span></td>
+      <td>인증 + 멀티 RPI</td>
+      <td>Basic Auth 도입, RBAC 설계, bootstrap_rpi 검증, Day 8+ Refactor Sprint</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q3">Q3</span></td>
+      <td>성능 + 관찰성</td>
+      <td>Sentry 도입, Structured Logging, RPI 기준선 측정, asyncio Task 표준화</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q4">Q4</span></td>
+      <td>사업화 검토</td>
+      <td>추가 정수 시설 PoC, 비용 모델, SLA 정의, 멀티 사이트 가능성 평가</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ============================================================
+     3. Vision
+     ============================================================ -->
+<h2 id="vision">2. 비전 (Vision)</h2>
+
+<h3>우리가 만드는 것</h3>
+<div class="callout-green">
+  <strong>단일 사이트 정수처리·해수담수화 IoT 통합 관제 플랫폼</strong><br>
+  한 대의 Raspberry Pi 5 위에서, 현장 LAN 혹은 Cloudflare tunnel을 통해 접근 가능한
+  웹 대시보드로서 — 센서 실시간 모니터링, 알람 관리, AI 예측, 트렌드 분석을 단일 앱에 통합한다.
+  인터넷이 없어도 동작하는 <em>엣지 우선(Edge-First)</em> 아키텍처이며, 소규모 운영팀(3-10인)을
+  대상으로 한다.
+</div>
+
+<div class="vision-boundary">
+  <div class="boundary-yes">
+    <h4>포함 (In Scope)</h4>
+    <ul>
+      <li>단일 사이트 단일 RPI 5 노드 운영</li>
+      <li>실시간 센서 모니터링 (30초 갱신)</li>
+      <li>ISA-18.2 4-등급 알람 라이프사이클</li>
+      <li>Prophet / Auto-ARIMA / XGBoost 10분 예측</li>
+      <li>TimescaleDB 기반 시계열 집계 + 트렌드 분석</li>
+      <li>6단계 가이드 ML 학습 마법사</li>
+      <li>Cloudflare tunnel 선택적 원격 접근</li>
+      <li>단일 사이트 복수 RPI 노드 확장 (Q2)</li>
+    </ul>
+  </div>
+  <div class="boundary-no">
+    <h4>제외 (Out of Scope)</h4>
+    <ul>
+      <li>멀티 플랜트 SaaS (다중 고객 테넌시)</li>
+      <li>모바일 앱 (iOS / Android 네이티브)</li>
+      <li>공급망 / ERP / 자산관리 시스템</li>
+      <li>OPC-UA / Modbus 직접 프로토콜 연결</li>
+      <li>국가 인프라급 SCADA 대체</li>
+      <li>실시간 비디오 감시</li>
+      <li>클라우드 전용(SaaS) 호스팅 모델</li>
+    </ul>
+  </div>
+</div>
+
+<h3>3년 후 미래상</h3>
+<table>
+  <thead>
+    <tr><th>연도</th><th>상태</th><th>지표</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>2026 (현재 → Q4)</strong></td>
+      <td>단일 사이트(풍도) 안정 운영 + 인증 도입 + 1주일 smoke test 자동화</td>
+      <td>Uptime ≥ 99%, 10 결함 수정, secrets 100% 외부화</td>
+    </tr>
+    <tr>
+      <td><strong>2027</strong></td>
+      <td>국내 소규모 수처리 시설 2-3개소 추가 배포, ML auto-retraining 가동</td>
+      <td>멀티 RPI 노드 수 ≥ 3, MAPE 자동 감시 + 드리프트 시 재학습</td>
+    </tr>
+    <tr>
+      <td><strong>2028</strong></td>
+      <td>SCADA 시스템 연계(OPC-UA 브릿지), 국내 수처리 시장 표준 엣지 솔루션 포지셔닝</td>
+      <td>설치 사이트 ≥ 10, SLA 기반 유지보수 계약, 사업 수익화</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ============================================================
+     4. Mission
+     ============================================================ -->
+<h2 id="mission">3. 미션 (Mission)</h2>
+
+<h3>단기 미션 (Q1, 현재 — 3개월)</h3>
+<div class="callout">
+  <strong>목표:</strong> 단일 RPI(풍도) 완전 안정화 + 1주일 smoke test 확립<br><br>
+  <strong>구체 액션:</strong>
+  <ul>
+    <li>Day 1-7 작업 완료: Secrets 외부화(C1·C2·H1), 코드 품질 10 결함 수정, spec #00-#15 산출물</li>
+    <li>124 테스트 케이스 80% Green 유지 파이프라인 구성</li>
+    <li>Cloudflare Tunnel 토큰 교체 + git history 정화 (BFG Repo Cleaner)</li>
+    <li>RPI 운영 환경에 Day 1-7 패치 <code>scp</code> 동기화 후 배포 검증</li>
+    <li><code>alarm_vectors</code> 6.5GB 비정상 테이블 원인 규명</li>
+  </ul>
+</div>
+
+<h3>중기 미션 (Q2, 3-6개월)</h3>
+<div class="callout">
+  <strong>목표:</strong> 멀티 RPI 배포 검증 + 인증 도입<br><br>
+  <strong>구체 액션:</strong>
+  <ul>
+    <li><code>bootstrap_rpi.sh</code> 검증 (신규 RPI 1대 완전 자동 배포 20분 이내)</li>
+    <li>Basic Auth 도입 — Reflex <code>AuthState</code> 공유 시크릿 게이트 또는 Cloudflare Access 정책</li>
+    <li>RBAC 설계: Operator / Analyst / Admin 3 역할 권한 분리</li>
+    <li>asyncio Task cancel 표준화 + zombie Task 제거 패턴 확립</li>
+    <li>Docker 이미지 크기 최적화 (현 4.49GB → 목표 2GB 이하)</li>
+  </ul>
+</div>
+
+<h3>장기 미션 (Q3+, 6-12개월)</h3>
+<div class="callout">
+  <strong>목표:</strong> SCADA 연계 준비 + ML 자동 retraining + 사업화 검토<br><br>
+  <strong>구체 액션:</strong>
+  <ul>
+    <li>Sentry 에러 추적 도입 + Structured Logging (JSON) 전환</li>
+    <li>RPI 기준선 성능 측정 (CPU / RAM / latency p95/p99)</li>
+    <li><code>DailyTrainingScheduler</code> 활성화 (현재 코드 존재, <code>SchedulerManager</code> 미연결)</li>
+    <li>드리프트 감지 → 자동 재학습 → 모델 교체 파이프라인</li>
+    <li>Q4: 추가 정수 시설 PoC 전개, 비용 모델·SLA 정의, 멀티 사이트 가능성 평가</li>
+  </ul>
+</div>
+
+<hr>
+
+<!-- ============================================================
+     5. Market
+     ============================================================ -->
+<h2 id="market">4. 시장 정의 (Market)</h2>
+
+<h3>산업 분류</h3>
+<table>
+  <thead><tr><th>항목</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td>산업 섹터</td><td>수처리 / 정수 / 해수담수화 (Water Treatment &amp; Desalination)</td></tr>
+    <tr><td>현재 사이트</td><td>풍도(豊島) — 한국 서해안 소규모 도서 지역 (추정, IoT 센서 데이터 확인)</td></tr>
+    <tr><td>운영 규모</td><td>단일 사이트, 운영 인원 추정 3-10인 (교대 당직 포함)</td></tr>
+    <tr><td>데이터 규모</td><td><code>influx_hist</code> 294K rows, <code>alarm_history</code> 750K rows — 약 6-12개월 축적 추정</td></tr>
+    <tr><td>하드웨어</td><td>Raspberry Pi 5 + 현장 LAN + (선택) Cloudflare Tunnel</td></tr>
+  </tbody>
+</table>
+
+<h3>시장 규모 (추정)</h3>
+<div class="callout">
+  <strong>TAM (총 시장):</strong> 국내 소규모 수처리 시설 (읍면 단위, 섬 지역, 지자체 직영) 수천 개소.
+  각 사이트당 IoT 관제 도입 비용 추정 500만-3,000만원 → 약 5,000억-3조원 규모 (공공 인프라 예산 포함).<br><br>
+  <strong>SAM (실제 접근 가능):</strong> RPI 수준 엣지 장비로 충분한 소규모 사이트 (센서 30개 이하, 운영 인원 10인 미만).
+  추정 300-500개소 × 300만원 = 약 90억-150억원.<br><br>
+  <strong>SOM (현실적 목표 3년):</strong> 10개소 × 300-500만원 유지보수 계약 = 연 3,000-5,000만원 수익 목표.<br><br>
+  <em>주의: 위 수치는 현재 정보 없이 상향 추정. Q4 사업화 검토 시 실제 시장 조사 필요.</em>
+</div>
+
+<h3>경쟁 환경</h3>
+<table>
+  <thead>
+    <tr><th>경쟁사 / 대안</th><th>특징</th><th>KSYS 대비</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>AVEVA (Wonderware)</strong></td>
+      <td>글로벌 SCADA 1위. Windows 기반, 라이선스 수천만원/년. 전문 엔지니어 필요.</td>
+      <td>KSYS: 1/10 이하 비용, RPI 엣지, OSS 스택. 단 KSYS는 멀티 사이트 미지원.</td>
+    </tr>
+    <tr>
+      <td><strong>GE Proficy iFIX / Historian</strong></td>
+      <td>대규모 플랜트 특화. Historian 서버 별도 요구. OPC-UA 네이티브.</td>
+      <td>KSYS: 설치 복잡도 및 비용 대폭 낮음. OPC-UA 연결은 현재 미지원 (Q3 검토).</td>
+    </tr>
+    <tr>
+      <td><strong>Ignition (Inductive Automation)</strong></td>
+      <td>Web-based SCADA, 무제한 태그 무제한 클라이언트. 상대적으로 저렴한 라이선스.</td>
+      <td>KSYS: AI 예측 번들, 파이썬 생태계 확장. Ignition은 ML 별도 통합 필요.</td>
+    </tr>
+    <tr>
+      <td><strong>AWS IoT / Azure IoT Hub</strong></td>
+      <td>클라우드 IoT 플랫폼. 인터넷 의존, 데이터 주권 이슈, 월정액 클라우드 비용.</td>
+      <td>KSYS: 로컬 우선 (on-premise), 인터넷 없어도 작동, 데이터 외부 전송 없음.</td>
+    </tr>
+    <tr>
+      <td><strong>수제 엑셀 + 구형 HMI</strong></td>
+      <td>국내 소규모 사이트 현실. 알람 기록 없음, 예측 없음, 수작업 보고서.</td>
+      <td>KSYS: 즉각적 가치 전달. 교체 장벽 낮음 (브라우저 기반, 별도 SW 설치 없음).</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ============================================================
+     6. Personas
+     ============================================================ -->
+<h2 id="personas">5. 페르소나 + 비즈니스 목표</h2>
+
+<div class="persona-card">
+  <h3>Persona A — Plant Operator (운영자 / 당직자)</h3>
+  <table>
+    <tr><th style="width:200px">속성</th><th>내용</th></tr>
+    <tr><td>역할</td><td>주/야간 교대 당직 운영자. 현장 제어실에서 대시보드 상시 모니터링.</td></tr>
+    <tr><td>기술 수준</td><td>IT 비전문가. 브라우저 조작, 알람 확인, 버튼 클릭 수준.</td></tr>
+    <tr><td>핵심 작업</td><td>실시간 센서 상태 파악, P4 Emergency 알람 즉각 확인·acknowledge, 교대 시 이력 정리</td></tr>
+    <tr><td>핵심 화면</td><td><code>/</code> (Dashboard), <code>/alarms</code>, <code>/alarms_rt</code></td></tr>
+    <tr><td><strong>비즈니스 KPI</strong></td><td>
+      P4 Emergency 알람 누락 0건/교대<br>
+      알람 인지 지연 &lt; 2분<br>
+      야간 대시보드 갱신 주기 ≤ 30초<br>
+      교대 handover 시간 &lt; 15분
+    </td></tr>
+    <tr><td>Pain Point</td><td>알람 피로 (alarm fatigue) — 동일 센서 반복 알람으로 인해 중요 알람 놓침 위험</td></tr>
+    <tr><td>KSYS 해결 방안</td><td>ISA-18.2 우선순위 배지(P1-P4), 일괄 acknowledge, 12시간 필터 + Severity 필터</td></tr>
+  </table>
+</div>
+
+<div class="persona-card">
+  <h3>Persona B — Data Analyst / Process Engineer (공정 엔지니어)</h3>
+  <table>
+    <tr><th style="width:200px">속성</th><th>내용</th></tr>
+    <tr><td>역할</td><td>공정 이상 조사, ML 모델 관리, 트렌드 분석. 비상근 또는 주간 근무.</td></tr>
+    <tr><td>기술 수준</td><td>데이터 분석 경험 있음. Python/ML 기초 이해. 통계적 사고 가능.</td></tr>
+    <tr><td>핵심 작업</td><td>과거 센서 데이터 트렌드 분석, ML 모델 학습·검증·배포, CSV 데이터 내보내기</td></tr>
+    <tr><td>핵심 화면</td><td><code>/trend</code>, <code>/training-wizard</code>, <code>/model-performance</code>, <code>/forecast</code></td></tr>
+    <tr><td><strong>비즈니스 KPI</strong></td><td>
+      배포 모델 MAPE &lt; 10% on validation set<br>
+      30일 CSV 내보내기 완료 &lt; 10초<br>
+      학습 마법사 6단계 오류 없이 완주<br>
+      모델 드리프트 감지 주기 ≤ 1주일
+    </td></tr>
+    <tr><td>Pain Point</td><td>모델 성능 저하를 조용히 인지 못함. 수동 재학습 절차가 복잡.</td></tr>
+    <tr><td>KSYS 해결 방안</td><td>6단계 Training Wizard, MAPE/R² 자동 산출, /model-performance 알고리즘 비교, 드리프트 모니터링 테이블</td></tr>
+  </table>
+</div>
+
+<div class="persona-card">
+  <h3>Persona C — System Administrator (시설 기술 관리자)</h3>
+  <table>
+    <tr><th style="width:200px">속성</th><th>내용</th></tr>
+    <tr><td>역할</td><td>RPI 하드웨어·소프트웨어 운영, Docker 컨테이너 관리, DB 접근 권한 보유.</td></tr>
+    <tr><td>기술 수준</td><td>Linux/Docker 운영 가능. Python 기초. DB 쿼리 가능.</td></tr>
+    <tr><td>핵심 작업</td><td>태그 가시성 설정, ML 모델 배포/롤백, 통신 품질 점검, 스케줄러 상태 점검</td></tr>
+    <tr><td>핵심 화면</td><td><code>/viewer-tag</code>, <code>/model-performance</code>, <code>/comm</code></td></tr>
+    <tr><td><strong>비즈니스 KPI</strong></td><td>
+      월간 시스템 Uptime ≥ 99%<br>
+      통신 Heatmap 성공률 ≥ 95% 기준선 유지<br>
+      모델 배포 → 다음 예측 사이클 반영 ≤ 10분<br>
+      RPI 추가 노드 배포 시간 ≤ 20분 (bootstrap_rpi 검증 후)
+    </td></tr>
+    <tr><td>Pain Point</td><td>인증 없어 모든 페이지 누구나 접근 가능 (현재 C3 취약점). 스케줄러 상태 모니터링 도구 부재.</td></tr>
+    <tr><td>KSYS 해결 방안</td><td>Q2 Basic Auth + RBAC, Q3 Sentry + Structured Logging, /comm 통신 Heatmap</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ============================================================
+     7. Differentiation
+     ============================================================ -->
+<h2 id="differentiation">6. 차별화 (Differentiation)</h2>
+
+<h3>강점 (vs 기존 산업 SCADA)</h3>
+<table>
+  <thead><tr><th>차별화 요소</th><th>상세</th><th>근거</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>저비용 하드웨어</strong></td>
+      <td>RPI 5 단가 ~$80 vs. 산업용 SCADA 서버 수천만원. 연간 전력 소비 ~25W.</td>
+      <td>HANDOFF.md, docker-compose.yml RPI 단일 노드 구조</td>
+    </tr>
+    <tr>
+      <td><strong>AI 예측 기본 내장</strong></td>
+      <td>Prophet / Auto-ARIMA / XGBoost 3알고리즘 + 6단계 학습 마법사가 플랫폼 코어에 포함. 별도 ML 서버 없음.</td>
+      <td>spec_04_PRD §3.5, ForecastScheduler, model_registry 테이블</td>
+    </tr>
+    <tr>
+      <td><strong>엣지 우선 (On-Premise)</strong></td>
+      <td>인터넷 없어도 완전 동작. 데이터 외부 전송 없음. Cloudflare Tunnel은 선택 사항.</td>
+      <td>RPI_NODE_ID env, spec_04_PRD §1 증거 5</td>
+    </tr>
+    <tr>
+      <td><strong>데이터 주권</strong></td>
+      <td>모든 시계열·알람·모델 데이터가 현장 TimescaleDB에 저장. 클라우드 의존 없음.</td>
+      <td>docker-compose.yml: TimescaleDB local volume</td>
+    </tr>
+    <tr>
+      <td><strong>ISA-18.2 표준 준수</strong></td>
+      <td>P1 Advisory ~ P4 Emergency 4등급 우선순위, acknowledge 라이프사이클, 이력 감사 추적.</td>
+      <td>spec_04_PRD §3.2, alarm_history 테이블 스키마</td>
+    </tr>
+    <tr>
+      <td><strong>Python Full-Stack</strong></td>
+      <td>Reflex 기반으로 ML 코드(Python)와 UI 코드(Python)가 같은 언어. 공정 엔지니어 직접 확장 가능.</td>
+      <td>ksys_app/states/, ksys_app/ml/ 디렉터리 구조</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>vs Cloud IoT (AWS IoT / Azure IoT Hub)</h3>
+<table>
+  <thead><tr><th>비교 항목</th><th>클라우드 IoT</th><th>KSYS</th></tr></thead>
+  <tbody>
+    <tr><td>인터넷 의존성</td><td>필수</td><td>불필요 (선택적 tunnel)</td></tr>
+    <tr><td>데이터 위치</td><td>클라우드 리전</td><td>현장 RPI (on-premise)</td></tr>
+    <tr><td>월간 비용</td><td>데이터 볼륨 종량제 (수백-수만달러)</td><td>전기료 + 인건비만</td></tr>
+    <tr><td>ML 통합</td><td>별도 SageMaker / ML 서비스</td><td>플랫폼 기본 내장</td></tr>
+    <tr><td>보안 경계</td><td>클라우드 IAM + VPC</td><td>현장 LAN (현재 인증 없음 — Q2 개선)</td></tr>
+  </tbody>
+</table>
+
+<h3>약점 (솔직한 자기 평가)</h3>
+<div class="callout-red">
+  <ul>
+    <li><strong>단일 노드 SPOF:</strong> RPI 1대 장애 = 전체 서비스 중단. Q2 멀티 RPI 전까지는 구조적 위험.</li>
+    <li><strong>인증 없음 (현재):</strong> 179개 rx.event 핸들러가 인증 없이 노출 (Security Audit C3). Q2 필수 해결.</li>
+    <li><strong>멀티 사이트 SaaS 아님:</strong> 사이트별 개별 설치 필요. 중앙 관리 콘솔 없음.</li>
+    <li><strong>소규모 팀 유지보수:</strong> 현재 1인 개발. 버스 팩터(bus factor) = 1.</li>
+    <li><strong>코드 품질 부채:</strong> God class 존재 (TrainingState 1,077 LoC), 중복 페이지 7개, 결함 10건 (audit 확인).</li>
+    <li><strong>Pickle 직렬화 위험:</strong> model_registry.model_pickle 무결성 검증 없음 (Security Audit H3).</li>
+  </ul>
+</div>
+
+<hr>
+
+<!-- ============================================================
+     8. Roadmap
+     ============================================================ -->
+<h2 id="roadmap">7. 로드맵 (Roadmap) — 9개월</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:12%">분기</th>
+      <th style="width:18%">Theme</th>
+      <th>핵심 Deliverable</th>
+      <th style="width:22%">의존성</th>
+      <th style="width:12%">우선순위</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="tag tag-q1">Q1 (현재)</span><br>2026-05 ~ 07</td>
+      <td>안정화 + Spec 완비</td>
+      <td>
+        <ul>
+          <li>Day 1-7 작업 완료 (보안 Critical C1·C2·C3 포함)</li>
+          <li>코드 품질 10 결함 수정 (audit 결과 기반)</li>
+          <li>124 테스트 케이스 + 80% Green CI 구성</li>
+          <li>spec #00-#15 HTML 산출물 완비</li>
+          <li>Cloudflare Tunnel 토큰 교체 + git history 정화</li>
+          <li>alarm_vectors 6.5GB 원인 조사·해결</li>
+          <li>RPI 운영 환경 Q1 패치 동기화</li>
+        </ul>
+      </td>
+      <td>없음 (현재 진행 중)</td>
+      <td><span class="tag tag-must">MUST</span></td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q2">Q2</span><br>2026-08 ~ 10</td>
+      <td>인증 + 멀티 RPI</td>
+      <td>
+        <ul>
+          <li>Basic Auth 도입 (AuthState 공유 시크릿 or Cloudflare Access)</li>
+          <li>RBAC 설계: Operator / Analyst / Admin</li>
+          <li>bootstrap_rpi.sh 검증 (신규 RPI 20분 배포)</li>
+          <li>asyncio Task cancel 표준화 (좀비 Task 제거)</li>
+          <li>Docker 이미지 2GB 이하 최적화</li>
+          <li>Day 8+ Refactor Sprint (TrainingState 분리, 중복 페이지 정리)</li>
+        </ul>
+      </td>
+      <td>Q1 안정화 완료<br>Secrets 외부화 완료</td>
+      <td><span class="tag tag-must">MUST</span></td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q3">Q3</span><br>2026-11 ~ 2027-01</td>
+      <td>성능 + 관찰성</td>
+      <td>
+        <ul>
+          <li>Sentry 에러 추적 도입</li>
+          <li>Structured Logging (JSON) 전환</li>
+          <li>RPI 기준선 성능 측정 (CPU / RAM / p95 latency)</li>
+          <li>DailyTrainingScheduler 활성화 (SchedulerManager 연결)</li>
+          <li>알람 dedup 강화 (NOTIFY 끊김 대비)</li>
+          <li>Pickle → HMAC 서명 + safe serialization 전환</li>
+        </ul>
+      </td>
+      <td>Q2 인증 도입<br>멀티 RPI 구성</td>
+      <td><span class="tag tag-should">SHOULD</span></td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-q4">Q4</span><br>2027-02 ~ 04</td>
+      <td>사업화 검토</td>
+      <td>
+        <ul>
+          <li>추가 정수 시설 1-2개소 PoC 배포</li>
+          <li>비용 모델 (초기 도입 + 연간 유지보수) 정의</li>
+          <li>SLA 정의 (Uptime %, 응답 시간, 지원 범위)</li>
+          <li>멀티 사이트 원격 관제 가능성 평가</li>
+          <li>SCADA 연계 (OPC-UA 브릿지) 타당성 검토</li>
+          <li>/ai 페이지 등록 (AI Chat — 현재 dead route, 백엔드 완성)</li>
+        </ul>
+      </td>
+      <td>Q3 성능·관찰성<br>Q3 auto-retraining</td>
+      <td><span class="tag tag-could">COULD</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>Won't Have (명시적 제외):</strong> 모바일 앱 / 멀티 플랜트 SaaS / OPC-UA 직접 연결 (Q3 검토까지) /
+  클라우드 전용 호스팅 / 실시간 비디오 감시 / 공급망·ERP 연동.
+</div>
+
+<hr>
+
+<!-- ============================================================
+     9. RAID Log
+     ============================================================ -->
+<h2 id="risks">8. 위험 + 완화 (RAID Log)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width:8%">ID</th>
+      <th style="width:10%">등급</th>
+      <th style="width:32%">위험 내용</th>
+      <th style="width:30%">완화 방안</th>
+      <th style="width:12%">목표 해결 시기</th>
+      <th style="width:8%">출처</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>R-01</td>
+      <td><span class="raid-critical">CRITICAL</span></td>
+      <td>Cloudflare Tunnel 토큰 git에 평문 커밋 — 누구나 터널 도용 가능, ksys.kr 트래픽 MitM</td>
+      <td>1) CF Dashboard에서 토큰 즉시 교체 2) .env로 이동 3) BFG Repo Cleaner로 git 히스토리 정화</td>
+      <td>Q1 Day 1 (즉시)</td>
+      <td>audit C1</td>
+    </tr>
+    <tr>
+      <td>R-02</td>
+      <td><span class="raid-critical">CRITICAL</span></td>
+      <td>원격 IoT DB 자격증명 소스 코드 하드코딩 (IP 59.10.187.46, 비밀번호 exaxt00)</td>
+      <td>1) 원격 DB 패스워드 즉시 교체 2) pg_hba.conf RPI WAN 이그레스 IP 제한 3) os.getenv 이관</td>
+      <td>Q1 Day 1 (즉시)</td>
+      <td>audit C2</td>
+    </tr>
+    <tr>
+      <td>R-03</td>
+      <td><span class="raid-critical">CRITICAL</span></td>
+      <td>인증 없음 — 179개 rx.event 핸들러 공개 노출. 누구나 학습 트리거(CPU DoS), 센서 전수 열람 가능</td>
+      <td>Q2 Basic Auth (AuthState 공유 시크릿) 또는 Cloudflare Access 정책. 최소한 모든 뮤테이션 이벤트에 인증 전처리 추가.</td>
+      <td>Q2 (R-01/R-02 이후 최우선)</td>
+      <td>audit C3</td>
+    </tr>
+    <tr>
+      <td>R-04</td>
+      <td><span class="raid-high">HIGH</span></td>
+      <td>Pickle 직렬화 RCE 위험 — model_registry.model_pickle 무결성 검증 없음. DB 침해 시 컨테이너 루트 코드 실행</td>
+      <td>1) HMAC 서명 검증 (cryptography 이미 requirements.txt 존재) 2) skops/ONNX 전환 검토 3) 스케줄러 non-root USER 지시자 추가</td>
+      <td>Q3</td>
+      <td>audit H3</td>
+    </tr>
+    <tr>
+      <td>R-05</td>
+      <td><span class="raid-high">HIGH</span></td>
+      <td>단일 노드 SPOF — RPI 1대 장애 = 전체 서비스 중단. 이중화 없음.</td>
+      <td>Q2 멀티 RPI 배포 검증. 단기: 자동 재시작 정책 (Docker restart: always). 장기: DB sync 전략 수립.</td>
+      <td>Q2</td>
+      <td>아키텍처 분석</td>
+    </tr>
+    <tr>
+      <td>R-06</td>
+      <td><span class="raid-high">HIGH</span></td>
+      <td>동적 SQL f-string 인젝션 — dynamic_rag_engine, llamaindex_rag_engine tag_name 미파라미터화</td>
+      <td>bind parameters 사용: text("...WHERE tag_name = ANY(:tags)").bindparams(). view 이름 화이트리스트 검증.</td>
+      <td>Q1 Day 3</td>
+      <td>audit H2</td>
+    </tr>
+    <tr>
+      <td>R-07</td>
+      <td><span class="raid-high">HIGH</span></td>
+      <td>코드 품질 부채 — TrainingState 1,077 LoC God class, 중복 페이지 7개 (_new 버전), 결함 10건</td>
+      <td>Q2 Day 8+ Refactor Sprint: TrainingState → 4개 helper 모듈 분리, 중복 페이지 폐기, 결함 10건 순차 수정</td>
+      <td>Q2</td>
+      <td>audit code-quality</td>
+    </tr>
+    <tr>
+      <td>R-08</td>
+      <td><span class="raid-medium">MEDIUM</span></td>
+      <td>메모리 leak / zombie asyncio Task — ForecastScheduler, DashboardRealtimeState 비정상 종료 시 task 잔존</td>
+      <td>Q2 asyncio Task cancel 표준화: try/finally cancel() 패턴, WeakSet task 레지스트리, Q3 Sentry로 감지 체계</td>
+      <td>Q2-Q3</td>
+      <td>HANDOFF.md, storyboard OP-07</td>
+    </tr>
+    <tr>
+      <td>R-09</td>
+      <td><span class="raid-medium">MEDIUM</span></td>
+      <td>alarm_vectors 테이블 6.5GB 비정상 비대 — 원인 미파악. DB 용량 고갈 위험 (RPI 스토리지 제한)</td>
+      <td>Q1 원인 조사 (인덱스 비대화? 파티션 누락?). 불필요 데이터 정리. RPI 스토리지 임계값 모니터링 추가.</td>
+      <td>Q1</td>
+      <td>HANDOFF.md 백로그</td>
+    </tr>
+    <tr>
+      <td>R-10</td>
+      <td><span class="raid-medium">MEDIUM</span></td>
+      <td>데이터 누락 — PostgreSQL NOTIFY 채널 끊김 시 alarm_event 미수신 → 알람 화면 갱신 지연</td>
+      <td>Q3 관찰성: 알람 dedup 강화, NOTIFY 재연결 로직 점검, Sentry 알림 + 슬랙 연동 검토</td>
+      <td>Q3</td>
+      <td>storyboard OP-07, audit H5</td>
+    </tr>
+    <tr>
+      <td>R-11</td>
+      <td><span class="raid-medium">MEDIUM</span></td>
+      <td>Docker 이미지 크기 4.49GB — RPI 저장소 소비 과다, 업데이트 배포 시간 증가</td>
+      <td>multi-stage build 도입, 불필요 ML 라이브러리 분리 (scheduler 이미지 별도), dangling image 7.47GB 정리</td>
+      <td>Q2</td>
+      <td>HANDOFF.md 백로그</td>
+    </tr>
+    <tr>
+      <td>R-12</td>
+      <td><span class="raid-low">LOW</span></td>
+      <td>버스 팩터 = 1 — 1인 개발 체제. 유지보수 단절 위험.</td>
+      <td>Q2~Q3: 테스트 문서화 확대, 코드 구조 개선 (가독성↑). Q4 사업화 시 QA/DevOps 인력 확충 검토.</td>
+      <td>Q4</td>
+      <td>팀 구조 분석</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ============================================================
+     10. ADR
+     ============================================================ -->
+<h2 id="adr">9. 의사결정 기록 (ADR — Architecture Decision Record)</h2>
+
+<div class="adr-block">
+  <h4>ADR-01: Reflex 채택 vs Django/Flask + Vue/React</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>Reflex (Python Full-Stack) 채택</td></tr>
+    <tr><th>컨텍스트</th><td>단독 개발자가 IoT 대시보드를 빠르게 구축해야 하는 상황. ML 코드(Python)와 UI 코드를 분리하지 않고 단일 언어로 유지하는 것이 생산성에 유리.</td></tr>
+    <tr><th>이유</th><td>
+      1) Python 단일 언어로 프론트·백엔드·ML 파이프라인 통합 가능.<br>
+      2) WebSocket 기반 실시간 상태 동기화가 Reflex에서 rx.event + rx.State로 구조화됨.<br>
+      3) RPI 같은 제한된 환경에서 Node.js 빌드 없이 Python만으로 배포 가능.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>Reflex는 Django/Flask 대비 생태계 성숙도 낮음. 0.8.x 버전으로 breaking change 빈번. 컴포넌트 커스터마이징 제약.</td></tr>
+    <tr><th>결과</th><td>현재 prod 운영 중 (Reflex 0.8.16). 15개 라우트 HTTP 200 확인 (verify_2026-05-20.html).</td></tr>
+    <tr><th>재검토 조건</th><td>Reflex 1.x 이상 안정화 전까지 유지. 멀티 사이트 SaaS 전환 시 별도 검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-02: TimescaleDB 채택 vs InfluxDB</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>TimescaleDB (PostgreSQL 확장) 채택</td></tr>
+    <tr><th>컨텍스트</th><td>IoT 시계열 데이터 저장소 선택. 알람 이력·모델 레지스트리·예측 결과 등 비시계열 관계형 데이터도 동일 DB에 통합 관리 필요.</td></tr>
+    <tr><th>이유</th><td>
+      1) PostgreSQL 기반 → 기존 SQL 도구, pg_notify, psycopg2 생태계 그대로 활용.<br>
+      2) 시계열(influx_hist) + 관계형(model_registry, alarm_history, viewer_tag) 단일 DB 통합 가능.<br>
+      3) InfluxDB는 Flux 쿼리 언어 별도 학습 필요 + 관계형 데이터 저장 불편.<br>
+      4) pg_cron으로 스케줄 작업(continuous aggregate 갱신)을 DB 레이어에서 처리 가능.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>InfluxDB 대비 순수 시계열 쓰기 성능이 낮을 수 있음. TimescaleDB 버전 관리(2.21.3↔2.27 catalog 차이) 복잡성.</td></tr>
+    <tr><th>결과</th><td>influx_hist 294K rows, 6 hypertables + 5 continuous aggregates (2.21.3→2.27 catalog 이슈 일부). 정상 운영 중.</td></tr>
+    <tr><th>재검토 조건</th><td>센서 수 50개 초과, 1초 이하 샘플링 필요 시 InfluxDB 또는 QuestDB 재검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-03: Cloudflare Tunnel 채택 vs nginx + Let's Encrypt</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>Cloudflare Tunnel 채택 (cloudflared)</td></tr>
+    <tr><th>컨텍스트</th><td>풍도 현장 RPI를 외부에서 접근 가능하게 할 방법 필요. 현장 고정 공인 IP 없음, ISP 방화벽 포트 개방 불가.</td></tr>
+    <tr><th>이유</th><td>
+      1) 공인 IP 없어도 outbound 연결만으로 ksys.kr 도메인 접근 가능.<br>
+      2) nginx + Let's Encrypt는 공인 IP 또는 DNS 챌린지 가능한 도메인 필요.<br>
+      3) TLS 자동 관리 (Cloudflare 레이어에서 처리).<br>
+      4) 초기 설정 단순 (cloudflared 단일 바이너리 + 토큰).
+    </td></tr>
+    <tr><th>트레이드오프</th><td>
+      Cloudflare 의존성 도입. 토큰 노출 시 치명적 (C1 취약점 발생 원인).
+      인증 없는 현재 상태에서는 터널이 공격 표면 확대 요소.
+    </td></tr>
+    <tr><th>결과</th><td>현재 C1 취약점(토큰 평문 커밋) 발생. Q1 Day 1 토큰 교체 + .env 이관 예정.</td></tr>
+    <tr><th>재검토 조건</th><td>Q2 인증 도입 후 Cloudflare Access 정책 추가하여 보안 강화. 장기적으로 내부망 전용 시 tunnel 제거 검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-04: Raspberry Pi 5 채택 vs x86 Mini PC</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>Raspberry Pi 5 채택</td></tr>
+    <tr><th>컨텍스트</th><td>현장 임베디드 컨트롤러 하드웨어 선택. IoT 데이터 수집 + 웹 서버 + DB + ML 스케줄러를 단일 노드에서 실행해야 함.</td></tr>
+    <tr><th>이유</th><td>
+      1) 단가 ~$80 (RPI 5 4GB) vs x86 Mini PC ~$150-300.<br>
+      2) 전력 소비 ~25W vs x86 mini PC ~65W — 현장 전원 제약 환경에서 유리.<br>
+      3) GPIO 확장 가능성 (향후 직접 센서 연결).<br>
+      4) 폼 팩터 작음 — 제어반 내부 설치 용이.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>
+      ARM64 아키텍처 — 일부 ML 라이브러리 (XGBoost wheel 등) 빌드 시간 증가.
+      CPU 성능 제약 — 복잡한 ML 학습 시 수십 분 소요.
+      eMMC 없음 (SD/NVMe) — 스토리지 내구성 관리 필요.
+    </td></tr>
+    <tr><th>결과</th><td>현재 정상 운영 중. Docker 이미지 4.49GB → Q2에서 경량화 필요.</td></tr>
+    <tr><th>재검토 조건</th><td>ML 학습 빈도 증가로 학습 시간이 업무 방해 수준 이상 시 x86 mini PC 또는 클라우드 학습 서버 분리 검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-05: Pickle 직렬화 채택 vs ONNX / TFLite / skops</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>Python Pickle 채택 (현재) — <span class="bad">위험 등록 완료</span></td></tr>
+    <tr><th>컨텍스트</th><td>ML 모델(Prophet, Auto-ARIMA, XGBoost)을 DB(model_registry.model_pickle BYTEA)에 저장 후 스케줄러에서 로드.</td></tr>
+    <tr><th>이유 (채택 당시)</th><td>
+      1) Prophet / StatsForecast 객체는 ONNX 변환 미지원 — pickle이 사실상 유일한 직렬화 방법.<br>
+      2) 구현 속도: pickle.dumps/loads 2줄로 완성.<br>
+      3) XGBoost는 ONNX 지원하나 Prophet과 통일성 위해 동일 경로 사용.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>
+      <span class="bad">보안 위험:</span> DB 침해 시 malicious pickle INSERT → 스케줄러 실행 시 RCE.
+      Security Audit H3: "컨테이너 루트 RCE — 모든 RPI에 다음 스케줄 사이클에 실행".
+    </td></tr>
+    <tr><th>결과</th><td>현재 prod 운영 중이나 R-04 위험 등록. Q3 HMAC 서명 검증 + XGBoost ONNX 전환 계획.</td></tr>
+    <tr><th>재검토 조건</th><td>Q3 보안 스프린트 시 Prophet=HMAC+pickle, XGBoost=ONNX, Auto-ARIMA=skops 혼합 전략 검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-06: 단일 Reflex 앱 아키텍처 vs 마이크로서비스 분리</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>단일 Reflex 앱 (Monolith) 채택</td></tr>
+    <tr><th>컨텍스트</th><td>IoT 관제 + 알람 + ML 학습 + 예측 스케줄러를 하나의 애플리케이션으로 구성할지, 마이크로서비스로 분리할지.</td></tr>
+    <tr><th>이유</th><td>
+      1) 단독 개발자 — 서비스 간 통신, 배포 파이프라인 복잡성 감당 불가.<br>
+      2) RPI 단일 노드에서 컨테이너 오케스트레이션(k8s) 비현실적.<br>
+      3) 현재 Reflex 앱 + 별도 scheduler 컨테이너 2개 분리는 이미 적절한 관심사 분리.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>State 파일 비대화 위험 (현재 20개 state, god class 존재). 특정 기능 독립 확장 불가.</td></tr>
+    <tr><th>결과</th><td>ksys_app/ monolith + schedulers/ 별도 컨테이너. Q2 Refactor Sprint에서 내부 모듈 분리.</td></tr>
+    <tr><th>재검토 조건</th><td>사이트 수 5개 초과, 개발팀 3인 이상 시 마이크로서비스 전환 검토.</td></tr>
+  </table>
+</div>
+
+<div class="adr-block">
+  <h4>ADR-07: Python asyncio 기반 스케줄러 vs Celery / APScheduler</h4>
+  <table>
+    <tr><th style="width:140px">결정</th><td>Python asyncio + pg_cron 혼합 채택</td></tr>
+    <tr><th>컨텍스트</th><td>10초 알람 모니터링, 10분 예측, 1시간 성능 집계, 가상 태그 계산 등 다양한 주기의 백그라운드 작업 필요.</td></tr>
+    <tr><th>이유</th><td>
+      1) asyncio Task는 Reflex State와 동일 이벤트 루프 — DB 연결 공유 용이.<br>
+      2) pg_cron은 TimescaleDB에 이미 포함 — 별도 스케줄러 프로세스 없이 DB 레이어 스케줄 가능.<br>
+      3) Celery는 Redis/RabbitMQ 브로커 추가 의존성 — RPI 자원 낭비.
+    </td></tr>
+    <tr><th>트레이드오프</th><td>asyncio Task cancel 비표준화 → zombie task 위험 (R-08). pg_cron은 dev 환경에서 비활성 (PG17/18 ABI 호환 이슈).</td></tr>
+    <tr><th>결과</th><td>ForecastScheduler timeout 이슈 발생 → agentic-pipeline으로 해결 (HANDOFF.md Round 3). dev pg_cron 비활성 중.</td></tr>
+    <tr><th>재검토 조건</th><td>Q2 asyncio 표준화 완료 후 유지. 작업 수 50개 초과 시 APScheduler 도입 검토.</td></tr>
+  </table>
+</div>
+
+<hr>
+
+<!-- ============================================================
+     11. Team
+     ============================================================ -->
+<h2 id="team">10. 자원 / 팀 구조</h2>
+
+<h3>현재 구성 (Q1)</h3>
+<table>
+  <thead><tr><th>역할</th><th>담당</th><th>책임 영역</th><th>비고</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>개발자 (전체)</td>
+      <td>grandbelly</td>
+      <td>프론트엔드·백엔드·ML·DevOps·DB·보안 — 전 영역</td>
+      <td>1인 개발. 버스 팩터 = 1</td>
+    </tr>
+    <tr>
+      <td>PM / 기획</td>
+      <td>Claude AI (PM Agent)</td>
+      <td>spec 산출물 작성, 요구사항 분석, 로드맵 기획</td>
+      <td>AI 보조. 의사결정은 grandbelly</td>
+    </tr>
+    <tr>
+      <td>보안 검토</td>
+      <td>Claude AI (감사)</td>
+      <td>OWASP Top 10 스캔, audit_security_2026-05-21.html</td>
+      <td>자동화 검토. 실제 침투 테스트는 별도 필요</td>
+    </tr>
+    <tr>
+      <td>QA</td>
+      <td>없음 (현재)</td>
+      <td>124 테스트 케이스 존재하나 자동 실행 파이프라인 없음</td>
+      <td>Q2에서 CI 구성 권고</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>권고 팀 확충 계획</h3>
+<table>
+  <thead><tr><th>시기</th><th>역할</th><th>필요 이유</th><th>예상 참여 방식</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Q2 (8-10월)</td>
+      <td>QA Engineer (파트타임)</td>
+      <td>124 테스트 케이스 운영, E2E Playwright 확장, 릴리스 smoke test 자동화</td>
+      <td>프리랜서 또는 인턴 (주 20시간)</td>
+    </tr>
+    <tr>
+      <td>Q3 (11월-1월)</td>
+      <td>DevOps / SRE (파트타임)</td>
+      <td>RPI 배포 자동화, Sentry 연동, Structured Logging, CI/CD 파이프라인</td>
+      <td>프리랜서 (월 40시간 이하)</td>
+    </tr>
+    <tr>
+      <td>Q4 (사업화 시)</td>
+      <td>영업 / 고객 담당</td>
+      <td>추가 정수 시설 PoC 전개, 계약 관리, SLA 이행 점검</td>
+      <td>파트너사 또는 내부 채용</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>단기 리스크 완화:</strong> 버스 팩터 1을 낮추기 위해 Q2까지 핵심 운영 절차를
+  <code>bootstrap_rpi.sh</code> + <code>HANDOFF.md</code> + 테스트 문서로 완전 문서화.
+  제3자가 README만 보고 RPI 재배포 가능한 수준을 목표로 한다.
+</div>
+
+<hr>
+
+<!-- ============================================================
+     12. KPIs
+     ============================================================ -->
+<h2 id="kpis">11. 성공 지표 (KPIs)</h2>
+
+<h3>안정성 지표</h3>
+<table>
+  <thead><tr><th>지표</th><th>목표</th><th>측정 방법</th><th>측정 주기</th></tr></thead>
+  <tbody>
+    <tr><td>시스템 Uptime</td><td class="good">≥ 99%/월</td><td>docker ps 상태 + /ping 엔드포인트 헬스체크 (Q3 Sentry 모니터링 추가)</td><td>월간</td></tr>
+    <tr><td>Reflex 앱 컨테이너 재시작 횟수</td><td class="good">≤ 2회/월 (계획 외)</td><td>docker inspect --format '{{.RestartCount}}'</td><td>주간</td></tr>
+    <tr><td>ForecastScheduler 실행 성공률</td><td class="good">≥ 95%/일</td><td>schedulers 로그, prediction_performance 테이블 행 수 증가 확인</td><td>일간</td></tr>
+    <tr><td>AlarmMonitor 10초 루프 연속성</td><td class="good">누락 0건/교대</td><td>alarm_history INSERT 타임스탬프 간격 모니터링 (Q3)</td><td>교대별</td></tr>
+  </tbody>
+</table>
+
+<h3>품질 지표</h3>
+<table>
+  <thead><tr><th>지표</th><th>목표</th><th>측정 방법</th><th>측정 주기</th></tr></thead>
+  <tbody>
+    <tr><td>테스트 케이스 Green 비율</td><td class="good">≥ 80% (124건 기준)</td><td>pytest --tb=short 결과, spec_05_test_plan.html 추적</td><td>릴리스마다</td></tr>
+    <tr><td>코드 품질 결함 수</td><td class="good">≤ 0 (현재 10건)</td><td>audit_code-quality.html 재감사 (Q2 이후)</td><td>분기별</td></tr>
+    <tr><td>보안 취약점 수 (CRITICAL)</td><td class="good">0건</td><td>audit_security 재감사</td><td>분기별</td></tr>
+    <tr><td>Secrets 외부화 완료율</td><td class="good">100%</td><td>git grep 하드코딩 패턴 스캔 (C1·C2·H1 대상)</td><td>Q1 완료 후 상시</td></tr>
+  </tbody>
+</table>
+
+<h3>성능 지표</h3>
+<table>
+  <thead><tr><th>지표</th><th>목표</th><th>측정 방법</th><th>측정 주기</th></tr></thead>
+  <tbody>
+    <tr><td>페이지 최초 로드 시간</td><td class="good">&lt; 2초 (LCP)</td><td>Playwright E2E networkidle 시간 측정</td><td>릴리스마다</td></tr>
+    <tr><td>알람 발생 → 화면 표시 지연</td><td class="good">&lt; 15초</td><td>alarm_history INSERT 시각 vs. WebSocket push 수신 시각 로그 비교 (Q3)</td><td>주간</td></tr>
+    <tr><td>Dashboard 갱신 주기</td><td class="good">≤ 30초</td><td>DashboardRealtimeState.start_streaming 루프 타임스탬프</td><td>상시</td></tr>
+    <tr><td>CSV 내보내기 응답 시간 (30일)</td><td class="good">&lt; 10초</td><td>TrendState.export_csv_all 완료 시간 로그</td><td>릴리스마다</td></tr>
+    <tr><td>예측 모델 MAPE</td><td class="good">&lt; 10% (validation set)</td><td>model_registry.metrics JSONB 필드, /model-performance 화면</td><td>모델 배포마다</td></tr>
+  </tbody>
+</table>
+
+<h3>보안 지표</h3>
+<table>
+  <thead><tr><th>지표</th><th>목표</th><th>측정 방법</th><th>달성 목표 시기</th></tr></thead>
+  <tbody>
+    <tr><td>하드코딩 Secrets 수</td><td class="good">0건</td><td>git grep + truffleHog 스캔</td><td>Q1</td></tr>
+    <tr><td>인증 없는 공개 엔드포인트 수</td><td class="good">0건 (인증 도입 후)</td><td>rx.event 핸들러 auth 데코레이터 적용률</td><td>Q2</td></tr>
+    <tr><td>컨테이너 root 실행 수</td><td class="good">0개 (USER 지시자 추가 후)</td><td>docker inspect --format '{{.Config.User}}'</td><td>Q3</td></tr>
+    <tr><td>패키지 취약점 수 (CRITICAL+HIGH)</td><td class="good">0건</td><td>pip-audit / safety check (Q2 CI 도입 시)</td><td>Q2</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ============================================================
+     13. Conclusion + CTA
+     ============================================================ -->
+<h2 id="conclusion">12. 결론 + Call to Action</h2>
+
+<h3>현황 평가</h3>
+<div class="callout">
+  KSYS는 현재 <strong>기능은 완성되었지만 운영 품질이 미완성</strong>인 상태다.
+  15개 라우트 HTTP 200, 3 페르소나 18개 User Flow 지원, ML 예측·알람 관리·트렌드 분석 핵심 기능 모두 작동 중이다.
+  그러나 보안 Critical 3건(C1·C2·C3), High 5건, 코드 품질 결함 10건, 인증 없음이
+  현재 운영 환경에 동시에 존재한다. 풍도 사이트가 Cloudflare Tunnel로 공개 노출된 상태에서
+  이 취약점들은 즉각적 위험이다.
+</div>
+
+<h3>단기 액션 (Q1 — 즉시 실행)</h3>
+<table>
+  <thead><tr><th>순서</th><th>액션</th><th>담당</th><th>완료 기준</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td><strong>Cloudflare Tunnel 토큰 교체</strong> (C1) + git history 정화 (BFG)</td>
+      <td>grandbelly</td>
+      <td>CF Dashboard 새 토큰 확인, docker-compose.yml에 ${CF_TUNNEL_TOKEN} 참조, git log에 토큰 문자열 0건</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><strong>원격 DB 자격증명 교체</strong> (C2) + os.getenv 이관</td>
+      <td>grandbelly</td>
+      <td>59.10.187.46 패스워드 변경 완료, sync_monitor_state.py에서 하드코딩 제거</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><strong>DB 기본 패스워드 외부화</strong> (H1) — docker-compose.yml POSTGRES_PASSWORD=postgres 제거</td>
+      <td>grandbelly</td>
+      <td>.env 파일에서 POSTGRES_PASSWORD 주입, 모든 compose 파일 ${POSTGRES_PASSWORD} 참조</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><strong>SQL Injection 수정</strong> (H2) — dynamic_rag_engine, llamaindex_rag_engine bind parameters 적용</td>
+      <td>grandbelly</td>
+      <td>f-string 인젝션 패턴 0건 (grep 확인)</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><strong>코드 품질 10 결함 수정</strong> — audit_code-quality 우선순위 HIGH 먼저</td>
+      <td>grandbelly</td>
+      <td>결함 10건 GitHub Issues 등록 + 수정 PR 병합</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><strong>alarm_vectors 6.5GB 원인 조사</strong></td>
+      <td>grandbelly</td>
+      <td>원인 규명 + 정리 방안 문서화</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><strong>RPI 운영 환경 Q1 패치 동기화</strong> (scp 4개 파일 → docker compose up --build)</td>
+      <td>grandbelly</td>
+      <td>ssh tion@192.168.0.80 → docker ps 컨테이너 healthy + 15개 라우트 200</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>중기 액션 (Q2 — 인증 Sprint)</h3>
+<div class="callout">
+  <ul>
+    <li>Basic Auth 도입: Reflex AuthState 공유 시크릿 게이트 또는 Cloudflare Access 정책 설정</li>
+    <li>RBAC 설계 문서 작성 (Operator / Analyst / Admin 3 역할 권한 매트릭스)</li>
+    <li>bootstrap_rpi.sh 신규 RPI 20분 완전 배포 검증 (추가 사이트 확장 전제 조건)</li>
+    <li>Day 8+ Refactor Sprint: TrainingState god class 분리, 중복 페이지 7개 정리</li>
+    <li>Docker 이미지 경량화 (multi-stage build, 2GB 이하 목표)</li>
+  </ul>
+</div>
+
+<h3>장기 액션 (Q3-Q4 — 관찰성 + 사업화)</h3>
+<div class="callout">
+  <ul>
+    <li>Q3: Sentry + Structured Logging → 운영 가시성 확보. Pickle HMAC 서명. DailyTrainingScheduler 활성화.</li>
+    <li>Q4: 추가 정수 시설 1-2개소 PoC. 비용 모델·SLA 정의. SCADA 연계 타당성 검토.</li>
+    <li>Q4: /ai 페이지 등록 활성화 (AI Chat — 백엔드 완성, import 누락만 해결). 사업 가치 시연에 활용.</li>
+  </ul>
+</div>
+
+<div class="callout-green">
+  <strong>핵심 메시지:</strong><br>
+  KSYS는 소규모 수처리 사이트를 위한 저비용·AI 내장·엣지 우선 통합 관제 플랫폼으로서
+  명확한 시장 포지셔닝이 가능하다. Q1 보안 안정화와 Q2 인증 도입이 선행되면,
+  Q4에 국내 수처리 시설 추가 사이트 PoC를 통한 사업화 경로가 열린다.
+  지금 당장의 우선순위는 속도가 아니라 <strong>신뢰할 수 있는 운영 기반 확립</strong>이다.
+</div>
+
+<hr>
+
+<p style="font-size: 13px; color: #6e7681; text-align: center; margin-top: 48px;">
+  KSYS 기획서 v1.0 — 생성일 2026-05-29 — spec_15_planning.html<br>
+  입력 소스: spec_04_PRD.html · spec_07_storyboard.html · HANDOFF.md · audit_security_2026-05-21.html · CLAUDE.md<br>
+  PDCA PM Agent — 풍도 수처리 IoT 통합 관제 플랫폼
+</p>
+
+</body>
+</html>

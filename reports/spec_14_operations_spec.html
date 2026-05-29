@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>spec_14 — Operations Spec (Runbook)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 30px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 40px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 28px; padding-top: 8px;
+       border-top: 1px dashed #30363d; }
+  h4 { font-size: 14px; color: #d2a8ff; margin-top: 14px; margin-bottom: 6px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 14px 18px;
+             margin: 16px 0; border-radius: 6px; }
+  .callout.crit { border-left-color: #f85149; background: #2b1414; }
+  .callout.good { border-left-color: #3fb950; background: #0e2417; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .good { color: #3fb950; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+              gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 28px; font-weight: 700; color: #79c0ff; }
+  .kpi .l { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .kpi.bad .v { color: #f85149; }
+  .kpi.warn .v { color: #d29922; }
+  .kpi.good .v { color: #3fb950; }
+  .runbook { background: linear-gradient(135deg, #1c2128, #161b22);
+             border: 1px solid #30363d; border-radius: 10px;
+             padding: 18px 22px; margin: 22px 0; }
+  .runbook h3 { margin-top: 0; border-top: none; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 10px;
+           font-size: 11px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+  .b-prov { background: #1f3a5f; color: #79c0ff; }
+  .b-bk   { background: #1f4f3a; color: #3fb950; }
+  .b-mon  { background: #4b3a14; color: #ffa657; }
+  .b-inc  { background: #5a1f1f; color: #f85149; }
+  .b-sec  { background: #3a1f5a; color: #d2a8ff; }
+  .b-cap  { background: #1f4f4b; color: #56d4dd; }
+  .ascii { background: #0a0d12; color: #c9d1d9; padding: 18px;
+           border: 1px solid #30363d; border-radius: 6px; font-size: 12.5px;
+           white-space: pre; overflow-x: auto; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<h1>spec_14 — 운영 프로세스 명세서 (Infrastructure Operations Spec)</h1>
+<p class="meta">
+  작성 2026-05-29 · <strong>infra-architect</strong> 단독 작성 · Day 14 deep design artifact ·
+  대상: RPI 5 ARM64 deployment (reflex-rpi-local-deployment-poongdo) ·
+  근거: <a href="audit_infra_2026-05-21.html" style="color:#79c0ff">audit_infra</a>,
+        <a href="spec_03_database_schedulers.html" style="color:#79c0ff">spec_03</a>,
+        scripts/{bootstrap_rpi,restore_db,measure_rpi_baseline}.sh,
+        docker-compose.yml, HANDOFF.md
+</p>
+
+<div class="callout info">
+<strong>이 문서의 위상.</strong> RPI 운영팀이 매일 펴는 <em>Runbook</em>. 정통 SI 운영 매뉴얼 형식 — 시나리오 ID · 전제조건 · 단계별 절차 · 검증 · 롤백 · 알려진 함정의 6요소가 모든 시나리오에 일관 적용. <strong>22개 운영 시나리오</strong>(Provisioning 4 · Backup 3 · Monitoring 4 · Incident 4 · Security 4 · Capacity 3) 수록.
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">22</div><div class="l">운영 시나리오 (OP-XXX)<br>6 카테고리</div></div>
+  <div class="kpi"><div class="v">6</div><div class="l">Compose 서비스<br>(reflex-app · db · scheduler · injector · pipeline · cloudflared)</div></div>
+  <div class="kpi good"><div class="v">3</div><div class="l">자동화 스크립트<br>(bootstrap · restore · baseline)</div></div>
+  <div class="kpi warn"><div class="v">N→1</div><div class="l">Multi-RPI 매트릭스<br>현재 1대 검증, N대 확장 가능</div></div>
+  <div class="kpi bad"><div class="v">0/4/16</div><div class="l">Audit scorecard<br>(infra 보안 우선)</div></div>
+  <div class="kpi"><div class="v">14000</div><div class="l">웹앱 포트<br>(rpi-finished-reflex-app)</div></div>
+</div>
+
+<h2>1. 인프라 개요 — Compose 서비스 토폴로지</h2>
+
+<p>현재 운영 단위는 <strong>단일 Raspberry Pi 5 (ARM64, Debian Bookworm) 1대</strong>당 1 stack. 6 서비스가 단일 docker network (<code>ksys-network</code>, external) 위에 올라가며, 외부 노출은 Cloudflare Tunnel egress-only 방식. 인바운드 포트는 LAN 한정 (14000/14001/5432).</p>
+
+<div class="ascii">┌──────────────────────────────────────────────────────────────────────────┐
+│ Raspberry Pi 5 (ARM64, Debian Bookworm)                                  │
+│ Repo: /home/tion/deployment/20251030-rpi-finished/                       │
+│ Compose network: ksys-network (external bridge)                          │
+│                                                                          │
+│   ┌─────────────────────┐         ┌──────────────────────┐               │
+│   │ rpi-finished-       │  ─────▶ │ rpi-finished-        │   LAN: 14000  │
+│   │ pgai-db             │ ◀─────  │ reflex-app           │ ─────────────▶│
+│   │ TimescaleDB 2.21.3  │  AsyncPG│ Reflex 0.8 SSR + SPA │   (frontend)  │
+│   │ + pg_cron 1.6.7     │  pool   │ uvicorn → 14001 BE   │   LAN: 14001  │
+│   │ Dockerfile.rpi-     │         │ Dockerfile (default) │   (backend)   │
+│   │ pgcron              │         └──────────┬───────────┘               │
+│   │ port: 5432 (LAN)    │                    │                           │
+│   │ vol: pgai_data      │                    │                           │
+│   │ heal: pg_isready    │                    │                           │
+│   └────────┬─────┬──────┘                    │                           │
+│            ▲     ▲                           │                           │
+│            │     │                           ▼                           │
+│   ┌────────┴───┐ │              ┌──────────────────────┐                 │
+│   │ rpi-finish-│ │              │ cloudflared-tunnel    │ ─── egress ──▶ │
+│   │ ed-        │ │              │ image: cloudflare/    │   *.ksys.kr   │
+│   │ forecast-  │ │              │ cloudflared:latest    │   (public)    │
+│   │ scheduler  │ │              │ depends_on: reflex-app│               │
+│   │ 10min loop │ │              └──────────────────────┘               │
+│   │ pg_cron    │ │                                                       │
+│   └────────────┘ │                                                       │
+│                  │                                                       │
+│   ┌──────────────┴──────┐    ┌─────────────────────────┐                 │
+│   │ rpi-finished-       │    │ rpi-finished-           │                 │
+│   │ data-injector       │    │ timeseries-pipeline     │                 │
+│   │ (synthetic / smoke  │    │ (CSV bulk loader)       │                 │
+│   │  data into DB)      │    │ vol: all_sensors.csv    │                 │
+│   └─────────────────────┘    └─────────────────────────┘                 │
+│                                                                          │
+│  Inbound (LAN only):  22/tcp ssh, 5432/tcp DB, 14000-14001/tcp app       │
+│  Outbound (WAN):      443/tcp Cloudflare tunnel (only egress route)      │
+└──────────────────────────────────────────────────────────────────────────┘</div>
+
+<h3>1.1 서비스별 운영 표</h3>
+
+<table>
+<tr>
+  <th>서비스명</th><th>이미지/빌드</th><th>포트</th><th>의존성</th>
+  <th>Healthcheck</th><th>재시작</th><th>로그</th><th>책임 영역</th>
+</tr>
+<tr>
+  <td><code>rpi-finished-pgai-db</code></td>
+  <td>build: <code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron</code><br>(TimescaleDB 2.21.3 + pg_cron 1.6.7)</td>
+  <td>5432 (LAN)</td>
+  <td>—</td>
+  <td><code>pg_isready -U postgres</code><br>30s/10s/5 retries</td>
+  <td><code>unless-stopped</code></td>
+  <td><code>docker logs rpi-finished-pgai-db</code></td>
+  <td>17 테이블, 4 hypertable, 5 cont agg, pg_cron 가상태그 계산</td>
+</tr>
+<tr>
+  <td><code>rpi-finished-reflex-app</code></td>
+  <td>build: <code>./Dockerfile</code><br>(Reflex 0.8 + uvicorn)</td>
+  <td>14000 frontend<br>14001 backend</td>
+  <td>db (healthy)</td>
+  <td>없음 (Reflex 0.8 기본)<br><span class="warn">개선 권고</span></td>
+  <td><code>unless-stopped</code></td>
+  <td><code>./logs/</code> + <code>docker logs</code></td>
+  <td>16 페이지 SSR+SPA, 24 State, 201 event handlers</td>
+</tr>
+<tr>
+  <td><code>rpi-finished-forecast-scheduler</code></td>
+  <td>build: <code>./Dockerfile.scheduler</code></td>
+  <td>—</td>
+  <td>db (healthy)</td>
+  <td>없음<br><span class="warn">log-tail로 대체</span></td>
+  <td><code>unless-stopped</code></td>
+  <td><code>./logs/scheduler*.log</code></td>
+  <td>10min forecast 루프, AutoARIMA, prediction_performance 적재</td>
+</tr>
+<tr>
+  <td><code>rpi-finished-data-injector</code></td>
+  <td>build: <code>./Dockerfile.data-injector</code></td>
+  <td>—</td>
+  <td>db (healthy)</td>
+  <td>없음</td>
+  <td><code>unless-stopped</code></td>
+  <td><code>docker logs</code></td>
+  <td>합성/스모크 데이터 주입 (운영 환경에선 비활성 권고)</td>
+</tr>
+<tr>
+  <td><code>rpi-finished-timeseries-pipeline</code></td>
+  <td>build: <code>./Dockerfile.pipeline</code></td>
+  <td>—</td>
+  <td>db (healthy)</td>
+  <td>없음</td>
+  <td><code>unless-stopped</code></td>
+  <td><code>docker logs</code></td>
+  <td>CSV(<code>all_sensors.csv</code>) → influx_hist 벌크 적재</td>
+</tr>
+<tr>
+  <td><code>cloudflared-tunnel</code></td>
+  <td><code>cloudflare/cloudflared:latest</code></td>
+  <td>외부 443 egress</td>
+  <td>reflex-app</td>
+  <td>없음 (Cloudflare dashboard에서 확인)</td>
+  <td><code>unless-stopped</code></td>
+  <td><code>docker logs cloudflared-tunnel</code></td>
+  <td>외부 공개 단일 경로. 토큰 = node 식별자</td>
+</tr>
+</table>
+
+<h3>1.2 자원 한도 권고 (현 compose는 미설정 — 운영 개선 사항)</h3>
+
+<table>
+<tr><th>서비스</th><th>RPI 5 (8GB) 권장 mem_limit</th><th>cpu 한도</th><th>비고</th></tr>
+<tr><td>pgai-db</td><td>3 GB</td><td>2.0 (200%)</td><td>shared_buffers ¼ ≈ 768MB</td></tr>
+<tr><td>reflex-app</td><td>1.5 GB</td><td>1.5</td><td>SSR + Plotly 메모리 누적 관찰됨</td></tr>
+<tr><td>forecast-scheduler</td><td>1 GB</td><td>1.0</td><td>AutoARIMA peak ≈ 600MB</td></tr>
+<tr><td>data-injector</td><td>256 MB</td><td>0.3</td><td>운영시 disable 권고</td></tr>
+<tr><td>timeseries-pipeline</td><td>512 MB</td><td>0.5</td><td>1회성 bulk 후 stop 가능</td></tr>
+<tr><td>cloudflared</td><td>128 MB</td><td>0.2</td><td>idle 메모리 극히 작음</td></tr>
+<tr><td colspan="4" style="text-align:right"><strong>합계:</strong> ~6.4 GB / 8 GB (여유 1.6 GB OS+버퍼)</td></tr>
+</table>
+
+<h2>2. 운영 시나리오 카탈로그 (22 Runbooks)</h2>
+
+<p>각 시나리오는 정통 SI 표준 6요소 — 운영 ID · 분류 · 책임 · 예상 소요 · 전제조건 · 관련 도구 — 헤더와 <strong>단계별 절차 · 검증 · 롤백 · 알려진 함정</strong> 4섹션 본문으로 구성.</p>
+
+<table>
+<tr><th>ID</th><th>카테고리</th><th>이름</th><th>주기</th><th>책임</th><th>예상 소요</th></tr>
+<tr><td>OP-001</td><td>Provisioning</td><td>RPI 첫 배포 (Fresh Provisioning)</td><td>1회성</td><td>SysAdmin</td><td>30분</td></tr>
+<tr><td>OP-002</td><td>Provisioning</td><td>코드 업데이트 배포 (bind-mount hot reload)</td><td>수시</td><td>DevOps</td><td>3분</td></tr>
+<tr><td>OP-003</td><td>Provisioning</td><td>이미지 재빌드 (requirements/Dockerfile 변경)</td><td>수시</td><td>DevOps</td><td>15분</td></tr>
+<tr><td>OP-004</td><td>Provisioning</td><td>서비스 단일 재시작</td><td>수시</td><td>Operator</td><td>1분</td></tr>
+<tr><td>OP-010</td><td>Backup</td><td>DB 정기 백업 (pg_dump -Fc)</td><td>일 1회</td><td>DBA</td><td>5분</td></tr>
+<tr><td>OP-011</td><td>Backup</td><td>DB 복원 (restore_db.sh)</td><td>비상시</td><td>DBA</td><td>10분</td></tr>
+<tr><td>OP-012</td><td>Backup</td><td>Continuous aggregate 재계산</td><td>필요시</td><td>DBA</td><td>5-30분</td></tr>
+<tr><td>OP-020</td><td>Monitoring</td><td>일일 health check (Smoke 10 cases)</td><td>일 1회</td><td>Operator</td><td>10분</td></tr>
+<tr><td>OP-021</td><td>Monitoring</td><td>컨테이너 로그 정기 검사 (error/traceback)</td><td>일 1회</td><td>Operator</td><td>5분</td></tr>
+<tr><td>OP-022</td><td>Monitoring</td><td>디스크 사용량 + SD wear 검사</td><td>주 1회</td><td>SysAdmin</td><td>3분</td></tr>
+<tr><td>OP-023</td><td>Monitoring</td><td>메모리 leak 의심 시 진단</td><td>이벤트성</td><td>DevOps</td><td>30분</td></tr>
+<tr><td>OP-030</td><td>Incident</td><td>reflex-app 컨테이너 죽음 → 재시작</td><td>이벤트성</td><td>Operator</td><td>2분</td></tr>
+<tr><td>OP-031</td><td>Incident</td><td>DB 응답 없음 → 진단/복구</td><td>이벤트성</td><td>DBA</td><td>15-60분</td></tr>
+<tr><td>OP-032</td><td>Incident</td><td>Cloudflare tunnel 끊김</td><td>이벤트성</td><td>NetOps</td><td>10분</td></tr>
+<tr><td>OP-033</td><td>Incident</td><td>알람 누락 의심 (AlarmMonitor 침묵)</td><td>이벤트성</td><td>App Dev</td><td>20분</td></tr>
+<tr><td>OP-040</td><td>Security</td><td>Cloudflare 토큰 rotate</td><td>분기</td><td>SecOps</td><td>15분</td></tr>
+<tr><td>OP-041</td><td>Security</td><td>POSTGRES_PASSWORD rotate</td><td>반기</td><td>SecOps</td><td>30분</td></tr>
+<tr><td>OP-042</td><td>Security</td><td>.env 권한/누설 점검</td><td>월 1회</td><td>SecOps</td><td>3분</td></tr>
+<tr><td>OP-043</td><td>Security</td><td>신규 RPI 추가 시 .env 분리 발급</td><td>이벤트성</td><td>SecOps</td><td>20분</td></tr>
+<tr><td>OP-050</td><td>Capacity</td><td>SD card 교체 (~3-5년 EOL)</td><td>장기</td><td>SysAdmin</td><td>2시간</td></tr>
+<tr><td>OP-051</td><td>Capacity</td><td>오래된 알람/예측 데이터 정리</td><td>월 1회</td><td>DBA</td><td>15분</td></tr>
+<tr><td>OP-052</td><td>Capacity</td><td>Reflex .web 캐시 / docker prune</td><td>월 1회</td><td>SysAdmin</td><td>5분</td></tr>
+</table>
+
+<!-- =================== PROVISIONING =================== -->
+
+<h2>3. Provisioning / Deploy 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-001: RPI 첫 배포 (Fresh Provisioning) <span class="badge b-prov">PROV</span></h3>
+<table>
+<tr><th>속성</th><th>값</th></tr>
+<tr><td>운영 ID</td><td>OP-001</td></tr>
+<tr><td>분류</td><td>Provisioning / 1회성</td></tr>
+<tr><td>책임</td><td>System Administrator</td></tr>
+<tr><td>예상 소요</td><td>30분 (네트워크 + 첫 빌드 포함)</td></tr>
+<tr><td>전제조건</td><td>RPI 5 (ARM64), Raspbian/Debian 부팅, ssh key auth 설정, 인터넷 연결, 신규 Cloudflare tunnel 토큰 발급 완료</td></tr>
+<tr><td>관련 도구</td><td><code>scripts/bootstrap_rpi.sh</code>, <code>scripts/restore_db.sh</code>, <code>scripts/measure_rpi_baseline.sh</code></td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li><code>ssh tion@&lt;new-rpi-ip&gt;</code> 접속</li>
+<li>코드 배포 — <code>git clone</code> 또는 scp tarball:
+<pre>rsync -avz --exclude .git --exclude .web --exclude saved_models \
+  ./reflex-rpi-local-deployment-poongdo/ \
+  tion@&lt;new-rpi-ip&gt;:/home/tion/deployment/20251030-rpi-finished/</pre></li>
+<li>bootstrap 1차 실행 (Docker 설치 + .env scaffold + POSTGRES_PASSWORD 자동생성):
+<pre>cd /home/tion/deployment/20251030-rpi-finished/
+./scripts/bootstrap_rpi.sh</pre>
+스크립트가 자동으로:
+<ul>
+<li>OS sanity check (ARM64, Debian, internet ping 1.1.1.1)</li>
+<li>Docker + compose-plugin idempotent 설치</li>
+<li><code>.env.example → .env</code> 복사 후 <code>POSTGRES_PASSWORD</code> 24자 랜덤 생성 (openssl)</li>
+<li><code>chmod 600 .env</code></li>
+<li><code>CLOUDFLARE_TUNNEL_TOKEN</code> + <code>RPI_NODE_ID</code> 미입력 시 종료코드 10으로 중단</li>
+</ul></li>
+<li>운영자가 .env 수동 보완:
+<pre>nano /home/tion/deployment/20251030-rpi-finished/.env
+# (앞에 스페이스 한 칸 → bash history 회피)
+# CLOUDFLARE_TUNNEL_TOKEN=eyJh...
+# RPI_NODE_ID=pd-site-001</pre></li>
+<li>POSTGRES_PASSWORD 즉시 비밀번호 관리자에 저장:
+<pre>grep ^POSTGRES_PASSWORD= .env</pre>
+이 값은 <strong>자동 로그되지 않음</strong> — 운영자가 직접 보관.</li>
+<li>bootstrap 2차 실행 (검증 통과 → 이미지 pre-pull):
+<pre>./scripts/bootstrap_rpi.sh</pre></li>
+<li>DB 컨테이너만 먼저 기동:
+<pre>docker compose up -d rpi-finished-pgai-db</pre></li>
+<li>기존 RPI에서 dump 전송 (운영자 PC 거치지 않는 직송 rsync):
+<pre>ssh tion@&lt;old-rpi&gt; "docker exec rpi-finished-pgai-db pg_dump -Fc -U postgres ecoanp &gt; /tmp/ecoanp.dump"
+rsync -avz --remove-source-files tion@&lt;old-rpi&gt;:/tmp/ecoanp.dump /tmp/</pre></li>
+<li>TimescaleDB-aware 복원:
+<pre>./scripts/restore_db.sh /tmp/ecoanp.dump</pre>
+6단계 자동 진행 (DROP/CREATE → CREATE EXTENSION → pre_restore → pg_restore single-thread --no-owner --no-privileges → post_restore → 행 수 sanity check).</li>
+<li>나머지 5 서비스 기동:
+<pre>docker compose up -d</pre></li>
+<li>Baseline 측정:
+<pre>./scripts/measure_rpi_baseline.sh
+# → reports/rpi_baseline_&lt;hostname&gt;_&lt;date&gt;.txt</pre></li>
+<li>네트워크 안정성 확인 후 SSH 하드닝:
+<pre>./scripts/bootstrap_rpi.sh --harden
+# password auth 비활성 + ufw 활성 (22/tcp 만 허용)</pre>
+<strong>경고:</strong> 키 로그인 검증 전엔 절대 logout 금지.</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li><code>curl http://localhost:14000/</code> → HTTP 200, &lt; 2초</li>
+<li><code>docker ps --format 'table {{.Names}}\t{{.Status}}'</code> → 6 서비스 모두 <code>Up</code> (db <code>healthy</code>)</li>
+<li><code>docker logs cloudflared-tunnel --tail 20 | grep -i registered</code> → connection 등록 확인</li>
+<li>Cloudflare Zero Trust dashboard → Tunnels 화면에서 새 노드 ONLINE</li>
+<li><code>./scripts/measure_rpi_baseline.sh</code> 결과의 7. SD card random write 50MB/s 이상</li>
+</ul>
+
+<h4>롤백</h4>
+<p>Fresh RPI이므로 단순 SD 재플래시. 또는 <code>docker compose down -v</code> (volume까지 삭제) 후 처음부터.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">POSTGRES_PASSWORD 분실</span> — 자동생성 후 즉시 캡처해야 함. 분실 시 DB 재시작 불가, 데이터 손실 (volume 삭제 필요).</li>
+<li><span class="bad">Cloudflare 토큰 재사용 금지</span> — 기존 RPI 토큰 그대로 쓰면 두 노드가 같은 hostname으로 등록되어 라우팅 불안정.</li>
+<li><span class="warn">pg_cron 1.6.7 + PG17 ABI 미스매치</span> — <code>Dockerfile.rpi-pgcron</code> 그대로 사용 (HANDOFF.md 참조). 임의 pg_cron 업그레이드 금지.</li>
+<li><span class="warn">parallel pg_restore 금지</span> — TimescaleDB hypertable이 TRUNCATE ONLY와 호환 안 됨. restore_db.sh는 single-thread 고정.</li>
+<li><code>ksys-network</code>가 external이므로 첫 기동 전 <code>docker network create ksys-network</code> 필요.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-002: 코드 업데이트 배포 (bind-mount hot reload) <span class="badge b-prov">PROV</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-002</td></tr>
+<tr><td>분류</td><td>Provisioning / 수시</td></tr>
+<tr><td>책임</td><td>DevOps</td></tr>
+<tr><td>예상 소요</td><td>3분</td></tr>
+<tr><td>전제조건</td><td>변경 파일이 <code>ksys_app/</code> 또는 <code>rxconfig.py</code> 내부 (bind-mount 대상) — requirements.txt 변경시 OP-003 사용</td></tr>
+<tr><td>관련 도구</td><td>rsync, scp, docker restart</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>로컬 검증 (Docker container <strong>only</strong> — host Python 금지, <a href="#footnote-zombie">Stop-Process zombie</a> 참조):
+<pre>docker compose -f docker-compose.local.yml up -d
+curl http://localhost:14000/</pre></li>
+<li>변경 파일만 rsync (CLAUDE.md 정의 표준 명령):
+<pre>scp "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/states/forecast_player_state.py" \
+    tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/states/</pre>
+또는 전체 디렉터리:
+<pre>rsync -avz --delete \
+  --exclude __pycache__ --exclude '*.pyc' --exclude .web --exclude saved_models \
+  "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/" \
+  tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/</pre></li>
+<li>compose의 <code>./ksys_app:/app/ksys_app</code> bind-mount가 즉시 반영되지만 Reflex SSR 캐시 갱신을 위해 재시작:
+<pre>ssh tion@192.168.0.80 "docker restart rpi-finished-reflex-app"</pre></li>
+<li>State 클래스 변경시 forecast-scheduler도 재시작 (공유 import):
+<pre>ssh tion@192.168.0.80 "docker restart rpi-finished-forecast-scheduler"</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li><code>docker logs rpi-finished-reflex-app --tail 50 | grep -iE "error|traceback"</code> → 비어있음</li>
+<li><code>curl -s -o /dev/null -w "%{http_code} %{time_total}s\n" http://localhost:14000/</code> → 200 + &lt; 2초</li>
+<li>변경 페이지 접속해서 UI 변경 시각 확인</li>
+</ul>
+
+<h4>롤백</h4>
+<pre>cd /home/tion/deployment/20251030-rpi-finished/
+git checkout HEAD~1 -- ksys_app/states/forecast_player_state.py
+docker restart rpi-finished-reflex-app</pre>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">requirements.txt 변경시 OP-002 사용 금지</span> — 컨테이너 안 pip 재실행 안 됨. OP-003로 이미지 재빌드.</li>
+<li><span class="warn">Reflex .web 캐시</span> — 컴포넌트 트리 변경 후 SSR 출력이 안 바뀌면 <code>docker exec rpi-finished-reflex-app rm -rf /app/.web/_build</code> 후 재시작.</li>
+<li><code>logs/</code> bind-mount 디렉터리 권한 충돌 — 호스트에서 root 소유 파일 생기면 컨테이너가 write 실패. <code>sudo chown -R tion:tion logs/</code>.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-003: 이미지 재빌드 (requirements/Dockerfile 변경) <span class="badge b-prov">PROV</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-003</td></tr>
+<tr><td>분류</td><td>Provisioning / 수시</td></tr>
+<tr><td>책임</td><td>DevOps</td></tr>
+<tr><td>예상 소요</td><td>15분 (RPI ARM64 빌드 느림)</td></tr>
+<tr><td>전제조건</td><td>requirements*.txt / Dockerfile* / 빌드 컨텍스트(20251030-rpi-pgcron/) 중 하나 변경됨, 디스크 여유 2GB+</td></tr>
+<tr><td>관련 도구</td><td>docker compose build, docker system prune</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>대상 식별 (어느 이미지가 영향받는지):
+<pre>git diff HEAD~1 -- requirements.txt Dockerfile*</pre></li>
+<li>대상 서비스만 빌드 (전체 빌드 1시간 vs 단일 15분):
+<pre>cd /home/tion/deployment/20251030-rpi-finished/
+docker compose build --no-cache rpi-finished-reflex-app
+# DB 이미지 변경시:
+docker compose build rpi-finished-pgai-db</pre></li>
+<li>새 이미지로 재기동 (volume 보존):
+<pre>docker compose up -d --no-deps --force-recreate rpi-finished-reflex-app</pre></li>
+<li>구 dangling image 정리:
+<pre>docker image prune -f</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li><code>docker images | grep rpi-finished</code> → 최신 빌드 시각 확인</li>
+<li>OP-020 일일 health check 전체 통과</li>
+</ul>
+
+<h4>롤백</h4>
+<pre># 이전 이미지 태그 보관해뒀다면:
+docker tag rpi-finished-reflex-app:prev rpi-finished-reflex-app:latest
+docker compose up -d --force-recreate rpi-finished-reflex-app
+# 아니면 git revert + 재빌드</pre>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">RPI에서 빌드 시 SD wear</span> — 빈번한 <code>--no-cache</code> 빌드는 SD 카드 수명 깎음. 외부 ARM64 빌드머신 (BuildKit + buildx remote) 고려.</li>
+<li><span class="warn">메모리 부족 OOM</span> — Reflex 빌드 중 npm install이 ~1.5GB 점유. <code>swapon --show</code>로 swap 4GB+ 확보.</li>
+<li><span class="warn">multi-arch base image</span> — Dockerfile FROM이 amd64 manifest만 가지면 RPI에서 실패. <code>--platform linux/arm64</code> 명시.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-004: 서비스 단일 재시작 <span class="badge b-prov">PROV</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-004</td></tr>
+<tr><td>분류</td><td>Provisioning / 수시</td></tr>
+<tr><td>책임</td><td>Operator</td></tr>
+<tr><td>예상 소요</td><td>1분</td></tr>
+<tr><td>전제조건</td><td>특정 서비스만 비정상 (다른 서비스 정상) — DB 재시작은 OP-031 사용</td></tr>
+<tr><td>관련 도구</td><td>docker restart</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>대상 서비스 확인:
+<pre>docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.RunningFor}}'</pre></li>
+<li>재시작 (volume / network 보존):
+<pre>docker restart rpi-finished-forecast-scheduler
+# 또는 compose로:
+docker compose restart rpi-finished-forecast-scheduler</pre></li>
+<li>로그로 startup 확인:
+<pre>docker logs rpi-finished-forecast-scheduler --tail 30 -f</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>해당 서비스 <code>Status: Up</code></li>
+<li>의존 서비스 정상 (forecast-scheduler 재시작 후 reflex-app의 ForecastState는 다음 10min 사이클에 데이터 갱신)</li>
+</ul>
+
+<h4>롤백</h4>
+<p>재시작 자체에는 롤백 없음. 재시작 후 비정상시 OP-031/OP-033 incident 경로로 진행.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">DB는 단일 재시작 신중</span> — reflex-app + scheduler가 asyncpg pool stale connection 잡고 있을 수 있음. DB 재시작 직후 두 앱도 재시작 권고.</li>
+<li><code>_polling_task</code> zombie risk — reflex-app 재시작 시 spec_02 에 명시된 polling task가 깨끗히 cleanup 되는지 로그로 확인.</li>
+</ul>
+</div>
+
+<!-- =================== BACKUP =================== -->
+
+<h2>4. Backup / Restore 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-010: DB 정기 백업 (pg_dump -Fc) <span class="badge b-bk">BK</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-010</td></tr>
+<tr><td>분류</td><td>Backup / 일 1회 (권장 02:00 KST)</td></tr>
+<tr><td>책임</td><td>DBA</td></tr>
+<tr><td>예상 소요</td><td>5분 (현재 17 테이블 ~수백MB)</td></tr>
+<tr><td>전제조건</td><td>pgai-db 컨테이너 running, <code>/backup</code> bind-mount 디스크 여유 5GB+, cron 등록</td></tr>
+<tr><td>관련 도구</td><td>pg_dump, cron, scp</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>backup 스크립트 작성:
+<pre>cat &gt; /home/tion/deployment/20251030-rpi-finished/scripts/backup_db.sh &lt;&lt;'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+cd /home/tion/deployment/20251030-rpi-finished
+set -a; . ./.env; set +a
+TS=$(date +%Y%m%d_%H%M%S)
+OUT="/home/tion/deployment/20251030-rpi-finished/backup/ecoanp_${TS}.dump"
+docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" rpi-finished-pgai-db \
+  pg_dump -Fc -U postgres ecoanp -f "/backup/$(basename "$OUT")"
+# 보관 30일
+find /home/tion/deployment/20251030-rpi-finished/backup -name 'ecoanp_*.dump' -mtime +30 -delete
+EOF
+chmod 700 scripts/backup_db.sh</pre></li>
+<li>cron 등록:
+<pre>crontab -e
+# 매일 02:00 KST
+0 2 * * * /home/tion/deployment/20251030-rpi-finished/scripts/backup_db.sh &gt;&gt; /home/tion/deployment/20251030-rpi-finished/logs/backup.log 2&gt;&amp;1</pre></li>
+<li>원격지 복제 (NAS 또는 다른 RPI):
+<pre>0 3 * * * rsync -avz --delete /home/tion/deployment/20251030-rpi-finished/backup/ backup@nas:/srv/rpi-backups/&lt;node_id&gt;/</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>다음날 09:00에 <code>ls -lh backup/ecoanp_*.dump | tail -3</code> → 어제자 파일 존재, 크기 정상</li>
+<li>월 1회 OP-011 사용해 dev RPI에 실복원 테스트 (Schrödinger backup 방지)</li>
+</ul>
+
+<h4>롤백</h4>
+<p>백업 자체 롤백 없음. 실패 시 cron 로그 확인 후 수동 재실행.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">pg_dump 중 hypertable lock</span> — 대용량 시점에 forecast-scheduler가 write 시도하면 deadlock. 02:00 KST는 10min loop 사이 ±5min 회피.</li>
+<li><span class="warn">.dump 파일 평문</span> — DB password rotate해도 dump 안의 데이터는 평문. NAS 전송시 SSH 키 기반 rsync 또는 gpg 암호화.</li>
+<li><code>-Fc</code> custom format은 pg_restore에 필요 — <code>-Fp</code>(plain) 사용시 restore_db.sh가 실패.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-011: DB 복원 (restore_db.sh) <span class="badge b-bk">BK</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-011</td></tr>
+<tr><td>분류</td><td>Backup / 비상시</td></tr>
+<tr><td>책임</td><td>DBA (변경 승인 필수)</td></tr>
+<tr><td>예상 소요</td><td>10분 (단일 thread)</td></tr>
+<tr><td>전제조건</td><td>유효한 .dump 파일 보유, pgai-db running, <strong>현 데이터 DROP 동의 확보</strong></td></tr>
+<tr><td>관련 도구</td><td><code>scripts/restore_db.sh</code></td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>운영 중인 클라이언트 차단 (의도치 않은 write 방지):
+<pre>docker stop rpi-finished-reflex-app rpi-finished-forecast-scheduler \
+            rpi-finished-data-injector rpi-finished-timeseries-pipeline</pre></li>
+<li>현 DB 안전 백업 (rollback용):
+<pre>./scripts/backup_db.sh
+# → backup/ecoanp_&lt;ts&gt;.dump 저장</pre></li>
+<li>복원 실행:
+<pre>./scripts/restore_db.sh /tmp/ecoanp.dump</pre>
+스크립트 6단계: DROP/CREATE → CREATE EXTENSION timescaledb 2.21.3 → <code>timescaledb_pre_restore()</code> → <code>pg_restore --no-owner --no-privileges</code> 단일 thread → <code>timescaledb_post_restore()</code> → 3개 테이블 (alarm_history, influx_hist, prediction_performance) 행 수 sanity check.</li>
+<li>클라이언트 재기동:
+<pre>docker compose up -d</pre></li>
+<li>OP-020 일일 health check 수행</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>restore_db.sh 6/6 단계 통과 (row count 비정상 0 없음)</li>
+<li><code>docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp -c "SELECT hypertable_name FROM timescaledb_information.hypertables;"</code> → 4 hypertable 모두 나옴</li>
+<li>continuous aggregate 5개 존재 확인</li>
+</ul>
+
+<h4>롤백</h4>
+<pre>./scripts/restore_db.sh /home/tion/deployment/20251030-rpi-finished/backup/ecoanp_&lt;원본_백업_ts&gt;.dump</pre>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">parallel pg_restore 사용 금지</span> — HANDOFF.md Round 2 교훈: 병렬 시 TRUNCATE ONLY 호환 안 됨, hypertable 데이터 누락. 스크립트는 single-thread 고정.</li>
+<li><span class="bad">TimescaleDB 버전 미스매치</span> — dump origin과 target이 다르면 <code>--no-version-check</code> 우회 금물. restore_db.sh의 <code>TS_VER=2.21.3</code> 고정.</li>
+<li><span class="warn">continuous aggregate 비어보일 수 있음</span> — <code>timescaledb_post_restore()</code> 후 OP-012로 refresh 필요할 수 있음.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-012: Continuous Aggregate 재계산 <span class="badge b-bk">BK</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-012</td></tr>
+<tr><td>분류</td><td>Backup / 필요시</td></tr>
+<tr><td>책임</td><td>DBA</td></tr>
+<tr><td>예상 소요</td><td>5-30분 (5개 cont agg, 데이터량 따라)</td></tr>
+<tr><td>전제조건</td><td>OP-011 복원 직후 또는 cagg 데이터 누락 의심</td></tr>
+<tr><td>관련 도구</td><td>psql, TimescaleDB <code>refresh_continuous_aggregate()</code></td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>cagg 목록 확인 (spec_03 기준 5개):
+<pre>docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" rpi-finished-pgai-db \
+  psql -U postgres -d ecoanp -c \
+  "SELECT view_name FROM timescaledb_information.continuous_aggregates;"</pre></li>
+<li>각 cagg 전체 윈도 refresh:
+<pre>for cagg in $(docker exec ... psql -tAc "SELECT view_name FROM timescaledb_information.continuous_aggregates;"); do
+  echo "Refreshing $cagg..."
+  docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" rpi-finished-pgai-db \
+    psql -U postgres -d ecoanp -c \
+    "CALL refresh_continuous_aggregate('$cagg', NULL, NULL);"
+done</pre></li>
+</ol>
+
+<h4>검증</h4>
+<pre>SELECT view_name, COUNT(*) FROM &lt;each_cagg&gt; GROUP BY view_name;
+-- 0이면 base table에 데이터 있는지 확인</pre>
+
+<h4>롤백</h4>
+<p>refresh는 idempotent — 롤백 불필요.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">RPI 5에서 5개 cagg 풀 refresh ~수십분</span> — 10min forecast loop과 충돌. 새벽 03:00 KST 권장.</li>
+<li><span class="warn">refresh policy</span>도 함께 확인 (<code>SELECT * FROM timescaledb_information.jobs;</code>) — restore 후 policy job이 disable되었을 수 있음.</li>
+</ul>
+</div>
+
+<!-- =================== MONITORING =================== -->
+
+<h2>5. Monitoring / Health 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-020: 일일 Health Check (Smoke 10 cases) <span class="badge b-mon">MON</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-020</td></tr>
+<tr><td>분류</td><td>Monitoring / 일 1회 (09:00 KST)</td></tr>
+<tr><td>책임</td><td>Operator</td></tr>
+<tr><td>예상 소요</td><td>10분</td></tr>
+<tr><td>전제조건</td><td>spec_05 test plan의 Smoke tier 10 cases 인지</td></tr>
+<tr><td>관련 도구</td><td>curl, docker, psql</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>컨테이너 상태:
+<pre>docker ps --format 'table {{.Names}}\t{{.Status}}' | grep rpi-finished</pre>
+6 서비스 모두 <code>Up</code>, db는 <code>healthy</code>.</li>
+<li>주요 라우트 응답 (Reflex 16 페이지 중 핵심 8):
+<pre>for r in / /dashboard /alarms /trend /sensors /forecast /scheduler /system; do
+  printf '%-22s ' "$r"
+  curl -s -o /dev/null -w "%{http_code} %{time_total}s\n" --max-time 5 "http://localhost:14000${r}"
+done</pre>
+모두 200 + &lt; 3초.</li>
+<li>DB 응답:
+<pre>docker exec -e PGPASSWORD="$POSTGRES_PASSWORD" rpi-finished-pgai-db \
+  psql -U postgres -d ecoanp -tAc "SELECT now(), COUNT(*) FROM influx_hist WHERE time &gt; now() - interval '1 hour';"</pre>
+최근 1시간 row 수 0이면 data-injector 또는 외부 ingest 멈춤 의심 → OP-021.</li>
+<li>알람 head check:
+<pre>... -tAc "SELECT alarm_id, severity, raised_at FROM alarm_history ORDER BY raised_at DESC LIMIT 3;"</pre></li>
+<li>예측 head check:
+<pre>... -tAc "SELECT tag_name, predicted_at, horizon FROM prediction_performance ORDER BY predicted_at DESC LIMIT 3;"</pre>
+가장 최근이 30분 이상 과거면 forecast-scheduler 침묵 → OP-033.</li>
+<li>Cloudflare egress:
+<pre>docker logs cloudflared-tunnel --tail 10 | grep -iE "error|disconnect"</pre>
+없으면 OK.</li>
+<li>디스크/메모리:
+<pre>df -h / | tail -1
+free -h | grep Mem</pre>
+/ 사용률 90% 초과면 OP-022 + OP-051/052.</li>
+</ol>
+
+<h4>검증</h4>
+<p>위 7단계 모두 임계치 통과 시 reports/health_&lt;date&gt;.txt에 OK 기록.</p>
+
+<h4>롤백</h4>
+<p>관찰 작업 — 롤백 없음.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">curl 200이지만 페이지 빈 화면</span> — Reflex SSR이 200 + 빈 HTML 반환 가능 (state init 실패 시). Playwright smoke (spec_05) 병행 권고.</li>
+<li>09:00 KST는 forecast 10min sync 직후라 prediction 최신 — 측정 안정.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-021: 컨테이너 로그 정기 검사 <span class="badge b-mon">MON</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-021</td></tr>
+<tr><td>분류</td><td>Monitoring / 일 1회</td></tr>
+<tr><td>책임</td><td>Operator</td></tr>
+<tr><td>예상 소요</td><td>5분</td></tr>
+<tr><td>전제조건</td><td>전일 09:00 ~ 당일 09:00 24시간 로그</td></tr>
+<tr><td>관련 도구</td><td>docker logs, grep</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>error/traceback 카운트:
+<pre>for svc in rpi-finished-reflex-app rpi-finished-forecast-scheduler rpi-finished-pgai-db cloudflared-tunnel; do
+  c=$(docker logs --since 24h "$svc" 2&gt;&amp;1 | grep -ciE "error|traceback|exception|fatal")
+  printf "  %-35s %d\n" "$svc" "$c"
+done</pre></li>
+<li>임계치 (서비스별):
+<ul>
+<li>reflex-app: &lt; 20/일 (state validation noise 포함)</li>
+<li>forecast-scheduler: &lt; 5/일 (AutoARIMA 경고는 별도)</li>
+<li>pgai-db: 0 (Tablespace/checkpoint 외)</li>
+<li>cloudflared: &lt; 3/일 (네트워크 일시 끊김 OK)</li>
+</ul></li>
+<li>임계치 초과시 상세:
+<pre>docker logs --since 24h rpi-finished-reflex-app 2&gt;&amp;1 \
+  | grep -iE "error|traceback" -A 5 | head -60</pre></li>
+</ol>
+
+<h4>검증</h4>
+<p>임계치 미만이면 reports/log_audit_&lt;date&gt;.txt 기록 후 종료.</p>
+
+<h4>롤백</h4>
+<p>관찰 작업 — 롤백 없음.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">docker log 무한 증가</span> — daemon.json에 <code>log-opts: {"max-size":"10m","max-file":"5"}</code> 설정 필수 (OP-052 cleanup).</li>
+<li>"error"가 INFO 메시지 안에도 나옴 — grep 결과는 false-positive 가능. -B/-A로 컨텍스트 확인.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-022: 디스크 사용량 + SD wear 검사 <span class="badge b-mon">MON</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-022</td></tr>
+<tr><td>분류</td><td>Monitoring / 주 1회</td></tr>
+<tr><td>책임</td><td>SysAdmin</td></tr>
+<tr><td>예상 소요</td><td>3분</td></tr>
+<tr><td>전제조건</td><td>—</td></tr>
+<tr><td>관련 도구</td><td>df, du, smartctl (NVMe HAT 시), measure_rpi_baseline.sh</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>전체:
+<pre>df -h /
+docker system df</pre></li>
+<li>큰 디렉터리 top 5:
+<pre>du -sh /home/tion/deployment/20251030-rpi-finished/{logs,backup,saved_models,.web,ksys_app} 2&gt;/dev/null \
+  | sort -h | tail -5</pre></li>
+<li>SD card I/O (baseline 비교):
+<pre>./scripts/measure_rpi_baseline.sh
+# 결과 reports/rpi_baseline_*.txt 의 7. SD random write 50MB/s 이상 유지?</pre></li>
+<li>SD에 SMART 없음 — 대안: write count proxy:
+<pre>cat /sys/block/mmcblk0/stat | awk '{print "write sectors:", $7}'
+# 시간에 따라 기록, 급증시 wear 가속 의심</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>/ 사용률 &lt; 80%</li>
+<li>random write 속도 baseline 대비 80% 이상</li>
+</ul>
+
+<h4>롤백</h4>
+<p>관찰 작업 — 롤백 없음.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">backup/ 누적</span> — OP-010 cron이 mtime +30 삭제하지만 일별 ~수백MB. 분기마다 NAS로 이관 권고.</li>
+<li><span class="warn">saved_models/ 누적</span> — forecast-scheduler가 모델 cache 쓰면 ~수GB까지 증가 가능. 월 1회 OP-052에서 prune.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-023: 메모리 leak 의심 시 진단 <span class="badge b-mon">MON</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-023</td></tr>
+<tr><td>분류</td><td>Monitoring / 이벤트성</td></tr>
+<tr><td>책임</td><td>DevOps</td></tr>
+<tr><td>예상 소요</td><td>30분</td></tr>
+<tr><td>전제조건</td><td><code>docker stats</code>에서 특정 서비스 RSS가 시간에 따라 단조 증가</td></tr>
+<tr><td>관련 도구</td><td>docker stats, py-spy, tracemalloc</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>장기 모니터링 (10분 간격 4회):
+<pre>for i in 1 2 3 4; do
+  docker stats --no-stream --format "{{.Name}} {{.MemUsage}}" | grep rpi-finished
+  sleep 600
+done</pre></li>
+<li>Reflex State zombie 의심 시 (spec_02 _polling_task 참조):
+<pre>docker exec rpi-finished-reflex-app python -c "
+import gc, sys
+gc.collect()
+print('Total objects:', len(gc.get_objects()))
+print('State subclasses:', [t for t in gc.get_objects() if hasattr(t, '__bases__') and 'State' in str(t)][:5])
+"</pre></li>
+<li>py-spy 핫스팟 (필요시 컨테이너에 추가 설치):
+<pre>docker exec rpi-finished-reflex-app pip install py-spy
+PID=$(docker exec rpi-finished-reflex-app pgrep -f reflex)
+docker exec rpi-finished-reflex-app py-spy dump --pid "$PID"</pre></li>
+<li>임시 완화 — 일 1회 자동 재시작 cron:
+<pre>0 4 * * * docker restart rpi-finished-reflex-app</pre></li>
+</ol>
+
+<h4>검증</h4>
+<p>재시작 후 24시간 RSS curve가 평탄(±20MB) 유지.</p>
+
+<h4>롤백</h4>
+<p>일 1회 cron 재시작은 임시방편. 근본 원인은 코드 fix 필요 — spec_05 P-tier perf test로 회귀.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">Reflex 0.8 SSR + State scope</span> — 사용자 세션이 cleanup 안 되면 누적. session timeout 확인.</li>
+<li>Plotly figure cache (spec_03의 trend 페이지) — 명시 release 없으면 누적.</li>
+</ul>
+</div>
+
+<!-- =================== INCIDENT =================== -->
+
+<h2>6. Incident Response 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-030: reflex-app 컨테이너 죽음 → 재시작 <span class="badge b-inc">INC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-030</td></tr>
+<tr><td>분류</td><td>Incident / 이벤트성</td></tr>
+<tr><td>책임</td><td>Operator (1차) → DevOps escalate</td></tr>
+<tr><td>예상 소요</td><td>2분 + (재발시 30분 root cause)</td></tr>
+<tr><td>전제조건</td><td>curl http://localhost:14000/ 응답 없음 또는 5xx</td></tr>
+<tr><td>관련 도구</td><td>docker logs, docker restart</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>상태 확인:
+<pre>docker ps -a --filter name=rpi-finished-reflex-app --format '{{.Status}}'</pre></li>
+<li>죽기 직전 50줄 보존 (incident report 첨부):
+<pre>docker logs --tail 50 rpi-finished-reflex-app &gt; /tmp/incident_$(date +%F_%H%M)_reflex.log</pre></li>
+<li><strong>Stop-Process 절대 금지</strong> — HANDOFF/메모리 기반: 호스트 Python kill로 zombie TCP socket 발생 가능. 컨테이너 재시작만:
+<pre>docker restart rpi-finished-reflex-app</pre></li>
+<li>30초 대기 후 health check:
+<pre>sleep 30 &amp;&amp; curl -I http://localhost:14000/</pre></li>
+<li>5분 이내 재발생 시 OP-023 메모리 leak 의심 트랙으로 escalate.</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>200 + Reflex 페이지 로드 정상</li>
+<li><code>docker ps</code>에서 RestartCount 증가 (Docker가 정상 인식)</li>
+</ul>
+
+<h4>롤백</h4>
+<p>이전 안정 버전 이미지로 OP-003 역방향.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">호스트에서 Reflex 실행 금지</span> — Windows에서 host python 띄우면 TCP socket leak. <strong>Docker container only</strong>.</li>
+<li><span class="warn">restart loop</span> — depends_on db가 unhealthy면 reflex-app도 죽음/재시작 반복. OP-031 우선 실행.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-031: DB 응답 없음 → 진단/복구 <span class="badge b-inc">INC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-031</td></tr>
+<tr><td>분류</td><td>Incident / 이벤트성 (High severity)</td></tr>
+<tr><td>책임</td><td>DBA + SysAdmin</td></tr>
+<tr><td>예상 소요</td><td>15분 (재시작) ~ 60분 (volume 손상시)</td></tr>
+<tr><td>전제조건</td><td>pg_isready 실패 또는 reflex-app/scheduler에 asyncpg connection refused</td></tr>
+<tr><td>관련 도구</td><td>docker, psql, restore_db.sh</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>1차 진단 (5분):
+<pre>docker ps -a --filter name=rpi-finished-pgai-db --format '{{.Status}}'
+docker logs rpi-finished-pgai-db --tail 100 2&gt;&amp;1 | tail -60</pre></li>
+<li>로그 패턴 분류:
+<ul>
+<li><code>PANIC: could not write to file ...</code> → 디스크 full (OP-022 우선)</li>
+<li><code>FATAL: lock file ... already exists</code> → 비정상 종료 잔재 (volume 마운트 확인)</li>
+<li><code>autovacuum worker started</code> 후 침묵 → wraparound vacuum 진행중 (대기)</li>
+<li>이외 → 재시작 시도</li>
+</ul></li>
+<li>재시작 (volume 보존):
+<pre>docker restart rpi-finished-pgai-db
+sleep 30
+docker exec rpi-finished-pgai-db pg_isready -U postgres</pre></li>
+<li>재시작 실패 시 volume 무결성:
+<pre>docker run --rm -v reflex-rpi-local-deployment-poongdo_pgai_data:/var/lib/postgresql/data \
+  --entrypoint pg_resetwal timescale/timescaledb:2.21.3-pg17 -n /var/lib/postgresql/data
+# (dry-run, 실제 reset은 매우 신중)</pre></li>
+<li>최후 수단 — 백업에서 복원:
+<pre>docker compose down rpi-finished-pgai-db
+docker volume rm reflex-rpi-local-deployment-poongdo_pgai_data
+docker compose up -d rpi-finished-pgai-db
+sleep 30
+./scripts/restore_db.sh /home/tion/deployment/20251030-rpi-finished/backup/ecoanp_&lt;latest&gt;.dump
+docker compose up -d</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>pg_isready OK</li>
+<li>OP-020 Smoke 10 cases 통과</li>
+<li>incident 노트 작성: incident_&lt;ts&gt;_db.md</li>
+</ul>
+
+<h4>롤백</h4>
+<p>볼륨 복구 전 시점이라면 SD 카드 이전 스냅샷 복원 (외부 백업 필요).</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">pg_resetwal은 마지막 수단</span> — 데이터 정합성 손상 가능. 반드시 백업 복원 우선 검토.</li>
+<li><span class="warn">SD 읽기/쓰기 오류</span> — kernel ring (<code>dmesg | grep mmc</code>)에 I/O error 있으면 SD 카드 EOL (OP-050).</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-032: Cloudflare Tunnel 끊김 <span class="badge b-inc">INC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-032</td></tr>
+<tr><td>분류</td><td>Incident / 이벤트성</td></tr>
+<tr><td>책임</td><td>NetOps</td></tr>
+<tr><td>예상 소요</td><td>10분</td></tr>
+<tr><td>전제조건</td><td>외부 https://&lt;subdomain&gt;.ksys.kr 접속 실패, 내부 14000은 정상</td></tr>
+<tr><td>관련 도구</td><td>docker logs, Cloudflare Zero Trust dashboard</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>cloudflared 로그:
+<pre>docker logs cloudflared-tunnel --tail 80 | grep -iE "error|disconnect|register|fail"</pre></li>
+<li>Cloudflare Zero Trust dashboard → Tunnels → 해당 노드 상태:
+<ul>
+<li>OFFLINE — 토큰/네트워크 문제</li>
+<li>DEGRADED — 일부 connector만 살아있음</li>
+</ul></li>
+<li>로컬 네트워크 확인:
+<pre>ping -c 3 1.1.1.1
+nslookup ksys.kr 1.1.1.1
+curl -I https://cloudflare.com</pre></li>
+<li>재시작:
+<pre>docker restart cloudflared-tunnel
+sleep 30
+docker logs cloudflared-tunnel --tail 20 | grep -i registered</pre></li>
+<li>여전히 실패 시 토큰 무효 의심 → OP-040 토큰 rotate로 escalate.</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>외부 URL HTTP 200</li>
+<li>dashboard에서 ONLINE 표시</li>
+</ul>
+
+<h4>롤백</h4>
+<p>이전 토큰 archive 있으면 .env 복원 + restart. 없으면 신규 토큰 발급 (OP-040).</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="warn">홈/사무실 ISP IPv6 우선</span> — cloudflared가 일부 환경에서 IPv6 path 실패. <code>--protocol http2</code> 또는 IPv4 강제 옵션 검토.</li>
+<li>여러 RPI가 <strong>동일 토큰</strong>으로 동시 connect 시 라우팅 진동 발생 — 노드별 토큰 분리 (OP-043).</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-033: 알람 누락 의심 (AlarmMonitor 침묵) <span class="badge b-inc">INC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-033</td></tr>
+<tr><td>분류</td><td>Incident / 이벤트성</td></tr>
+<tr><td>책임</td><td>App Dev + DBA</td></tr>
+<tr><td>예상 소요</td><td>20분</td></tr>
+<tr><td>전제조건</td><td>현장에서 알람 발생 보고 있는데 UI/DB에 없음</td></tr>
+<tr><td>관련 도구</td><td>docker logs, psql, spec_03 알람 흐름도</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>최근 알람 head:
+<pre>docker exec ... -tAc "SELECT alarm_id, severity, raised_at FROM alarm_history ORDER BY raised_at DESC LIMIT 10;"</pre>
+&gt; 30분 전이면 폴링/리스닝 중단 의심.</li>
+<li>NOTIFY/LISTEN 채널 활성 확인 (spec_03 10초 polling + LISTEN):
+<pre>docker exec ... -tAc "SELECT pid, application_name, query, state FROM pg_stat_activity WHERE query LIKE '%LISTEN%';"</pre></li>
+<li>AlarmMonitor 로그:
+<pre>docker logs rpi-finished-reflex-app 2&gt;&amp;1 | grep -i alarm | tail -40</pre></li>
+<li>원천 데이터 (influx_hist) 적재 확인:
+<pre>... -tAc "SELECT now() - MAX(time) FROM influx_hist;"</pre>
+&gt; 10분 차이면 timeseries-pipeline 또는 외부 ingest 멈춤.</li>
+<li>임계 규칙 변경 가능성 — 룰 테이블 점검 (spec_03).</li>
+<li>최후: reflex-app 재시작 (OP-030) — _polling_task 회복 기대.</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>5분 내 신규 알람 1건 이상 발생 확인 또는 강제 트리거 (테스트 임계 일시 변경)</li>
+</ul>
+
+<h4>롤백</h4>
+<p>임계 규칙 임시 변경했다면 원상 복귀.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">_polling_task zombie</span> — spec_02 발견 사항. reflex-app long-uptime 시 task가 silently die. 일 1회 자동 재시작이 임시방편.</li>
+<li>NOTIFY 큐 overflow — 짧은 시간 대량 알람이면 일부 drop 가능. polling fallback이 필요.</li>
+</ul>
+</div>
+
+<!-- =================== SECURITY =================== -->
+
+<h2>7. Security 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-040: Cloudflare 토큰 Rotate <span class="badge b-sec">SEC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-040</td></tr>
+<tr><td>분류</td><td>Security / 분기 (1/4/7/10월 첫 주)</td></tr>
+<tr><td>책임</td><td>SecOps</td></tr>
+<tr><td>예상 소요</td><td>15분</td></tr>
+<tr><td>전제조건</td><td>Cloudflare Zero Trust 관리자 권한, 변경 윈도 협의</td></tr>
+<tr><td>관련 도구</td><td>Cloudflare dashboard, nano, docker compose</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>Cloudflare dashboard → Tunnels → 해당 노드 → Configure → 토큰 신규 발급 (구 토큰은 유예 기간 일정 시간 유지).</li>
+<li>RPI에서 .env 갱신 (스페이스 prefix로 history 회피):
+<pre> nano /home/tion/deployment/20251030-rpi-finished/.env
+ # CLOUDFLARE_TUNNEL_TOKEN=&lt;NEW&gt;
+chmod 600 .env</pre></li>
+<li>cloudflared만 재시작:
+<pre>docker compose up -d --no-deps --force-recreate cloudflared</pre></li>
+<li>dashboard에서 ONLINE 확인 후 구 토큰 폐기:
+<pre># Cloudflare dashboard → 구 토큰 revoke</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>외부 URL 정상</li>
+<li>dashboard에 신규 connector만 ONLINE</li>
+</ul>
+
+<h4>롤백</h4>
+<p>구 토큰을 revoke 전 단계까지는 .env 복원 + restart로 즉시 회귀 가능.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">구 토큰 revoke를 verify 전에 누르면</span> 외부 접속 끊김.</li>
+<li>토큰 평문이 .env에 — chmod 600 확인 + git에 절대 commit 금지 (<code>.gitignore</code>).</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-041: POSTGRES_PASSWORD Rotate <span class="badge b-sec">SEC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-041</td></tr>
+<tr><td>분류</td><td>Security / 반기 (1/7월)</td></tr>
+<tr><td>책임</td><td>SecOps + DBA</td></tr>
+<tr><td>예상 소요</td><td>30분 (downtime ~3분)</td></tr>
+<tr><td>전제조건</td><td>전 서비스 다운타임 윈도 확보</td></tr>
+<tr><td>관련 도구</td><td>psql, openssl, docker compose</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>신규 비밀번호 생성 + 즉시 비밀번호 관리자 저장:
+<pre>NEW=$(openssl rand -base64 32 | tr -d '=+/' | head -c 24)
+echo "$NEW"  # 즉시 캡처
+unset NEW_NEVER_AGAIN</pre></li>
+<li>DB 안에서 패스워드 변경:
+<pre>docker exec -e PGPASSWORD="$OLD" rpi-finished-pgai-db \
+  psql -U postgres -c "ALTER USER postgres WITH PASSWORD '$NEW';"</pre></li>
+<li>.env 4개 항목 갱신 (POSTGRES_PASSWORD + TS_DSN + POSTGRES_CONNECTION_STRING + TS_DSN_LOCAL):
+<pre>cp .env .env.bak.$(date +%F)
+chmod 600 .env.bak.*
+nano .env
+chmod 600 .env</pre></li>
+<li>클라이언트 서비스 재시작 (DB는 그대로):
+<pre>docker compose up -d --no-deps --force-recreate \
+  rpi-finished-reflex-app rpi-finished-forecast-scheduler \
+  rpi-finished-data-injector rpi-finished-timeseries-pipeline</pre></li>
+<li>OP-020 통과 확인 후 .env.bak.* 삭제:
+<pre>shred -u .env.bak.*</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>OP-020 Smoke 10 cases 통과</li>
+<li><code>docker logs rpi-finished-reflex-app | grep -i "password authentication failed"</code> 비어있음</li>
+</ul>
+
+<h4>롤백</h4>
+<pre># DB는 ALTER USER로 즉시 회귀
+docker exec ... psql -U postgres -c "ALTER USER postgres WITH PASSWORD '$OLD';"
+cp .env.bak.&lt;date&gt; .env &amp;&amp; chmod 600 .env
+docker compose up -d --force-recreate (4개)</pre>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">.env.bak 잔존</span> — 일정 시간 후 반드시 shred.</li>
+<li>backup/*.dump는 비밀번호와 무관 — 재암호화 불필요.</li>
+<li>NEW를 shell history에 남기지 않도록 set +o history 또는 스페이스 prefix.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-042: .env 권한/누설 점검 <span class="badge b-sec">SEC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-042</td></tr>
+<tr><td>분류</td><td>Security / 월 1회</td></tr>
+<tr><td>책임</td><td>SecOps</td></tr>
+<tr><td>예상 소요</td><td>3분</td></tr>
+<tr><td>전제조건</td><td>—</td></tr>
+<tr><td>관련 도구</td><td>stat, git log, grep</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>퍼미션:
+<pre>stat -c '%a %U:%G %n' .env .env.example 2&gt;/dev/null
+# 기대: 600 tion:tion .env</pre></li>
+<li>git에 commit 흔적 점검 (현재 그리고 과거):
+<pre>git log --all --full-history -- .env
+git log -p --all -S "POSTGRES_PASSWORD=" -- .env .env.example | head -40</pre>
+hit이 있으면 즉시 OP-041 + git history rewrite (BFG).</li>
+<li>운영자 로그에 비밀번호 echo 흔적:
+<pre>grep -r "POSTGRES_PASSWORD" /home/tion/.bash_history /var/log/journal 2&gt;/dev/null | head -5</pre></li>
+<li>backup dump의 평문 데이터 노출 risk — NAS 전송시 암호화 사용 확인.</li>
+</ol>
+
+<h4>검증</h4>
+<p>.env 600, git untracked, history clean → OK.</p>
+
+<h4>롤백</h4>
+<p>누설 발견 즉시 OP-041 (DB password) + OP-040 (Cloudflare 토큰) 동시 진행.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li>.env.bak 임시 파일이 OP-041 후 남아있을 수 있음 — 점검 항목에 포함.</li>
+<li>운영자 PC에 scp로 가져간 사본도 동일하게 chmod 600 권고.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-043: 신규 RPI 추가 시 .env 분리 발급 <span class="badge b-sec">SEC</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-043</td></tr>
+<tr><td>분류</td><td>Security / 이벤트성 (multi-RPI 확장)</td></tr>
+<tr><td>책임</td><td>SecOps</td></tr>
+<tr><td>예상 소요</td><td>20분</td></tr>
+<tr><td>전제조건</td><td>OP-001 fresh provisioning과 함께 수행</td></tr>
+<tr><td>관련 도구</td><td>Cloudflare dashboard, openssl, bootstrap_rpi.sh</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>신규 RPI에 <strong>고유</strong> 항목 부여:
+<ul>
+<li><code>RPI_NODE_ID</code> — 예 <code>pd-site-002</code> (운영 매트릭스에 등재)</li>
+<li><code>POSTGRES_PASSWORD</code> — bootstrap_rpi.sh가 RPI별 별개 자동 생성</li>
+<li><code>CLOUDFLARE_TUNNEL_TOKEN</code> — Cloudflare에서 신규 tunnel + 신규 토큰 발급 (구 RPI 토큰 재사용 절대 금지)</li>
+<li><code>FRONTEND_PORT</code> / <code>BACKEND_PORT</code> / <code>DB_PORT_HOST</code> — 같은 LAN에 여러 대 동시 운영시 충돌 회피 (예: 14010/14011/5433)</li>
+</ul></li>
+<li>중앙 secret 관리:
+<pre># 비밀번호 관리자 항목명 표준:
+# rpi-finished-&lt;NODE_ID&gt;-postgres
+# rpi-finished-&lt;NODE_ID&gt;-cf-tunnel</pre></li>
+<li>운영 매트릭스 (§9)에 항목 추가:
+<pre># RPI_NODE_ID, IP, FRONTEND_PORT, CF tunnel 이름, .env scan 일자, baseline date</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>모든 노드의 토큰/패스워드가 unique</li>
+<li>Cloudflare dashboard에 노드별 ONLINE</li>
+</ul>
+
+<h4>롤백</h4>
+<p>실패 노드의 Cloudflare 토큰 revoke + SD 재플래시.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">노드별 토큰 분리하지 않으면</span> 한 노드 침해시 모든 외부 노출 노드 영향.</li>
+<li>같은 LAN에 두 대 동시 운영시 host 포트 충돌 — DB_PORT_HOST 분리 필수.</li>
+</ul>
+</div>
+
+<!-- =================== CAPACITY =================== -->
+
+<h2>8. Capacity 시나리오</h2>
+
+<div class="runbook">
+<h3>OP-050: SD Card 교체 (~3-5년 EOL) <span class="badge b-cap">CAP</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-050</td></tr>
+<tr><td>분류</td><td>Capacity / 장기 (3-5년 또는 wear 신호)</td></tr>
+<tr><td>책임</td><td>SysAdmin</td></tr>
+<tr><td>예상 소요</td><td>2시간 (현장 작업 + 재배포)</td></tr>
+<tr><td>전제조건</td><td>OP-022에서 write 속도 저하 또는 <code>dmesg | grep mmc</code>에서 I/O error</td></tr>
+<tr><td>관련 도구</td><td>Raspberry Pi Imager, scripts/bootstrap_rpi.sh</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>OP-010 즉시 백업 + 원격 복사 (현 SD에서 마지막):
+<pre>./scripts/backup_db.sh
+rsync -avz backup/ tion@&lt;safe-host&gt;:/safe/rpi-final-backup/</pre></li>
+<li>코드 + .env (없으면 비밀번호 분실) 백업:
+<pre>tar czf /tmp/rpi_repo_$(date +%F).tar.gz \
+  --exclude .web --exclude saved_models --exclude logs \
+  /home/tion/deployment/20251030-rpi-finished/
+scp /tmp/rpi_repo_*.tar.gz tion@&lt;safe-host&gt;:/safe/</pre></li>
+<li>RPI shutdown:
+<pre>sudo shutdown -h now</pre></li>
+<li>신규 SD 카드(SDXC A2 V30 이상 권장) Imager로 RaspbianOS Bookworm flash + ssh key 사전 주입.</li>
+<li>OP-001 fresh provisioning 수행 — 단, OP-001-8단계의 dump는 §1 백업본 사용.</li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>OP-020 + baseline 측정 후 write 속도가 신규 SD 기준 60MB/s 이상</li>
+</ul>
+
+<h4>롤백</h4>
+<p>구 SD 카드 보관 (재포맷 금지) — 신규 환경에 문제 발생시 임시 swap.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">.env 백업 누락하면 POSTGRES_PASSWORD 영구 소실</span> — DB 복원 불가. 반드시 step 2 포함.</li>
+<li><span class="warn">신규 RPI는 신규 Cloudflare 토큰 권고</span> (OP-043) — 기존 토큰 재사용시 라우팅 진동.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-051: 오래된 알람/예측 데이터 정리 <span class="badge b-cap">CAP</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-051</td></tr>
+<tr><td>분류</td><td>Capacity / 월 1회</td></tr>
+<tr><td>책임</td><td>DBA</td></tr>
+<tr><td>예상 소요</td><td>15분</td></tr>
+<tr><td>전제조건</td><td>알람/예측 보존 정책 합의 (현재 가정: alarm 1년, prediction 6개월)</td></tr>
+<tr><td>관련 도구</td><td>psql, TimescaleDB drop_chunks</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>현재 청크 분포:
+<pre>SELECT hypertable_name, COUNT(*) AS chunks, pg_size_pretty(SUM(total_bytes))
+FROM timescaledb_information.chunks GROUP BY 1;</pre></li>
+<li>retention policy 등록 (1회성 — 이미 있으면 skip):
+<pre>SELECT add_retention_policy('alarm_history', INTERVAL '365 days');
+SELECT add_retention_policy('prediction_performance', INTERVAL '180 days');
+SELECT add_retention_policy('influx_hist', INTERVAL '730 days'); -- 사이트 정책</pre></li>
+<li>수동 즉시 정리 (정책 등록과 별개):
+<pre>SELECT drop_chunks('alarm_history', INTERVAL '365 days');
+SELECT drop_chunks('prediction_performance', INTERVAL '180 days');</pre></li>
+<li>VACUUM:
+<pre>VACUUM ANALYZE alarm_history;
+VACUUM ANALYZE prediction_performance;</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>총 DB 크기 감소 확인 (<code>SELECT pg_size_pretty(pg_database_size('ecoanp'));</code>)</li>
+<li>regulation/audit 요구 데이터는 정리 전 archive (compliance 확인)</li>
+</ul>
+
+<h4>롤백</h4>
+<p>drop_chunks는 destructive. 백업 dump에서만 복원 가능. 정책 등록은 <code>remove_retention_policy</code>로 회귀.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad">audit 요건 위반</span> — 산업 규제에 따라 알람 이력 보존 기간 명시 가능. 정책 등록 전 법무/현장팀 합의.</li>
+<li>continuous aggregate가 base보다 긴 보존 기간 가지면 cagg 무효화 — drop_chunks 옵션 확인.</li>
+</ul>
+</div>
+
+
+<div class="runbook">
+<h3>OP-052: Reflex .web 캐시 / docker prune <span class="badge b-cap">CAP</span></h3>
+<table>
+<tr><td>운영 ID</td><td>OP-052</td></tr>
+<tr><td>분류</td><td>Capacity / 월 1회</td></tr>
+<tr><td>책임</td><td>SysAdmin</td></tr>
+<tr><td>예상 소요</td><td>5분</td></tr>
+<tr><td>전제조건</td><td>OP-022에서 / 사용률 70% 초과 또는 docker system df &gt; 5GB</td></tr>
+<tr><td>관련 도구</td><td>docker prune, du</td></tr>
+</table>
+
+<h4>단계별 절차</h4>
+<ol>
+<li>docker 객체 사이즈:
+<pre>docker system df -v | head -30</pre></li>
+<li>안전 prune:
+<pre>docker image prune -f                 # dangling
+docker container prune -f             # exited
+docker builder prune -f --keep-storage 2GB</pre></li>
+<li>volume은 절대 prune 금지 (pgai_data 손실 위험) — 명시적으로 named volume 확인.</li>
+<li>Reflex .web 캐시:
+<pre>docker exec rpi-finished-reflex-app du -sh /app/.web 2&gt;/dev/null
+# 1GB 초과시:
+docker exec rpi-finished-reflex-app rm -rf /app/.web/_build
+docker restart rpi-finished-reflex-app  # 다음 build trigger</pre></li>
+<li>로그 디렉터리:
+<pre>find logs/ -name '*.log' -size +100M -exec ls -lh {} \;
+# 큰 로그는 회전 후 압축 또는 삭제</pre></li>
+</ol>
+
+<h4>검증</h4>
+<ul>
+<li>/ 사용률 70% 미만 회복</li>
+<li>OP-020 통과</li>
+</ul>
+
+<h4>롤백</h4>
+<p>prune은 idempotent (필요한 dangling만 제거). 데이터 손실 없음.</p>
+
+<h4>알려진 함정</h4>
+<ul>
+<li><span class="bad"><code>docker volume prune</code> 금지</span> — named volume도 다른 컨테이너 dead 상태면 삭제될 수 있음.</li>
+<li>Reflex .web 삭제 후 첫 재시작은 빌드 시간(수분)이 길어짐 — 운영 시간 회피.</li>
+</ul>
+</div>
+
+<!-- =================== MULTI-RPI =================== -->
+
+<h2>9. Multi-RPI 운영 매트릭스</h2>
+
+<p>현재 검증된 노드 1대 — 다중 노드 확장을 위한 운영 매트릭스 템플릿. 노드 추가 시 OP-043를 따르고 이 표에 등재.</p>
+
+<table>
+<tr>
+  <th>RPI_NODE_ID</th><th>물리 위치</th><th>IP (LAN)</th>
+  <th>FRONTEND<br>PORT</th><th>BACKEND<br>PORT</th><th>DB_PORT<br>HOST</th>
+  <th>Cloudflare<br>tunnel 이름</th><th>.env scan<br>최종</th><th>baseline<br>최종</th>
+  <th>SD 카드<br>설치일</th>
+</tr>
+<tr>
+  <td><code>pd-site-001</code> (검증)</td><td>풍도 현장</td><td>192.168.0.80</td>
+  <td>14000</td><td>14001</td><td>5432</td>
+  <td>ksys-tunnel-prod</td><td>2026-05-21</td><td>2026-05-19</td>
+  <td>2025-10-30</td>
+</tr>
+<tr>
+  <td><code>pd-site-002</code> (계획)</td><td>—</td><td>—</td>
+  <td>14010</td><td>14011</td><td>5433</td>
+  <td>ksys-tunnel-site002</td><td>—</td><td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td><code>pd-dev-001</code> (계획)</td><td>개발실</td><td>—</td>
+  <td>14020</td><td>14021</td><td>5434</td>
+  <td>ksys-tunnel-dev</td><td>—</td><td>—</td>
+  <td>—</td>
+</tr>
+</table>
+
+<div class="callout good">
+<strong>Multi-RPI 배포 가능 여부:</strong> <span class="good">YES — 스크립트 갖춰진 상태</span>. <code>bootstrap_rpi.sh</code>가 RPI별 POSTGRES_PASSWORD 자동생성 + RPI_NODE_ID 강제 입력으로 노드 분리 보장. <code>restore_db.sh</code>가 TimescaleDB-aware 단일 thread로 dump 이전 안전. baseline 스크립트가 노드별 성능 횡비교 데이터 생산. <strong>운영 매트릭스만 정기 갱신하면 N대 확장 즉시 가능.</strong>
+</div>
+
+<h2>10. 운영 KPI</h2>
+
+<table>
+<tr><th>KPI</th><th>목표</th><th>측정 방법</th><th>주기</th><th>현 baseline</th></tr>
+<tr>
+  <td>Uptime (월간 가용성)</td><td>≥ 99.5%</td>
+  <td>외부 ping URL × 30s 간격, 월간 집계</td><td>월</td><td>측정 시스템 미도입</td>
+</tr>
+<tr>
+  <td>OP-030 reflex-app MTTR</td><td>≤ 5분</td>
+  <td>incident 로그 timestamp diff</td><td>이벤트별</td><td>2분 (1회 검증)</td>
+</tr>
+<tr>
+  <td>OP-031 DB MTTR</td><td>≤ 30분 (재시작) / 60분 (복원)</td>
+  <td>incident 로그</td><td>이벤트별</td><td>미발생</td>
+</tr>
+<tr>
+  <td>OP-020 일일 health check 통과율</td><td>≥ 95%</td>
+  <td>reports/health_*.txt 집계</td><td>월</td><td>미정착</td>
+</tr>
+<tr>
+  <td>baseline: forecast latency</td><td>≤ 5s</td>
+  <td>measure_rpi_baseline.sh §6</td><td>분기</td><td>측정 1회</td>
+</tr>
+<tr>
+  <td>baseline: idle memory</td><td>baseline ×0.7 (Stage 5 목표)</td>
+  <td>measure_rpi_baseline.sh §2</td><td>분기</td><td>측정 1회</td>
+</tr>
+<tr>
+  <td>baseline: SD random write</td><td>≥ 60 MB/s</td>
+  <td>measure_rpi_baseline.sh §7</td><td>주</td><td>측정 1회</td>
+</tr>
+<tr>
+  <td>OP-010 백업 성공률</td><td>100%</td>
+  <td>cron 로그 + dump 파일 mtime</td><td>일</td><td>cron 미등록</td>
+</tr>
+<tr>
+  <td>OP-040 Cloudflare 토큰 rotate 적기</td><td>분기마다 ±7일</td>
+  <td>password manager 기록</td><td>분기</td><td>1회 발급, 미rotate</td>
+</tr>
+<tr>
+  <td>OP-041 DB 패스워드 rotate 적기</td><td>반기마다 ±14일</td>
+  <td>password manager 기록</td><td>반기</td><td>초기 발급, 미rotate</td>
+</tr>
+</table>
+
+<h2>11. 운영팀 권한 모델 (향후 auth 도입 후)</h2>
+
+<p>PRD §7 산업표준 갭에 명시된 대로 현재 앱 수준 인증/RBAC 미도입. auth 도입 후 적용할 운영 권한 매트릭스:</p>
+
+<table>
+<tr>
+  <th>역할</th><th>OP-001~004<br>Provisioning</th><th>OP-010~012<br>Backup</th>
+  <th>OP-020~023<br>Monitoring</th><th>OP-030~033<br>Incident</th>
+  <th>OP-040~043<br>Security</th><th>OP-050~052<br>Capacity</th>
+</tr>
+<tr>
+  <td><strong>Operator</strong> (현장)</td>
+  <td>OP-004만</td><td>R/O 결과 확인</td>
+  <td>OP-020/021 실행</td><td>OP-030 1차 시도</td>
+  <td>—</td><td>—</td>
+</tr>
+<tr>
+  <td><strong>DevOps</strong></td>
+  <td>OP-002/003</td><td>—</td>
+  <td>OP-021/023</td><td>OP-030/033</td>
+  <td>—</td><td>—</td>
+</tr>
+<tr>
+  <td><strong>DBA</strong></td>
+  <td>—</td><td>OP-010~012 전권</td>
+  <td>—</td><td>OP-031/033</td>
+  <td>OP-041</td><td>OP-051</td>
+</tr>
+<tr>
+  <td><strong>SysAdmin</strong></td>
+  <td>OP-001 전권</td><td>R/O</td>
+  <td>OP-022</td><td>OP-031</td>
+  <td>—</td><td>OP-050/052</td>
+</tr>
+<tr>
+  <td><strong>SecOps</strong></td>
+  <td>—</td><td>—</td>
+  <td>—</td><td>—</td>
+  <td>OP-040~043 전권</td><td>—</td>
+</tr>
+<tr>
+  <td><strong>NetOps</strong></td>
+  <td>—</td><td>—</td>
+  <td>—</td><td>OP-032</td>
+  <td>OP-040 협업</td><td>—</td>
+</tr>
+</table>
+
+<div class="callout crit">
+<strong id="footnote-zombie">중요 운영 원칙 — Zombie Socket 회피.</strong>
+호스트(Windows) 머신에서 절대 <code>Stop-Process</code> / <code>taskkill</code>로 reflex/python 프로세스를 죽이지 말 것. TCP socket이 LISTEN 상태로 누락되어 reboot 전까지 회복 불가. <strong>Docker container 재기동(<code>docker restart</code>)만 사용.</strong> RPI 운영에도 동일 원칙 적용 — host에서 직접 reflex 띄우지 않음.
+</div>
+
+<h2>12. 운영 산출물 — 권장 디렉터리 구조</h2>
+
+<pre>/home/tion/deployment/20251030-rpi-finished/
+├── docker-compose.yml             # 6 서비스 정의
+├── .env                            # 600, 노드별 고유
+├── .env.example                    # commit 가능 (placeholder만)
+├── .gitignore                      # .env, .env.bak.* 반드시 포함
+├── scripts/
+│   ├── bootstrap_rpi.sh           # OP-001 자동
+│   ├── restore_db.sh              # OP-011 자동
+│   ├── measure_rpi_baseline.sh    # baseline 측정
+│   └── backup_db.sh               # OP-010 cron 대상 (신규)
+├── backup/                        # OP-010 dump 보관 (30일 회전)
+├── logs/                          # bind-mount, 컨테이너 stdout
+├── reports/
+│   ├── rpi_baseline_*.txt         # baseline 추적
+│   ├── health_*.txt               # OP-020 일일 결과
+│   ├── log_audit_*.txt            # OP-021 일일 결과
+│   └── incident_*.md              # 비상시 incident 노트
+└── ksys_app/                      # bind-mount, 코드 hot reload</pre>
+
+<h2>부록 A — 운영 시나리오 카테고리별 분포 요약</h2>
+
+<table>
+<tr><th>카테고리</th><th>건수</th><th>주기 합계</th><th>주요 책임</th></tr>
+<tr><td><span class="badge b-prov">PROV</span> Provisioning / Deploy</td><td>4</td><td>1회성 + 수시</td><td>SysAdmin / DevOps / Operator</td></tr>
+<tr><td><span class="badge b-bk">BK</span> Backup / Restore</td><td>3</td><td>일 1회 + 필요시</td><td>DBA</td></tr>
+<tr><td><span class="badge b-mon">MON</span> Monitoring</td><td>4</td><td>일/주 + 이벤트</td><td>Operator / SysAdmin / DevOps</td></tr>
+<tr><td><span class="badge b-inc">INC</span> Incident Response</td><td>4</td><td>이벤트성</td><td>Operator → 전 분야 escalate</td></tr>
+<tr><td><span class="badge b-sec">SEC</span> Security</td><td>4</td><td>월/분기/반기</td><td>SecOps</td></tr>
+<tr><td><span class="badge b-cap">CAP</span> Capacity</td><td>3</td><td>월 + 장기</td><td>DBA / SysAdmin</td></tr>
+<tr><td colspan="2"><strong>총 22</strong></td><td colspan="2"></td></tr>
+</table>
+
+<p class="meta" style="margin-top:36px; border-top: 1px solid #30363d; padding-top: 12px;">
+END OF spec_14_operations_spec.html · infra-architect · 2026-05-29 ·
+다음 갱신 trigger: (1) 신규 RPI 추가 시 §9 매트릭스, (2) auth 도입 시 §11 권한 매트릭스, (3) OP-XXX 신규/폐기 시 §2 카탈로그.
+</p>
+
+</body>
+</html>

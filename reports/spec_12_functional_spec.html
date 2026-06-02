@@ -68,7 +68,7 @@
 <strong>상태:</strong> Draft (정통 SI 산출물 양식 — 향후 PM/SA 검토 후 v1.1 승인)<br>
 <strong>대상 시스템:</strong> KSYS — Reflex 기반 단일 사이트 정수처리 IoT 모니터링 + ML 예측 플랫폼<br>
 <strong>입력 산출물:</strong> spec_01_frontend_pages.html · spec_02_backend_states_services.html · spec_03_database_schedulers.html · spec_06_menu_sitemap.html · spec_07_storyboard.html · spec_08~11_screens_*.html<br>
-<strong>커버리지:</strong> 201 <code>@rx.event</code> handlers → <strong>97 functional features</strong>로 그룹핑 명세화 (사소한 setter/toggle 제외)<br>
+<strong>커버리지:</strong> 201 <code>@rx.event</code> handlers → <strong>100 functional features</strong>로 그룹핑 명세화 (사소한 setter/toggle 제외, SRS backfill 3건 포함)<br>
 <strong>버전 관리:</strong> Git refactor/secrets-externalize-day1 branch · 최종 commit 69f4579
 </div>
 
@@ -119,23 +119,23 @@
 <a href="#sys">FN-SYS System/Deploy <span class="count">14 features · M1=5 M2=6 M3=3</span></a>
 </div>
 
-<p style="margin-top:14px; font-size:13px; color:#8b949e;"><strong>총 97 features</strong> · M1=40 (41%) · M2=40 (41%) · M3=17 (18%) · 알려진 BUG 8건 · DEAD 12건</p>
+<p style="margin-top:14px; font-size:13px; color:#8b949e;"><strong>총 100 features</strong> · M1=40 (40%) · M2=43 (43%) · M3=17 (17%) · 알려진 BUG 9건 · DEAD 12건 · <span style="color:#d29922;">SRS REQ-F backfill 3건(FN-ALM-16/TRD-09/SYS-15) 반영</span></p>
 
 <h2 id="matrix">3. 도메인별 기능 매트릭스 (요약)</h2>
 
 <table>
 <thead><tr><th>도메인</th><th>기능 수</th><th>M1 / M2 / M3</th><th>핵심 State 클래스</th><th>주요 DB 테이블</th><th>BG events</th><th>BUG 건수</th></tr></thead>
 <tbody>
-<tr><td>ALM Alarm</td><td>15</td><td>8 / 5 / 2</td><td>AlarmsState, AlarmRTState, AlarmHistState, ScadaAlarmState</td><td>alarm_events, alarm_history, scada_alarm_log</td><td>9</td><td>2 (acked_by 하드코딩, scada_alarm_state zombie listen)</td></tr>
+<tr><td>ALM Alarm</td><td>16</td><td>8 / 6 / 2</td><td>AlarmsState, AlarmRTState, AlarmHistState, ScadaAlarmState</td><td>alarm_events, alarm_history, scada_alarm_log</td><td>9</td><td>3 (acked_by 하드코딩, scada_alarm_state zombie listen, filter_bar 하드코딩 CR-06)</td></tr>
 <tr><td>DSH Dashboard</td><td>10</td><td>6 / 4 / 0</td><td>DashboardRealtimeState (1635 LOC legacy DashboardState 별도)</td><td>influx_latest, influx_qc_rule</td><td>4</td><td>1 (DashboardState legacy 미사용 dead)</td></tr>
 <tr><td>FCT Forecast</td><td>12</td><td>7 / 4 / 1</td><td>ForecastPlayerState</td><td>predictions, model_registry, forecast_jobs</td><td>9</td><td>1 (start_streaming countdown zombie risk)</td></tr>
 <tr><td>TRN Training</td><td>15</td><td>4 / 8 / 3</td><td>TrainingState, TrainingWizardState</td><td>model_registry, feature_configs</td><td>9</td><td>0 (FeatureConfigService 3개 버전 공존 — 정리 필요)</td></tr>
-<tr><td>TRD Trend</td><td>8</td><td>3 / 5 / 0</td><td>TrendState</td><td>influx_hist, influx_agg_1m, influx_agg_1h</td><td>7</td><td>0</td></tr>
+<tr><td>TRD Trend</td><td>9</td><td>3 / 6 / 0</td><td>TrendState</td><td>influx_hist, influx_agg_1m, influx_agg_1h</td><td>7</td><td>0</td></tr>
 <tr><td>SNR Sensor/Tag</td><td>12</td><td>5 / 4 / 3</td><td>ViewerTagState, TagHierarchyState</td><td>viewer_tag, influx_tag, virtual_tags</td><td>11</td><td>1 (raw SQL 직접 사용 — SQLi 검토 필요)</td></tr>
 <tr><td>COM Communication</td><td>6</td><td>2 / 4 / 0</td><td>CommunicationState</td><td>influx_hist (시간 갭)</td><td>4</td><td>1 (성공률 100% cap — 2025-11-26 fix 후 회귀 risk)</td></tr>
 <tr><td>AI AI/RAG</td><td>5</td><td>0 / 0 / 5</td><td>AIState</td><td>knowledge_base, agent_history</td><td>4</td><td>2 (raw SQL 인젝션 — Day 6 fix 일부만, 전체 12+ engines)</td></tr>
-<tr><td>SYS System/Deploy</td><td>14</td><td>5 / 6 / 3</td><td>SchedulerState, ModelPerformanceState, SyncMonitorState [orphan]</td><td>model_registry, scheduler_state</td><td>13</td><td>0</td></tr>
-<tr><td><strong>합계</strong></td><td><strong>97</strong></td><td><strong>40 / 40 / 17</strong></td><td>—</td><td>—</td><td><strong>70</strong></td><td><strong>8</strong></td></tr>
+<tr><td>SYS System/Deploy</td><td>15</td><td>5 / 7 / 3</td><td>SchedulerState, ModelPerformanceState, SyncMonitorState [orphan]</td><td>model_registry, scheduler_state</td><td>13</td><td>0</td></tr>
+<tr><td><strong>합계</strong></td><td><strong>100</strong></td><td><strong>40 / 43 / 17</strong></td><td>—</td><td>—</td><td><strong>70</strong></td><td><strong>9</strong></td></tr>
 </tbody>
 </table>
 
@@ -145,7 +145,7 @@
 
 <hr>
 
-<h2 id="alm">4. ALM (Alarm) — 15 Features</h2>
+<h2 id="alm">4. ALM (Alarm) — 16 Features</h2>
 
 <div class="feature">
 <div class="id">FN-ALM-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -364,10 +364,19 @@
 <h4>Business Rules</h4><ul><li>page binding 없음, stat_card.py docstring 에만 참조</li><li>제거 권고 (spec_04 PRD M3 dead list)</li></ul>
 </div>
 
+<div class="feature">
+<div class="id">FN-ALM-16 <span class="badge m2">M2</span> <span class="badge bug">결함</span></div>
+<div class="name">알람 필터 바 state 바인딩</div>
+<div class="meta">Component: <code>filter_bar</code> @ pages/alarms_rt.py · State: AlarmRTState setter</div>
+<div class="desc">/alarms_rt 필터 바(severity/status/검색). 현재 일부 옵션이 하드코딩 리터럴 — AlarmRTState setter 연결 필요.</div>
+<h4>Business Rules</h4><ul><li>filter_bar 는 하드코딩이 아닌 AlarmRTState setter 에 바인딩되어야 함</li><li>spec_04 CR-06 / spec_01 Issue 2 대상 (미해결 결함)</li></ul>
+<h4>Cross-references</h4><ul><li>Req: REQ-F-ALM-016 (SHALL)</li><li>UI: spec_08 — /alarms_rt filter bar</li></ul>
+</div>
+
 <div class="domain-summary">
 <strong>ALM Domain Summary</strong>
 <table><tr><th>총 features</th><th>M1 / M2 / M3</th><th>BG handlers</th><th>알려진 결함</th><th>Test coverage</th></tr>
-<tr><td>15</td><td>8 / 5 / 2</td><td>9</td><td>2 (acked_by 하드코딩, scada listener zombie risk)</td><td>spec_05 TC-ALARM-01~12 (12 cases — 80% mapping)</td></tr></table>
+<tr><td>16</td><td>8 / 6 / 2</td><td>9</td><td>2 (acked_by 하드코딩, scada listener zombie risk)</td><td>spec_05 TC-ALARM-01~12 (12 cases — 80% mapping)</td></tr></table>
 </div>
 
 <hr>
@@ -748,7 +757,7 @@
 
 <hr>
 
-<h2 id="trd">8. TRD (Trend) — 8 Features</h2>
+<h2 id="trd">8. TRD (Trend) — 9 Features</h2>
 
 <div class="feature">
 <div class="id">FN-TRD-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -815,10 +824,19 @@
 <div class="desc">현재 화면에 표시된 페이지만 CSV. 부분 추출.</div>
 </div>
 
+<div class="feature">
+<div class="id">FN-TRD-09 <span class="badge m2">M2</span></div>
+<div class="name">트렌드 auto-refresh 리소스 누수 방지</div>
+<div class="meta">State: TrendState · auto-refresh background loop @ trend_state.py</div>
+<div class="desc">auto-refresh 5 cycle 이후에도 DB 연결/메모리 누수가 없어야 함. background task cleanup 보장.</div>
+<h4>Business Rules</h4><ul><li>5 cycle 반복 후 connection pool / task 누수 0</li></ul>
+<h4>Cross-references</h4><ul><li>Req: REQ-F-TRD-009 (SHOULD)</li><li>Test: TC-TREND-09</li></ul>
+</div>
+
 <div class="domain-summary">
 <strong>TRD Domain Summary</strong>
 <table><tr><th>총 features</th><th>M1 / M2 / M3</th><th>BG handlers</th><th>알려진 결함</th><th>Test coverage</th></tr>
-<tr><td>8</td><td>3 / 5 / 0</td><td>7</td><td>0 (TrendStateEnhanced orphan 별도)</td><td>TC-TRD-01~05 (5 cases — 63% mapping)</td></tr></table>
+<tr><td>9</td><td>3 / 6 / 0</td><td>7</td><td>0 (TrendStateEnhanced orphan 별도)</td><td>TC-TRD-01~05 (5 cases — 63% mapping)</td></tr></table>
 </div>
 
 <hr>
@@ -1030,7 +1048,7 @@
 
 <hr>
 
-<h2 id="sys">12. SYS (System / Scheduler / Deploy) — 14 Features</h2>
+<h2 id="sys">12. SYS (System / Scheduler / Deploy) — 15 Features</h2>
 
 <div class="feature">
 <div class="id">FN-SYS-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -1147,10 +1165,19 @@
 <div class="desc">선택된 deployed 모델로 /forecast 페이지 이동.</div>
 </div>
 
+<div class="feature">
+<div class="id">FN-SYS-15 <span class="badge m2">M2</span></div>
+<div class="name">RPI 부트스트랩 스크립트</div>
+<div class="meta">Script: <code>scripts/bootstrap_rpi.sh</code> (ops — UI 진입 없음)</div>
+<div class="desc">새 RPI 5 에서 30분 이내 컨테이너 실행 + DB 시드까지 자동 완료. Day4-5 구현.</div>
+<h4>Business Rules</h4><ul><li>신규 RPI 프로비저닝 ≤ 30분</li><li>운영 절차는 spec_14 OP 런북 참조</li></ul>
+<h4>Cross-references</h4><ul><li>Req: REQ-F-SYS-015 (SHALL)</li><li>Ops: spec_14</li></ul>
+</div>
+
 <div class="domain-summary">
 <strong>SYS Domain Summary</strong>
 <table><tr><th>총 features</th><th>M1 / M2 / M3</th><th>BG handlers</th><th>알려진 결함</th><th>Test coverage</th></tr>
-<tr><td>14</td><td>5 / 6 / 3</td><td>13</td><td>0 코드 결함 (SyncMonitorState/ModelConfigState orphan dead path 별도)</td><td>TC-SYS-01~04 (4 cases — 29% mapping)</td></tr></table>
+<tr><td>15</td><td>5 / 7 / 3</td><td>13</td><td>0 코드 결함 (SyncMonitorState/ModelConfigState orphan dead path 별도)</td><td>TC-SYS-01~04 (4 cases — 29% mapping)</td></tr></table>
 </div>
 
 <hr>
@@ -1177,6 +1204,7 @@
 <tr><td>FN-ALM-13</td><td>SCADA vs 시스템 비교</td><td>/scada-alarm-comparison</td><td>scada_alarm_comparison_state.py:26-151</td><td>alarm_events + scada_alarm_log</td><td>—</td><td>OP-05</td><td>M2</td></tr>
 <tr><td>FN-ALM-14</td><td>알람 KPI 카드</td><td>/alarms</td><td>alarms.py:160-209 (vars)</td><td>(memory)</td><td>—</td><td>—</td><td>M2</td></tr>
 <tr><td>FN-ALM-15</td><td>(legacy) AI 알람</td><td>—</td><td>alarm_state.py orphan</td><td>—</td><td>—</td><td>—</td><td>M3 DEAD</td></tr>
+<tr><td>FN-ALM-16</td><td>필터 바 state 바인딩</td><td>/alarms_rt</td><td>pages/alarms_rt.py filter_bar</td><td>—</td><td>—</td><td>—</td><td>M2 BUG</td></tr>
 <tr><td>FN-DSH-01</td><td>streaming 시작</td><td>/</td><td>dashboard_realtime.py:69</td><td>influx_latest</td><td>TC-DSH-01 SMOKE-01</td><td>OP-03</td><td>M1 BG</td></tr>
 <tr><td>FN-DSH-02</td><td>streaming 중지</td><td>/</td><td>dashboard_realtime.py:119</td><td>—</td><td>—</td><td>OP-07</td><td>M1</td></tr>
 <tr><td>FN-DSH-03</td><td>센서 데이터 페치</td><td>/</td><td>dashboard_realtime.py:130</td><td>influx_latest, qc</td><td>TC-DSH-02</td><td>OP-03</td><td>M1</td></tr>
@@ -1222,6 +1250,7 @@
 <tr><td>FN-TRD-06</td><td>차트 모드/스케일</td><td>/trend</td><td>trend_state.py:191-213</td><td>—</td><td>—</td><td>—</td><td>M2</td></tr>
 <tr><td>FN-TRD-07</td><td>CSV 전체 export</td><td>/trend</td><td>trend_state.py:271</td><td>—</td><td>TC-TRD-05</td><td>AN-03</td><td>M1</td></tr>
 <tr><td>FN-TRD-08</td><td>CSV 페이지 export</td><td>/trend</td><td>trend_state.py:304</td><td>—</td><td>—</td><td>—</td><td>M2</td></tr>
+<tr><td>FN-TRD-09</td><td>auto-refresh 누수 방지</td><td>/trend</td><td>trend_state.py auto-refresh</td><td>—</td><td>TC-TREND-09</td><td>—</td><td>M2</td></tr>
 <tr><td>FN-SNR-01</td><td>tag 목록 로딩</td><td>/viewer-tag</td><td>viewer_tag_state.py:40</td><td>viewer_tag</td><td>TC-SNR-01</td><td>AD-01</td><td>M1 BG</td></tr>
 <tr><td>FN-SNR-02</td><td>dashboard 토글</td><td>/viewer-tag</td><td>viewer_tag_state.py:109</td><td>viewer_tag UPDATE</td><td>TC-SNR-02</td><td>AD-01</td><td>M1 BG BUG</td></tr>
 <tr><td>FN-SNR-03</td><td>alarm 토글</td><td>/viewer-tag</td><td>viewer_tag_state.py:126</td><td>viewer_tag UPDATE</td><td>—</td><td>AD-01</td><td>M1 BG</td></tr>
@@ -1259,6 +1288,7 @@
 <tr><td>FN-SYS-12</td><td>sync_historical</td><td>—</td><td>sync_monitor_state.py:213 (orphan)</td><td>influx_hist</td><td>—</td><td>—</td><td>M2 BG DEAD</td></tr>
 <tr><td>FN-SYS-13</td><td>ModelConfig CRUD</td><td>—</td><td>model_config_state.py (orphan)</td><td>model_configs</td><td>—</td><td>—</td><td>M3 DEAD</td></tr>
 <tr><td>FN-SYS-14</td><td>forecast 이동</td><td>/model-performance</td><td>model_performance_state.py:987</td><td>—</td><td>—</td><td>AN-05</td><td>M2</td></tr>
+<tr><td>FN-SYS-15</td><td>RPI 부트스트랩</td><td>(ops)</td><td>scripts/bootstrap_rpi.sh</td><td>—</td><td>—</td><td>spec_14</td><td>M2</td></tr>
 </tbody>
 </table>
 
@@ -1336,7 +1366,7 @@
 </div>
 
 <div class="meta-block" style="margin-top:24px;">
-<strong>문서 끝.</strong> spec_12 KSYS Functional Specification v1.0 · 총 97 features × 9 도메인 · 작성 2026-05-29 · code-analyzer agent · 다음 검토 대상: spec_13 (NFR / Non-Functional Requirements — 성능/보안/가용성 정량 명세).
+<strong>문서 끝.</strong> spec_12 KSYS Functional Specification v1.1 · 총 100 features × 9 도메인 · 작성 2026-05-29 / SRS 정합성 backfill 2026-06-02 · 다음 검토 대상: spec_13 (NFR / Non-Functional Requirements — 성능/보안/가용성 정량 명세).
 </div>
 
 </body>

@@ -67,10 +67,10 @@
 
 <div class="kpi-grid">
   <div class="kpi"><div class="v">17</div><div class="l">spec 문서</div></div>
-  <div class="kpi"><div class="v">93</div><div class="l">기능 요건 (REQ-F)<br>+ 55 NF + 8 I</div></div>
-  <div class="kpi"><div class="v">97</div><div class="l">기능 (FN-ID)</div></div>
+  <div class="kpi"><div class="v">100</div><div class="l">기능 요건 (REQ-F)<br>+ 55 NF + 8 I</div></div>
+  <div class="kpi"><div class="v">100</div><div class="l">기능 (FN-ID)<br>backfill 3건 반영</div></div>
   <div class="kpi warn"><div class="v">~64%</div><div class="l">완전체인<br>(REQ→FN→화면→TC)</div></div>
-  <div class="kpi bad"><div class="v">4</div><div class="l">순번 불일치 도메인<br>(ALM/DSH/TRD/SYS)</div></div>
+  <div class="kpi"><div class="v">0</div><div class="l">색인 오류<br>(4지점 해소 ✔ 2026-06-02)</div></div>
   <div class="kpi bad"><div class="v">30+</div><div class="l">orphan/GAP<br>(DEAD 12 포함)</div></div>
 </div>
 
@@ -89,7 +89,7 @@ flowchart TD
   S15["spec_15<br/>기획서<br/>(비전·ADR·로드맵)"]:::vision
   S04["spec_04<br/>PRD"]:::vision
   S16["spec_16<br/>SRS<br/>(161 요구사항)"]:::req
-  S12["spec_12<br/>기능명세<br/>(97 FN)"]:::func
+  S12["spec_12<br/>기능명세<br/>(100 FN)"]:::func
   S13["spec_13<br/>프로세스명세<br/>(15 PROC)"]:::func
   S06["spec_06<br/>메뉴/사이트맵"]:::screen
   S07["spec_07<br/>스토리보드<br/>(18 flows)"]:::screen
@@ -163,7 +163,7 @@ flowchart TD
 <tr><td>1</td><td><a href="spec_15_planning.html">spec_15 기획서</a></td><td>비전·미션·로드맵·ADR</td><td>"왜 만드나" 최상위 맥락</td><td>의사결정자/CTO</td></tr>
 <tr><td>2</td><td><a href="spec_04_PRD.html">spec_04 PRD</a></td><td>제품 요구·페르소나·M1/M2/M3</td><td>비전을 제품 단위로</td><td>PM</td></tr>
 <tr><td>3</td><td><a href="spec_16_SRS.html">spec_16 SRS</a></td><td>161 정형 요구사항 (SHALL/SHOULD)</td><td>PRD를 검증가능 요구로</td><td>분석가/QA</td></tr>
-<tr><td>4</td><td><a href="spec_12_functional_spec.html">spec_12 기능명세</a></td><td>97 기능 (IPO + 규칙)</td><td>요구를 구현 기능으로</td><td>개발자</td></tr>
+<tr><td>4</td><td><a href="spec_12_functional_spec.html">spec_12 기능명세</a></td><td>100 기능 (IPO + 규칙)</td><td>요구를 구현 기능으로</td><td>개발자</td></tr>
 <tr><td>5</td><td><a href="spec_13_process_spec.html">spec_13 프로세스</a></td><td>15 데이터/비즈니스/시스템 흐름</td><td>기능을 흐름으로 묶음</td><td>개발자/운영</td></tr>
 <tr><td>6</td><td><a href="spec_06_menu_sitemap.html">spec_06 메뉴</a> → <a href="spec_07_storyboard.html">07 스토리보드</a></td><td>네비게이션 + user flow</td><td>화면 보기 전 맥락</td><td>기획/디자인</td></tr>
 <tr><td>7</td><td>화면 <a href="spec_08_screens_alarm_domain.html">08</a>/<a href="spec_09_screens_ml_ai_domain.html">09</a>/<a href="spec_10_screens_operations_domain.html">10</a>/<a href="spec_11_screens_analytics_misc.html">11</a></td><td>도메인별 화면 설계서</td><td>기능이 어디 구현되나</td><td>개발/디자인</td></tr>
@@ -176,16 +176,16 @@ flowchart TD
 
 <table>
 <tr><th>도메인</th><th>REQ</th><th>FN</th><th>화면</th><th>PROC</th><th>TC</th><th>완전체인%</th><th>orphan/GAP</th><th>판정</th></tr>
-<tr><td>ALM 알람</td><td>16</td><td>15</td><td>spec_08</td><td>010,011,012</td><td>12</td><td class="cell-ok">81%</td><td>2 (FN-ALM-15/16 DEAD)</td><td><span class="badge b-m1">양호</span></td></tr>
+<tr><td>ALM 알람</td><td>16</td><td>16</td><td>spec_08</td><td>010,011,012</td><td>12</td><td class="cell-ok">81%</td><td>1 DEAD(15) + 1 BUG(16 filter)</td><td><span class="badge b-m1">정합 ✔</span></td></tr>
 <tr><td>FCT 예측</td><td>12</td><td>12</td><td>spec_09</td><td>014,015</td><td>10</td><td class="cell-ok">83%</td><td>1 (FN-FCT-11 no TC)</td><td><span class="badge b-m1">양호</span></td></tr>
 <tr><td>TRN 학습</td><td>15</td><td>15</td><td>spec_09</td><td>005,013</td><td>9</td><td class="cell-gap">60%</td><td>4 (TRN-12~15 화면·TC GAP)</td><td><span class="badge b-m2">주의</span></td></tr>
 <tr><td>SNR 센서</td><td>12</td><td>12</td><td>spec_10</td><td>001,003</td><td>9</td><td class="cell-gap">67%</td><td>3 (SNR-09/11/12)</td><td><span class="badge b-m2">주의</span></td></tr>
 <tr><td>DSH 대시보드</td><td>9</td><td>10</td><td>spec_11</td><td>002</td><td>9</td><td class="cell-ok">78%</td><td>1 (FN-DSH-10 legacy DEAD)</td><td><span class="badge b-m1">양호</span></td></tr>
-<tr><td>TRD 트렌드</td><td>10</td><td>8</td><td>spec_11</td><td>002</td><td>8</td><td class="cell-gap">70%</td><td>2+ (TRD-09/10 + Enhanced orphan)</td><td><span class="badge b-m2">주의</span></td></tr>
+<tr><td>TRD 트렌드</td><td>10</td><td>9</td><td>spec_11</td><td>002</td><td>8</td><td class="cell-gap">70%</td><td>TRD-10 GAP(미활성 MAY)</td><td><span class="badge b-m2">1 GAP</span></td></tr>
 <tr><td>COM 통신</td><td>6</td><td>6</td><td>spec_11</td><td>004</td><td>1</td><td class="cell-dead">33%</td><td>4 (TC 거의 없음)</td><td><span class="badge b-dead">테스트 공백</span></td></tr>
 <tr><td>AI</td><td>5</td><td>5</td><td class="cell-dead">없음</td><td>-</td><td>0</td><td class="cell-dead">0%</td><td>5 (전체 DEAD, /ai 미등록)</td><td><span class="badge b-dead">전체 DEAD</span></td></tr>
-<tr><td>SYS 시스템</td><td>15</td><td>14</td><td>부분</td><td>011,015,020~024</td><td>7</td><td class="cell-gap">30%*</td><td>8 (대부분 화면 없음=설계상 정상)</td><td><span class="badge b-m2">UI없음 정상</span></td></tr>
-<tr style="background:#161b22;font-weight:600"><td>F 합계</td><td>93</td><td>97</td><td>—</td><td>15 PROC</td><td>~65</td><td>~64%</td><td>30+ (DEAD 12)</td><td></td></tr>
+<tr><td>SYS 시스템</td><td>15</td><td>15</td><td>부분</td><td>011,015,020~024</td><td>7</td><td class="cell-gap">30%*</td><td>8 (대부분 화면 없음=설계상 정상)</td><td><span class="badge b-m1">정합 ✔</span></td></tr>
+<tr style="background:#161b22;font-weight:600"><td>F 합계</td><td>100</td><td>100</td><td>—</td><td>15 PROC</td><td>~65</td><td>~64%</td><td>30+ (DEAD 12)</td><td></td></tr>
 </table>
 <p class="meta">* SYS 30%는 startup hook/CLI라 화면 부재가 설계상 정상. NF(55)·I(8)는 화면/FN 매핑 없이 그룹 검증.</p>
 
@@ -204,7 +204,8 @@ flowchart TD
 <tr><td>REQ-F-ALM-004~006</td><td>FN-ALM-04~06</td><td>spec_08</td><td>PROC-010</td><td>TC-ALARM-03/04/08</td><td><span class="badge b-m1">M1</span></td></tr>
 <tr><td>REQ-F-ALM-007~010</td><td>FN-ALM-07~10</td><td>spec_08</td><td>PROC-012</td><td>TC-ALARM-05/06/07, REG-04</td><td><span class="badge b-m2">M2</span></td></tr>
 <tr><td>REQ-F-ALM-011~014</td><td>FN-ALM-11~14</td><td>spec_08</td><td>PROC-010/012</td><td>TC-ALARM-09/10/01, REG-05</td><td><span class="badge b-m1">M1</span></td></tr>
-<tr class="cell-dead"><td>REQ-F-ALM-015/016</td><td>FN-ALM-15/16</td><td>spec_01</td><td>—</td><td>GAP (refactor)</td><td><span class="badge b-dead">DEAD</span></td></tr>
+<tr class="cell-dead"><td>REQ-F-ALM-015</td><td>FN-ALM-15</td><td>—</td><td>—</td><td>DEAD (legacy AlarmState)</td><td><span class="badge b-dead">DEAD</span></td></tr>
+<tr class="cell-gap"><td>REQ-F-ALM-016</td><td>FN-ALM-16 ✔backfill</td><td>spec_08</td><td>—</td><td>GAP (filter binding CR-06)</td><td><span class="badge b-m2">M2 BUG</span></td></tr>
 <tr><td>REQ-F-FCT-001~003</td><td>FN-FCT-01~03</td><td><a href="spec_09_screens_ml_ai_domain.html">spec_09</a></td><td>PROC-014</td><td>TC-FCAST-05/01/03, TC-INT-01</td><td><span class="badge b-m1">M1</span></td></tr>
 <tr><td>REQ-F-FCT-004/005</td><td>FN-FCT-04/05</td><td>spec_09</td><td>PROC-015</td><td>TC-FCAST-02/06</td><td><span class="badge b-m1">M1</span></td></tr>
 <tr><td>REQ-F-FCT-006~010</td><td>FN-FCT-06~10</td><td>spec_09</td><td>PROC-014/015</td><td>TC-FCAST-07/04, REG-13/14</td><td><span class="badge b-m1">M1</span></td></tr>
@@ -218,7 +219,8 @@ flowchart TD
 <tr class="cell-gap"><td>REQ-F-DSH-008/009</td><td>FN-DSH-08/09</td><td>화면 GAP</td><td>PROC-002</td><td>TC-DASH-05/08</td><td><span class="badge b-m1">M1</span></td></tr>
 <tr class="cell-dead"><td>(REQ 없음)</td><td>FN-DSH-10</td><td>spec_11</td><td>—</td><td>legacy DEAD</td><td><span class="badge b-dead">DEAD</span></td></tr>
 <tr><td>REQ-F-TRD-001~008</td><td>FN-TRD-01~08</td><td>spec_11</td><td>PROC-002</td><td>TC-TREND-01~08</td><td><span class="badge b-m2">M2</span></td></tr>
-<tr class="cell-gap"><td>REQ-F-TRD-009/010</td><td>FN-TRD-09/10</td><td>화면 GAP</td><td>PROC-002</td><td>TC-TREND-09, GAP</td><td><span class="badge b-m2">M2</span></td></tr>
+<tr><td>REQ-F-TRD-009</td><td>FN-TRD-09 ✔backfill</td><td>spec_11</td><td>PROC-002</td><td>TC-TREND-09</td><td><span class="badge b-m2">M2</span></td></tr>
+<tr class="cell-gap"><td>REQ-F-TRD-010</td><td>(미구현 — FN 없음)</td><td>—</td><td>—</td><td>GAP (미활성 MAY)</td><td><span class="badge b-m2">GAP</span></td></tr>
 <tr><td>REQ-F-COM-001</td><td>FN-COM-01</td><td>spec_11</td><td>PROC-004</td><td>TC-SENSOR-10</td><td><span class="badge b-m2">M2</span></td></tr>
 <tr class="cell-gap"><td>REQ-F-COM-002~006</td><td>FN-COM-02~06</td><td>일부 화면 GAP</td><td>PROC-004</td><td>대부분 GAP (TC 공백)</td><td><span class="badge b-m2">M2</span></td></tr>
 <tr class="cell-dead"><td>REQ-F-AI-001~005</td><td>FN-AI-01~05</td><td class="cell-dead">화면 미등록</td><td>—</td><td>SMOKE-08 sentinel만</td><td><span class="badge b-dead">전체 DEAD</span></td></tr>
@@ -241,27 +243,27 @@ flowchart TD
 </table>
 </details>
 
-<h2 id="mismatch">⑤ 번호 순번 불일치 — 4지점 (사용자 핵심 질문)</h2>
+<h2 id="mismatch">⑤ 번호 순번 불일치 — 4지점 → 해소 ✔ (사용자 핵심 질문)</h2>
 
-<div class="callout crit">
-<strong>"요건↔기능 순번이 맞나"</strong> — 9개 도메인 중 <strong>5개(FCT/TRN/SNR/COM/AI)는 REQ↔FN 1:1 완전 정합</strong>. <strong>4개(ALM/DSH/TRD/SYS)에서 카운트 어긋남</strong> — 대부분 DEAD/orphan 기능이 한쪽 문서에만 등재된 것이 원인.
+<div class="callout">
+<strong>"요건↔기능 순번이 맞나" → 2026-06-02 set-diff 후 해소.</strong> 개별 FN-ID set-diff 결과 orphan은 정확히 5개(ALM 1·DSH 1·SYS 1·TRD 2). 단순 카운트 맞추기가 아니라 <strong>각 orphan의 실체를 코드에서 확인</strong>해 처리: 구현됐는데 색인 누락 3건은 spec_12에 FN backfill, 미구현/legacy 2건은 GAP/DEAD로 명시. → spec_12=100 FN, spec_16=100 REQ-F, 색인 오류 0.
 </div>
 
 <table>
-<tr><th>도메인</th><th>REQ 범위</th><th>FN 범위</th><th>정합</th><th>원인</th></tr>
-<tr><td>ALM</td><td>001~016 (16)</td><td>01~16 (색인 15+RTM 1)</td><td class="cell-gap">⚠ 불일치</td><td>FN-ALM-16 (filter bar binding)이 RTM에만, spec_12 색인 누락</td></tr>
+<tr><th>도메인</th><th>REQ 범위</th><th>FN 범위</th><th>정합 (조치 후)</th><th>orphan 실체 → 조치</th></tr>
+<tr><td>ALM</td><td>001~016 (16)</td><td>01~16 (16)</td><td class="cell-ok">✅ 정합</td><td>REQ-F-ALM-016(필터바 CR-06) 구현 존재 → <strong>FN-ALM-16 backfill</strong></td></tr>
 <tr><td>FCT</td><td>001~012 (12)</td><td>01~12 (12)</td><td class="cell-ok">✅ 정합</td><td>—</td></tr>
 <tr><td>TRN</td><td>001~015 (15)</td><td>01~15 (15)</td><td class="cell-ok">✅ 정합</td><td>(단 TRN-12~15 화면/TC GAP)</td></tr>
 <tr><td>SNR</td><td>001~012 (12)</td><td>01~12 (12)</td><td class="cell-ok">✅ 정합</td><td>—</td></tr>
-<tr><td>DSH</td><td>001~009 (9)</td><td>01~10 (10)</td><td class="cell-gap">⚠ 불일치</td><td>FN-DSH-10 (legacy DashboardState DEAD) — 요구 없이 코드만 존재 (구현 선행→사후 dead)</td></tr>
-<tr><td>TRD</td><td>001~010 (10)</td><td>01~08 (색인 8)</td><td class="cell-gap">⚠ 불일치</td><td>FN-TRD-09/10 색인 누락 (Enhanced orphan에 흡수 추정)</td></tr>
+<tr><td>DSH</td><td>001~009 (9)</td><td>01~10 (10)</td><td class="cell-ok">✅ 설명됨</td><td>FN-DSH-10 = legacy DEAD(요구 없음 정상) → <strong>DEAD 유지</strong>, 제거 후보</td></tr>
+<tr><td>TRD</td><td>001~010 (10)</td><td>01~09 (9)</td><td class="cell-ok">✅ 설명됨</td><td>TRD-09(누수방지) 구현 → <strong>FN-TRD-09 backfill</strong> / TRD-10 "미활성 MAY" → <strong>GAP 유지</strong></td></tr>
 <tr><td>COM</td><td>001~006 (6)</td><td>01~06 (6)</td><td class="cell-ok">✅ 정합</td><td>(단 TC 공백)</td></tr>
 <tr><td>AI</td><td>001~005 (5)</td><td>01~05 (5)</td><td class="cell-ok">✅ 정합</td><td>(전체 DEAD)</td></tr>
-<tr><td>SYS</td><td>001~015 (15)</td><td>RTM 15 / 색인 14</td><td class="cell-gap">⚠ 불일치</td><td>SYS 1건 색인 누락</td></tr>
+<tr><td>SYS</td><td>001~015 (15)</td><td>01~15 (15)</td><td class="cell-ok">✅ 정합</td><td>REQ-F-SYS-015(bootstrap_rpi.sh) Day4-5 구현 → <strong>FN-SYS-15 backfill</strong></td></tr>
 </table>
 
 <div class="callout">
-<strong>spec_12 "총 97 features" vs spec_16 RTM "93 REQ-F"</strong> 의 4건 차이 = 위 4지점 (DSH +1, TRD 색인 -2, ALM 색인 -1, SYS 색인 -1 의 누적/상쇄). 정확한 개별 FN-ID set-diff는 미수행(카운트 기준 확인). 해결책: spec_12 FN 색인을 RTM과 1:1 동기화 (DEAD 기능도 명시적으로 색인 등재 + DEAD 마커).
+<strong>조치 요약</strong> — spec_12에 FN 3건 backfill(<code>FN-ALM-16 / FN-TRD-09 / FN-SYS-15</code>, 모두 구현 존재) + 도메인 요약·색인·총계(97→100) 갱신. <strong>DEAD/GAP은 억지로 카운트 맞추지 않음</strong>: FN-DSH-10(legacy DEAD, REQ 없음 정상)·REQ-F-TRD-010(미활성 MAY, FN 없음 정상)은 분류만 명시. 결과 ALM·SYS 완전 1:1, DSH·TRD는 각 1건 차이가 DEAD/GAP으로 설명됨 → <strong>색인 오류 0</strong>.
 </div>
 
 <h2 id="orphan">⑥ Orphan / GAP 자동 검출</h2>
@@ -293,14 +295,14 @@ flowchart TD
 </div>
 
 <div class="callout">
-<strong>ID 정합성 △ ~64%</strong> — 핵심 도메인(ALM/FCT/DSH) 80%대 양호. 단 (1) <span class="cell-gap">&nbsp;순번 불일치 4지점&nbsp;</span> = DEAD 기능이 한쪽 문서에만 등재, (2) <span class="cell-gap">&nbsp;COM/AI 테스트 공백&nbsp;</span>, (3) <span class="cell-dead">&nbsp;DEAD 12건&nbsp;</span> 정리 필요.
+<strong>ID 정합성 △ ~64% → 순번 정합 ✔</strong> — <span class="cell-ok">&nbsp;순번 불일치 4지점 해소(2026-06-02)&nbsp;</span>: spec_12 FN 색인 ↔ spec_16 RTM set-diff 후 backfill 3 + DEAD/GAP 분류 2 → 색인 오류 0. 잔여 과제는 (1) <span class="cell-gap">&nbsp;COM/AI 테스트 공백&nbsp;</span>, (2) <span class="cell-dead">&nbsp;DEAD 12건&nbsp;</span> 정리 (완전체인 ~64%는 화면/TC GAP이 원인, 순번과 무관).
 </div>
 
 <div class="callout crit">
 <strong>다음 액션 우선순위</strong>:
 <ol>
-<li><strong>spec_12 FN 색인 ↔ spec_16 RTM 1:1 동기화</strong> (순번 불일치 4지점 해소 — 문서 작업)</li>
-<li><strong>DEAD 12건 결정</strong>: /ai 등록(CR-01) or 삭제, orphan state 삭제(CR-04) — 코드 작업</li>
+<li style="text-decoration:line-through;opacity:.6"><strong>spec_12 FN 색인 ↔ spec_16 RTM 1:1 동기화</strong> — ✅ 완료 2026-06-02 (FN-ALM-16/TRD-09/SYS-15 backfill, 97→100)</li>
+<li><strong>DEAD 12건 결정</strong>: /ai 등록(CR-01) or 삭제, orphan state 삭제(CR-04) — 코드 작업 <em>(다음 권고)</em></li>
 <li><strong>COM/AI/SYS 테스트 보강</strong> (19 FN no-TC)</li>
 <li><strong>화면 GAP 13건</strong>: 화면 spec 보강 or 요건 하향</li>
 </ol>

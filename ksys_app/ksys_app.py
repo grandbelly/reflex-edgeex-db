@@ -172,6 +172,7 @@ logger.info(f"AI Features: {'ENABLED' if ENABLE_AI_FEATURES else 'DISABLED'}")
 # Import alone triggers registration; no app.add_page() calls needed.
 # ============================================================================
 from .pages import (
+    ai_insights,             # /ai (@rx.page in module — CR-01 등록 2026-06-03)
     alarms,                  # /alarms
     alarms_hist_new,         # /alarms_hist_new
     alarms_hist_simple,      # /alarms_hist

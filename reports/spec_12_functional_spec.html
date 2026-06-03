@@ -68,7 +68,7 @@
 <strong>상태:</strong> Draft (정통 SI 산출물 양식 — 향후 PM/SA 검토 후 v1.1 승인)<br>
 <strong>대상 시스템:</strong> KSYS — Reflex 기반 단일 사이트 정수처리 IoT 모니터링 + ML 예측 플랫폼<br>
 <strong>입력 산출물:</strong> spec_01_frontend_pages.html · spec_02_backend_states_services.html · spec_03_database_schedulers.html · spec_06_menu_sitemap.html · spec_07_storyboard.html · spec_08~11_screens_*.html<br>
-<strong>커버리지:</strong> 201 <code>@rx.event</code> handlers → <strong>100 functional features</strong>로 그룹핑 명세화 (사소한 setter/toggle 제외, SRS backfill 3건 포함)<br>
+<strong>커버리지:</strong> 201 <code>@rx.event</code> handlers → <strong>93 live functional features</strong> (#2 DEAD 7건 삭제 후, AI 5건 등록 포함)<br>
 <strong>버전 관리:</strong> Git refactor/secrets-externalize-day1 branch · 최종 commit 69f4579
 </div>
 
@@ -119,33 +119,39 @@
 <a href="#sys">FN-SYS System/Deploy <span class="count">14 features · M1=5 M2=6 M3=3</span></a>
 </div>
 
-<p style="margin-top:14px; font-size:13px; color:#8b949e;"><strong>총 100 features</strong> · M1=40 (40%) · M2=43 (43%) · M3=17 (17%) · 알려진 BUG 9건 · DEAD 12건 · <span style="color:#d29922;">SRS REQ-F backfill 3건(FN-ALM-16/TRD-09/SYS-15) 반영</span></p>
+<p style="margin-top:14px; font-size:13px; color:#8b949e;"><strong>총 93 features</strong> · M1=40 (43%) · M2=39 (42%) · M3=14 (15%) · 알려진 BUG 9건 · <span style="color:#3fb950;">DEAD 12건 처리완료 ✔ (7 삭제 + AI 5 등록, 2026-06-03)</span></p>
+<div style="margin-top:12px; padding:12px 16px; background:#0d1f12; border:1px solid #238636; border-radius:8px; font-size:13px; color:#aff5b4;">
+<strong>v1.2 변경 (2026-06-03, #2 DEAD 정리)</strong> — DEAD 12건 결정·실행:
+<strong>삭제 7건</strong>(코드 제거 −3318 LOC): FN-ALM-15(AlarmState)·FN-DSH-10(legacy DashboardState 패키지)·FN-TRN-15(WizardEnhanced)·FN-SYS-10/11/12(SyncMonitorState)·FN-SYS-13(ModelConfigState).
+<strong>등록 5건</strong>: FN-AI-01~05 → /ai 라우트 라이브화(CR-01, 사용자 결정).
+이전 backfill 3건(ALM-16/TRD-09/SYS-15)은 유지. 총계 100→93. commit ba5ab08·127fcb4·ab49c4b.
+</div>
 
 <h2 id="matrix">3. 도메인별 기능 매트릭스 (요약)</h2>
 
 <table>
 <thead><tr><th>도메인</th><th>기능 수</th><th>M1 / M2 / M3</th><th>핵심 State 클래스</th><th>주요 DB 테이블</th><th>BG events</th><th>BUG 건수</th></tr></thead>
 <tbody>
-<tr><td>ALM Alarm</td><td>16</td><td>8 / 6 / 2</td><td>AlarmsState, AlarmRTState, AlarmHistState, ScadaAlarmState</td><td>alarm_events, alarm_history, scada_alarm_log</td><td>9</td><td>3 (acked_by 하드코딩, scada_alarm_state zombie listen, filter_bar 하드코딩 CR-06)</td></tr>
-<tr><td>DSH Dashboard</td><td>10</td><td>6 / 4 / 0</td><td>DashboardRealtimeState (1635 LOC legacy DashboardState 별도)</td><td>influx_latest, influx_qc_rule</td><td>4</td><td>1 (DashboardState legacy 미사용 dead)</td></tr>
+<tr><td>ALM Alarm</td><td>15</td><td>8 / 6 / 1</td><td>AlarmsState, AlarmRTState, AlarmHistState, ScadaAlarmState</td><td>alarm_events, alarm_history, scada_alarm_log</td><td>9</td><td>2 (acked_by 하드코딩, filter_bar CR-06) · ALM-15 삭제</td></tr>
+<tr><td>DSH Dashboard</td><td>9</td><td>6 / 3 / 0</td><td>DashboardRealtimeState (legacy DashboardState 삭제됨)</td><td>influx_latest, influx_qc_rule</td><td>4</td><td>0 (DSH-10 legacy 삭제)</td></tr>
 <tr><td>FCT Forecast</td><td>12</td><td>7 / 4 / 1</td><td>ForecastPlayerState</td><td>predictions, model_registry, forecast_jobs</td><td>9</td><td>1 (start_streaming countdown zombie risk)</td></tr>
-<tr><td>TRN Training</td><td>15</td><td>4 / 8 / 3</td><td>TrainingState, TrainingWizardState</td><td>model_registry, feature_configs</td><td>9</td><td>0 (FeatureConfigService 3개 버전 공존 — 정리 필요)</td></tr>
+<tr><td>TRN Training</td><td>14</td><td>4 / 8 / 2</td><td>TrainingState, TrainingWizardState</td><td>model_registry, feature_configs</td><td>9</td><td>0 (TRN-15 WizardEnhanced 삭제, FeatureConfigService 3버전 정리 필요)</td></tr>
 <tr><td>TRD Trend</td><td>9</td><td>3 / 6 / 0</td><td>TrendState</td><td>influx_hist, influx_agg_1m, influx_agg_1h</td><td>7</td><td>0</td></tr>
 <tr><td>SNR Sensor/Tag</td><td>12</td><td>5 / 4 / 3</td><td>ViewerTagState, TagHierarchyState</td><td>viewer_tag, influx_tag, virtual_tags</td><td>11</td><td>1 (raw SQL 직접 사용 — SQLi 검토 필요)</td></tr>
 <tr><td>COM Communication</td><td>6</td><td>2 / 4 / 0</td><td>CommunicationState</td><td>influx_hist (시간 갭)</td><td>4</td><td>1 (성공률 100% cap — 2025-11-26 fix 후 회귀 risk)</td></tr>
-<tr><td>AI AI/RAG</td><td>5</td><td>0 / 0 / 5</td><td>AIState</td><td>knowledge_base, agent_history</td><td>4</td><td>2 (raw SQL 인젝션 — Day 6 fix 일부만, 전체 12+ engines)</td></tr>
-<tr><td>SYS System/Deploy</td><td>15</td><td>5 / 7 / 3</td><td>SchedulerState, ModelPerformanceState, SyncMonitorState [orphan]</td><td>model_registry, scheduler_state</td><td>13</td><td>0</td></tr>
-<tr><td><strong>합계</strong></td><td><strong>100</strong></td><td><strong>40 / 43 / 17</strong></td><td>—</td><td>—</td><td><strong>70</strong></td><td><strong>9</strong></td></tr>
+<tr><td>AI AI/RAG</td><td>5</td><td>0 / 0 / 5</td><td>AIState (✔ /ai 등록 live)</td><td>knowledge_base, agent_history</td><td>4</td><td>2 (raw SQL 인젝션 — 등록으로 live화, 전체 점검 필요)</td></tr>
+<tr><td>SYS System/Deploy</td><td>11</td><td>5 / 4 / 2</td><td>SchedulerState, ModelPerformanceState</td><td>model_registry, scheduler_state</td><td>13</td><td>0 (SYS-10~13 orphan 삭제)</td></tr>
+<tr><td><strong>합계</strong></td><td><strong>93</strong></td><td><strong>40 / 39 / 14</strong></td><td>—</td><td>—</td><td><strong>~66</strong></td><td><strong>9</strong></td></tr>
 </tbody>
 </table>
 
 <div class="callout">
-<strong>도메인 우선순위 해석:</strong> ALM + DSH + FCT 가 운영 critical path (Operator persona). TRN + TRD 는 Data Analyst 주간 사용. SNR + SYS 는 Admin 월간 사용. AI 는 전체 dead (페이지 미등록). M1 비율이 가장 높은 도메인은 DSH(60%) · FCT(58%) · ALM(53%) 순.
+<strong>도메인 우선순위 해석:</strong> ALM + DSH + FCT 가 운영 critical path (Operator persona). TRN + TRD 는 Data Analyst 주간 사용. SNR + SYS 는 Admin 월간 사용. AI 는 <strong>/ai 등록(2026-06-03)으로 live화</strong> — 단 RAG 실응답은 LLM 키/테이블 필요. 아래 개별 FN 카드 중 <span class="badge dead">DEAD</span> 표시 7건(ALM-15·DSH-10·TRN-15·SYS-10~13)은 코드 삭제됨(이력 보존용 카드 유지).
 </div>
 
 <hr>
 
-<h2 id="alm">4. ALM (Alarm) — 16 Features</h2>
+<h2 id="alm">4. ALM (Alarm) — 15 live (+1 removed)</h2>
 
 <div class="feature">
 <div class="id">FN-ALM-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -381,7 +387,7 @@
 
 <hr>
 
-<h2 id="dsh">5. DSH (Dashboard) — 10 Features</h2>
+<h2 id="dsh">5. DSH (Dashboard) — 9 live (+1 removed)</h2>
 
 <div class="feature">
 <div class="id">FN-DSH-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -607,7 +613,7 @@
 
 <hr>
 
-<h2 id="trn">7. TRN (Training) — 15 Features</h2>
+<h2 id="trn">7. TRN (Training) — 14 live (+1 removed)</h2>
 
 <div class="feature">
 <div class="id">FN-TRN-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -1048,7 +1054,7 @@
 
 <hr>
 
-<h2 id="sys">12. SYS (System / Scheduler / Deploy) — 15 Features</h2>
+<h2 id="sys">12. SYS (System / Scheduler / Deploy) — 11 live (+4 removed)</h2>
 
 <div class="feature">
 <div class="id">FN-SYS-01 <span class="badge m1">M1</span> <span class="badge bg">BG</span></div>
@@ -1366,7 +1372,7 @@
 </div>
 
 <div class="meta-block" style="margin-top:24px;">
-<strong>문서 끝.</strong> spec_12 KSYS Functional Specification v1.1 · 총 100 features × 9 도메인 · 작성 2026-05-29 / SRS 정합성 backfill 2026-06-02 · 다음 검토 대상: spec_13 (NFR / Non-Functional Requirements — 성능/보안/가용성 정량 명세).
+<strong>문서 끝.</strong> spec_12 KSYS Functional Specification v1.2 · 총 93 live features × 9 도메인 · 작성 2026-05-29 / SRS backfill 2026-06-02 / #2 DEAD 정리 2026-06-03 · 다음 검토 대상: spec_13 (NFR / Non-Functional Requirements — 성능/보안/가용성 정량 명세).
 </div>
 
 </body>

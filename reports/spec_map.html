@@ -68,7 +68,7 @@
 <div class="kpi-grid">
   <div class="kpi"><div class="v">17</div><div class="l">spec 문서</div></div>
   <div class="kpi"><div class="v">100</div><div class="l">기능 요건 (REQ-F)<br>+ 55 NF + 8 I</div></div>
-  <div class="kpi"><div class="v">100</div><div class="l">기능 (FN-ID)<br>backfill 3건 반영</div></div>
+  <div class="kpi"><div class="v">93</div><div class="l">기능 (FN-ID)<br>DEAD 7 삭제 후 (100→93)</div></div>
   <div class="kpi warn"><div class="v">~64%</div><div class="l">완전체인<br>(REQ→FN→화면→TC)</div></div>
   <div class="kpi"><div class="v">0</div><div class="l">색인 오류<br>(4지점 해소 ✔ 2026-06-02)</div></div>
   <div class="kpi bad"><div class="v">30+</div><div class="l">orphan/GAP<br>(DEAD 12 포함)</div></div>
@@ -268,16 +268,19 @@ flowchart TD
 
 <h2 id="orphan">⑥ Orphan / GAP 자동 검출</h2>
 
-<h3>A. DEAD 기능 — 코드 존재, UI 진입 경로 없음 (12건)</h3>
+<h3>A. DEAD 기능 12건 → 처리 완료 ✔ (2026-06-03, #2)</h3>
+<div class="callout good"><strong>DEAD 12건 = 7 삭제(코드 제거 −3318 LOC) + 5 등록(/ai live).</strong> 사용자 결정: AIState는 라이브화(DELETE 아님). commit ba5ab08·127fcb4·ab49c4b.</div>
 <table>
-<tr><th>FN</th><th>이유</th><th>조치</th></tr>
-<tr class="cell-dead"><td>FN-AI-01~05 (5)</td><td>/ai 페이지 ksys_app.py 미등록. AIState + 18 ai_engine orphan. SQLi 12+ vector 잠재</td><td>CR-01: import 1줄 추가 or ai_engine/ 삭제</td></tr>
-<tr class="cell-dead"><td>FN-ALM-15</td><td>AlarmState orphan — page binding 없음</td><td>삭제 후보</td></tr>
-<tr class="cell-dead"><td>FN-ALM-16</td><td>filter bar 하드코딩 — state 미연결</td><td>CR: filter state binding</td></tr>
-<tr class="cell-dead"><td>FN-DSH-10</td><td>legacy DashboardState (1635 LOC) — DashboardRealtimeState로 대체됨, 30+ toggle dead</td><td>삭제 후보</td></tr>
-<tr class="cell-dead"><td>FN-TRN-15</td><td>TrainingWizardStateEnhanced orphan</td><td>삭제 후보</td></tr>
-<tr class="cell-dead"><td>FN-SNR-12 + TrendStateEnhanced + SyncMonitorState</td><td>orphan state (페이지 없음)</td><td>삭제 후보 (CR-04)</td></tr>
+<tr><th>FN</th><th>이전 상태</th><th>처리 (조치)</th></tr>
+<tr><td>FN-AI-01~05 (5)</td><td>/ai 미등록 dead</td><td class="cell-ok">✔ <strong>등록(CR-01)</strong> — ksys_app.py import 추가, .web/build/client/ai 컴파일 확인, Playwright 렌더 OK</td></tr>
+<tr><td>FN-ALM-15</td><td>AlarmState orphan</td><td class="cell-ok">✔ <strong>삭제</strong> alarm_state.py (−530)</td></tr>
+<tr><td>FN-DSH-10</td><td>legacy DashboardState 1638 LOC</td><td class="cell-ok">✔ <strong>삭제</strong> states/dashboard/ 패키지 + dead 컴포넌트 2 (−2017)</td></tr>
+<tr><td>FN-TRN-15</td><td>TrainingWizardStateEnhanced orphan</td><td class="cell-ok">✔ <strong>삭제</strong> (−162)</td></tr>
+<tr><td>FN-SYS-10/11/12</td><td>SyncMonitorState orphan</td><td class="cell-ok">✔ <strong>삭제</strong> sync_monitor_state.py (−245)</td></tr>
+<tr><td>FN-SYS-13</td><td>ModelConfigState orphan</td><td class="cell-ok">✔ <strong>삭제</strong> model_config_state.py (−364)</td></tr>
+<tr><td>FN-ALM-16</td><td>filter bar 하드코딩(BUG)</td><td class="cell-gap">유지 — live 기능, CR-06 결함 미해결(별도)</td></tr>
 </table>
+<p class="meta">검증: 매 삭제 후 repo 전체 잔여 참조 0 + 컨테이너 import OK. FN 총계 100→93 (7 제거). AI 5는 DEAD→LIVE. 잔여 orphan: FN-SNR-12(DB pg_cron job, 코드 아님)·TrendStateEnhanced(별도 검토).</p>
 
 <h3>B. 기능 있는데 테스트 없음 (~19건)</h3>
 <p class="meta"><code>FN-FCT-11, FN-TRN-11/12/14/15, FN-SNR-12, FN-TRD-10, FN-COM-02/04/05/06, FN-AI-02/03/05, FN-SYS-06/07/08/12/13/14</code> — COM/AI/SYS 도메인에 집중. spec_05 Week 1-2 test 작성 시 우선 보강 대상.</p>
@@ -302,8 +305,8 @@ flowchart TD
 <strong>다음 액션 우선순위</strong>:
 <ol>
 <li style="text-decoration:line-through;opacity:.6"><strong>spec_12 FN 색인 ↔ spec_16 RTM 1:1 동기화</strong> — ✅ 완료 2026-06-02 (FN-ALM-16/TRD-09/SYS-15 backfill, 97→100)</li>
-<li><strong>DEAD 12건 결정</strong>: /ai 등록(CR-01) or 삭제, orphan state 삭제(CR-04) — 코드 작업 <em>(다음 권고)</em></li>
-<li><strong>COM/AI/SYS 테스트 보강</strong> (19 FN no-TC)</li>
+<li style="text-decoration:line-through;opacity:.6"><strong>DEAD 12건 결정</strong> — ✅ 완료 2026-06-03 (7 삭제 −3318 LOC + /ai 등록, commit ba5ab08·127fcb4·ab49c4b)</li>
+<li><strong>COM/AI/SYS 테스트 보강</strong> (19 FN no-TC) <em>(다음 권고 — /ai 등록으로 AI 테스트 필요성 ↑)</em></li>
 <li><strong>화면 GAP 13건</strong>: 화면 spec 보강 or 요건 하향</li>
 </ol>
 </div>

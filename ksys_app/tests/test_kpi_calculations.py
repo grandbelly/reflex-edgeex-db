@@ -129,7 +129,7 @@ class TestKPICalculations:
         # Then: 윈도우 범위 표시
         assert range_label == "80.0 ~ 160.0"
     
-    # Helper methods (실제 구현에서는 DashboardState에 있음)
+    # Helper methods (KPI 계산 로직 단위 검증 — legacy DashboardState 제거됨, 로직만 독립 검증)
     def _calculate_gauge_pct(self, last_value, qc_rule, window_min=None, window_max=None):
         """gauge_pct 계산 로직"""
         if qc_rule and qc_rule.get("min_val") is not None and qc_rule.get("max_val") is not None:

@@ -58,7 +58,7 @@ def stat_card(
         >>> # State와 연동 + 트렌드
         >>> stat_card(
         ...     title="Critical",
-        ...     value=AlarmState.critical_count,
+        ...     value=AlarmsState.critical_count,
         ...     icon="alert-circle",
         ...     color="red",
         ...     trend="+5%",
@@ -69,10 +69,10 @@ def stat_card(
         >>> # 클릭 이벤트
         >>> stat_card(
         ...     title="Unacknowledged",
-        ...     value=AlarmState.unacked_count,
+        ...     value=AlarmsState.unacked_count,
         ...     icon="bell",
         ...     color="orange",
-        ...     on_click=AlarmState.filter_by_unacked,
+        ...     on_click=AlarmsState.filter_by_unacked,
         ... )
     """
 

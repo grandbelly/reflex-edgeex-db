@@ -172,7 +172,6 @@ logger.info(f"AI Features: {'ENABLED' if ENABLE_AI_FEATURES else 'DISABLED'}")
 # Import alone triggers registration; no app.add_page() calls needed.
 # ============================================================================
 from .pages import (
-    ai_insights,             # /ai (@rx.page in module — CR-01 등록 2026-06-03)
     alarms,                  # /alarms
     alarms_hist_new,         # /alarms_hist_new
     alarms_hist_simple,      # /alarms_hist
@@ -188,6 +187,20 @@ from .pages import (
     trend_enhanced_v2,       # /trend
     viewer_tag,              # /viewer-tag (@rx.page in module)
 )
+
+# /ai (CR-01 등록 2026-06-03) — 별도 가드 import.
+# ai_insights → ai_state → ai_engine.rag_engine 는 top-level 에서 openai/sklearn/numpy 를
+# import 하므로, 이 패키지가 없는 이미지에서 무가드 import 하면 앱 전체 부팅이 죽는다.
+# ENABLE_AI_FEATURES 플래그 + try/except 로 이중 가드: 비활성이거나 의존성 누락 시
+# /ai 만 등록 생략하고 나머지 사이트는 정상 부팅한다.
+if ENABLE_AI_FEATURES:
+    try:
+        from .pages import ai_insights  # noqa: F401  /ai (@rx.page in module)
+        logger.info("AI page /ai registered")
+    except Exception as e:
+        logger.warning(f"/ai page skipped — AI 의존성 로드 실패 (openai/sklearn/numpy 확인): {e}")
+else:
+    logger.info("/ai page skipped — ENABLE_AI_FEATURES=false")
 
 # ============================================================================
 # Start Forecasting Schedulers (Phase 2 Implementation)

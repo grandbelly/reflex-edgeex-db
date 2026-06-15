@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>코드 구현 Audit — KSys (4차원 병렬)</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#c9d1d9;--muted:#8b949e;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--crit:#ff6b6b;--accent:#58a6ff}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:-apple-system,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.6;margin:0;padding:0 0 80px}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 24px}
+  h1{font-size:25px;border-bottom:2px solid var(--accent);padding-bottom:12px}
+  h2{font-size:19px;margin-top:38px;border-left:4px solid var(--accent);padding-left:12px}
+  h3{font-size:15px;color:var(--accent);margin:18px 0 4px}
+  .meta{color:var(--muted);font-size:13px}
+  code{background:#1f2630;padding:1px 5px;border-radius:4px;font-size:12.5px;color:#79c0ff}
+  pre{background:#1f2630;padding:10px 12px;border-radius:6px;overflow-x:auto;font-size:12px;margin:6px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:#1f2630}
+  .b{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px}
+  .crit{background:#4d1414;color:var(--crit)} .high{background:#3a2d0a;color:var(--warn)} .med{background:#1f2630;color:var(--muted)} .ok{background:#12361f;color:var(--ok)}
+  .callout{border-radius:8px;padding:12px 16px;margin:14px 0}
+  .callout.bad{background:#2b1414;border:1px solid #9e2a1a} .callout.good{background:#0d1f12;border:1px solid #238636} .callout.warn{background:#2b2410;border:1px solid #9e7a1a}
+  .kpi-grid{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;flex:1;min-width:120px;text-align:center}
+  .kpi .v{font-size:23px;font-weight:700}.kpi .l{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .kpi.bad .v{color:var(--bad)}.kpi.warn .v{color:var(--warn)}.kpi.ok .v{color:var(--ok)}
+  .fid{font-weight:700} .file{color:var(--muted);font-size:12px}
+</style></head>
+<body><div class="wrap">
+
+<h1>🔬 코드 구현 Audit — KSys (4차원 병렬 에이전트)</h1>
+<p class="meta">생성 2026-06-15 · 방법: 4 병렬 코드 audit (states / services·DB / AI engine / Reflex 0.8 idiom), 각 에이전트가 실제 파일 file:line 검증 · 계기: 기능검증서 발견한 대시보드 마비가 "빙산의 일각"인지 확인</p>
+
+<div class="callout bad">
+<strong>핵심 결론 — 빙산이 맞았습니다.</strong> 대시보드를 막은 스키마 드리프트(<code>q.unit</code>)는 <strong>동일 패턴의 잠재 크래시 클러스터</strong>의 하나일 뿐. 여러 페이지가 <strong>사용자가 조작하는 순간 하드 크래시</strong>(알람히스토리 SQL 문법오류, SCADA 통계 TypeError, 예측플레이어 KeyError, AI챗 무응답)하며, 전부 <strong>broad except가 "빈 화면"으로 가려</strong> 지금까지 안 보였습니다. AI 엔진은 19개 중 1개만 도달, 라이브 LLM 경로는 0% 가동.
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi bad"><div class="v">12</div><div class="l">CRITICAL<br>(페이지 크래시/마비)</div></div>
+  <div class="kpi warn"><div class="v">13</div><div class="l">HIGH</div></div>
+  <div class="kpi bad"><div class="v">5+</div><div class="l">스키마 드리프트<br>(테이블/컬럼 불일치)</div></div>
+  <div class="kpi bad"><div class="v">1/19</div><div class="l">AI 엔진 도달<br>(라이브 LLM 0%)</div></div>
+</div>
+
+<h2>① 횡단 테마 (4 audit 공통)</h2>
+<table>
+<tr><th>테마</th><th>실태</th><th>영향</th></tr>
+<tr><td><strong>스키마 드리프트 클러스터</strong></td><td><code>q.unit</code>(고침)는 시작일 뿐 — ai_service가 <code>min_value/max_value/description</code>(실제 min_val/max_val) 조회, migration 06이 influx_hist를 <code>qc/meta</code>로 가정(실제 value/quality), alarm_history를 두 코드가 서로 다른 스키마로 조회. 마이그레이션 추적 없음 → 단일 진실원천 부재</td><td>여러 쿼리 UndefinedColumn → 트랜잭션 연쇄실패</td></tr>
+<tr><td><strong>잠재 런타임 크래시</strong></td><td>asyncpg에 <code>%s</code> 플레이스홀더(asyncpg는 <code>$1</code>), 잘못된 인자수 호출, RowMapping KeyError, 미-await 코루틴, AI챗 form 미바인딩 — 각각 특정 페이지를 조작 시 즉시 깨뜨림</td><td>알람히스토리·SCADA·예측플레이어·AI챗 기능 사실상 죽음</td></tr>
+<tr><td><strong>트랜잭션 오염 (systemic)</strong></td><td><code>get_async_session()</code>이 한 트랜잭션을 다중쿼리에 공유 → 1개 실패가 형제쿼리 전부 롤백. 거의 모든 핸들러에 반복</td><td>대시보드 마비의 구조적 원인</td></tr>
+<tr><td><strong>broad except 은폐</strong></td><td>전 계층 <code>except Exception: return []</code> + 일부 <code>print()</code> → 위 크래시들이 "빈 패널"로 surface, 진단 불가</td><td>버그가 지금껏 안 보인 이유</td></tr>
+</table>
+
+<h2>② CRITICAL — 페이지 크래시/마비</h2>
+
+<h3>States 계층</h3>
+<table>
+<tr><th>발견</th><th>위치</th><th>영향</th></tr>
+<tr><td class="fid">asyncpg <code>%s</code> 플레이스홀더 → PostgresSyntaxError</td><td class="file">alarm_hist_state.py:131-158,192 · alarm_rt_state.py:232</td><td>알람히스토리 필터조회·태그별 ack 전부 실패</td></tr>
+<tr><td class="fid"><code>_update_statistics(connection)</code> 잘못된 인자수 → TypeError</td><td class="file">scada_alarm_state.py:284 (def :110)</td><td>SCADA 실시간 알람마다 통계 갱신 죽음(핵심기능)</td></tr>
+<tr><td class="fid"><code>row["r2_score"]</code> KeyError (SELECT엔 nrmse)</td><td class="file">forecast_player_state/state.py:1051</td><td>예측플레이어 playlist 로드 전체 실패</td></tr>
+<tr><td class="fid"><code>q(...)</code> 코루틴 미-await → execute_query에 코루틴 전달</td><td class="file">alarm_hist_state.py:110-111</td><td>알람히스토리 센서필터 항상 비어있음</td></tr>
+<tr><td class="fid">트랜잭션 오염 (다중쿼리 1세션 공유)</td><td class="file">dashboard_realtime.py:134-280 외 다수</td><td>1쿼리 실패→패널 전체 빈화면 (대시보드 마비 원인)</td></tr>
+</table>
+
+<h3>Services / DB 계층</h3>
+<table>
+<tr><th>발견</th><th>위치</th><th>영향</th></tr>
+<tr><td class="fid">ai_service가 존재X 컬럼 <code>min_value/max_value/description</code> 조회</td><td class="file">ai_service.py:164-171,252</td><td>AI 센서컨텍스트/인사이트 쿼리 전부 크래시</td></tr>
+<tr><td class="fid"><code>influx_hist</code> 스키마 자기모순 (mig06 qc/meta vs 실제 value/quality)</td><td class="file">migrations/06_integrate_with_influx.sql</td><td>virtual_tags→influx_hist 동기 트리거/뷰 전부 실패 → 가상태그 쓰기 throw</td></tr>
+<tr><td class="fid">COPY 백필이 cagg invalidation 우회 + refresh 정책 2h만</td><td class="file">inject_virtual_data.py / mig09</td><td>트렌드 히스토리 영구 미반영 (기능검증 이슈1)</td></tr>
+<tr><td class="fid"><code>SET LOCAL statement_timeout</code> 오염 트랜잭션선 무효+에러 은폐</td><td class="file">전 서비스</td><td>스키마 드리프트가 "0 센서"로 둔갑</td></tr>
+</table>
+
+<h3>AI 엔진 (19파일 중 1개만 도달)</h3>
+<table>
+<tr><th>발견</th><th>위치</th><th>영향</th></tr>
+<tr><td class="fid">챗 form이 <code>current_query</code> 미설정 → 모든 메시지 no-op</td><td class="file">ai_state.py:99-103 · ai_insights.py:435-461</td><td>AI 챗 form 완전 무응답 (기수정한 인자버그와 별개)</td></tr>
+<tr><td class="fid">RAGEngine가 라이브 경로서 <code>initialize()</code> 안 됨 → openai_client=None</td><td class="file">rag_engine.py:39-64 · ksys_app.py(미호출)</td><td>C1 고쳐도 LLM 호출 불가, 템플릿 응답만</td></tr>
+<tr><td class="fid"><code>ai_knowledge_base</code>/<code>ai_chat_history</code>/<code>ai_engine.*</code> 3+테이블 CREATE 없음</td><td class="file">ai_service.py · rag_engine.py · knowledge_builder.py</td><td>load()/save_chat_history 크래시·무저장. 게다가 ai_service vs rag_engine 스키마 상호 불일치</td></tr>
+</table>
+
+<h3>Reflex 0.8</h3>
+<table>
+<tr><th>발견</th><th>위치</th><th>영향</th></tr>
+<tr><td class="fid"><code>formatted_sensors</code>가 차트포함 최대 페이로드를 매 렌더 이중직렬화</td><td class="file">dashboard_realtime.py:391-409</td><td>100태그 hot-path WebSocket delta 2배, 무관 상태변경에도 재계산</td></tr>
+<tr><td class="fid"><code>rx.cached_var</code> 0개 (전체 245 @rx.var)</td><td class="file">전 states</td><td>스트리밍 매 tick 전 computed var 재계산 (204ms DB쿼리와 복합)</td></tr>
+</table>
+
+<h2>③ HIGH (선별)</h2>
+<ul>
+<li><span class="b high">State</span> <code>start_auto_refresh</code>의 <code>while:..return</code> → 자동새로고침 1회만 발화 (alarm_rt_state.py:277). 스트리밍 루프가 <code>is_streaming</code>을 <code>async with self</code> 밖에서 읽어 stop 미관측 (dashboard_realtime.py:97).</li>
+<li><span class="b high">State</span> 훈련 파이프라인이 DB세션을 수분간 점유(모델 fit 포함) → statement_timeout 위험 (training_state/state.py:396+).</li>
+<li><span class="b high">DB</span> <code>feature_config_service_v2.py:66</code> SQL 문법오류(<code>jsonbAS jsonb)</code>) 항상 실패. FeatureConfigService 3버전 충돌(정규화 vs JSONB vs 함수), 앱은 _final만 사용 — v1/v2 dead+스키마 모순.</li>
+<li><span class="b high">DB</span> <code>trend_service.get_statistics:175</code> <code>INTERVAL ':hours hours'</code> 바인드 미치환 → 항상 에러. tz naive(utcnow) vs aware(now KST) 혼용 → ±9h 스큐.</li>
+<li><span class="b high">AI</span> heavy deps(llama_index/matplotlib/seaborn/anthropic) top-level import인데 requirements.txt 부재 → 와이어업 시 ModuleNotFound. <code>BaseAgent.process</code> NotImplementedError 스텁. llamaindex 엔진 explicit mock + 미-await 버그. AIState 35개 computed var 전부 하드코딩 빈값(viz UI 영구 dead).</li>
+<li><span class="b high">Reflex</span> dead 병렬 대시보드(controller/view) 미사용인데 번들/state트리 포함. scheduler 싱글톤을 per-client <code>on_load</code>에서 기동(생명주기 결합).</li>
+</ul>
+
+<h2>④ AI 엔진 "낮은 구현 수준" 판정</h2>
+<div class="callout warn">
+<strong>사용자 주장(작년 sonnet 4.0 수준) — 대체로 사실, 단 뉘앙스.</strong> 도달 ~5%(1/19, 라이브 LLM 0% 가동). 스텁/mock/dead 다수(NotImplementedError 1, full-mock 엔진 1, 하드코딩 빈 var 35, 미생성 테이블 3, orphan 엔진 14, dead viz UI). 중복 심함(TF-IDF검색×2, 태그추출×4, optimal-view×2, OpenAI init×5). 모델 전부 <code>gpt-3.5-turbo</code>. <strong>반례</strong>: SQLi 화이트리스트(_TAG_RE)와 /ai 이중가드 import는 최근의 신중한 코드 — 일률적으로 나쁜 게 아니라 <strong>방대한 단발생성 엔진 위에 최근 패치가 얇게 덮인 형태</strong>.
+</div>
+
+<h2>⑤ Reflex 0.8 성숙도 판정</h2>
+<div class="callout">
+<strong>I/O·이벤트 계층은 유능(vibe-code 이상)</strong>: background event, <code>async with self:</code> 256곳 일관 적용, 파라미터화 SQL, async 세션, rx.cond/foreach 올바름. <strong>약점은 아키텍처</strong>: cached_var 0, hot-path 이중직렬화, 전 화면 dead 병렬구현, 클라이언트 생명주기에 daemon 결합, 위젯 1개에 Chakra 전체. "낮은 수준"은 반만 맞음 — I/O가 아니라 <strong>State/var 위생과 미정리 dead code</strong>가 문제.
+</div>
+
+<h2>⑥ 권장 수정 우선순위</h2>
+<ol>
+<li><strong>스키마 드리프트 클러스터 일괄 해소</strong> — ai_service(min_val/max_val), migration 06(value/quality), alarm_history 단일스키마. + 스키마-계약 테스트 추가(재발방지). 미생성 테이블(ai_knowledge_base 등)은 풀백업 덤프에서 추출.</li>
+<li><strong>잠재 크래시 5건 수정</strong> — asyncpg %s→$N, _update_statistics 인자, r2_score→nrmse, q() await, AI챗 form 바인딩. 각각 한 페이지를 되살림.</li>
+<li><strong>트랜잭션 오염 패턴</strong> — 독립 읽기 분리 or SAVEPOINT, broad except→narrow+traceback 로깅.</li>
+<li><strong>cagg 백필</strong>(이슈1) — COPY→정상 INSERT + 전범위 refresh.</li>
+<li><strong>Reflex hot-path</strong> — formatted_sensors 단일화 + cached_var, dead 병렬코드 삭제.</li>
+<li><strong>AI</strong> — 라이브 1엔진(form→init→테이블→context) 살리고 나머지 18 orphan 명시 격리/삭제.</li>
+</ol>
+
+<p class="meta" style="text-align:center;margin-top:40px;padding-top:16px;border-top:1px solid var(--border)">
+코드 구현 audit 2026-06-15 · 4 병렬 에이전트(states/services/AI/Reflex) · 477K subagent tokens · 기능검증서[functional_verification_2026-06-04]의 후속 — "빙산" 확인
+</p>
+
+</div></body></html>

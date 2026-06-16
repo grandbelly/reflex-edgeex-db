@@ -156,6 +156,12 @@ async def backfill(days: int, step_min: int = 1):
         total = 0
         # 태그별 부드러운 변동을 위해 현재값 상태 유지
         cur = {name: random.uniform(lo, hi) for name, lo, hi, _u, _t in SENSORS}
+        # COPY 가 아닌 executemany INSERT: continuous aggregate invalidation 트리거 발화.
+        # (copy_records_to_table 는 cagg 무효화를 우회해 백필이 집계에 절대 안 잡힘 — audit 이슈1)
+        INSERT_SQL = (
+            "INSERT INTO influx_hist (ts, tag_name, value, quality) VALUES ($1,$2,$3,$4) "
+            "ON CONFLICT (ts, tag_name) DO UPDATE SET value=EXCLUDED.value, quality=EXCLUDED.quality"
+        )
         batch = []
         t = start
         while t <= now:
@@ -165,18 +171,28 @@ async def backfill(days: int, step_min: int = 1):
                 cur[name] += random.uniform(-span * 0.05, span * 0.05)
                 v = min(max(cur[name], lo - span * 0.1), hi + span * 0.1)
                 batch.append((t, name, round(v, 2), 192))  # tz-aware (KST) → timestamptz
-            if len(batch) >= 50000:
-                await conn.copy_records_to_table(
-                    "influx_hist", records=batch, columns=["ts", "tag_name", "value", "quality"])
+            if len(batch) >= 10000:
+                await conn.executemany(INSERT_SQL, batch)
                 total += len(batch)
                 print(f"[BACKFILL] {total} rows... ({t:%Y-%m-%d %H:%M})", flush=True)
                 batch = []
             t += timedelta(minutes=step_min)
         if batch:
-            await conn.copy_records_to_table(
-                "influx_hist", records=batch, columns=["ts", "tag_name", "value", "quality"])
+            await conn.executemany(INSERT_SQL, batch)
             total += len(batch)
         print(f"[BACKFILL DONE] {total} rows over {days}d × {len(SENSORS)} tags @ {step_min}min", flush=True)
+
+        # 백필 범위를 continuous aggregate 에 반영 (refresh 는 트랜잭션 밖에서만 가능)
+        s_lo = start - timedelta(hours=1)
+        s_hi = now + timedelta(hours=1)
+        for cagg in ("influx_agg_1m", "influx_agg_10m", "influx_agg_1h"):
+            try:
+                await conn.execute(
+                    f"CALL refresh_continuous_aggregate('{cagg}', $1::timestamptz, $2::timestamptz)",
+                    s_lo, s_hi)
+                print(f"[REFRESH] {cagg} backfill 범위 반영", flush=True)
+            except Exception as e:
+                print(f"[REFRESH WARN] {cagg}: {e} (psql 로 수동 refresh 필요)", flush=True)
     finally:
         await conn.close()
 

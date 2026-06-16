@@ -131,22 +131,21 @@ class DashboardRealtimeState(BaseState):
         """Internal data fetch - no yield, pure async"""
         try:
             # Fetch data using service layer
+            # 독립 세션 (트랜잭션 오염 방지: 한 read 실패가 나머지 read 를 죽이지 않음)
             async with get_async_session() as session:
-                service = SensorService(session)
-
-                # Get sensor data WITH chart points (new method)
-                db_sensors = await service.get_realtime_alarms_with_charts()
-
-                # Get dashboard statistics
-                stats_data = await service.get_dashboard_statistics()
-
-                # Get forecast data for deployed models
+                db_sensors = await SensorService(session).get_realtime_alarms_with_charts()
+            async with get_async_session() as session:
+                stats_data = await SensorService(session).get_dashboard_statistics()
+            async with get_async_session() as session:
                 forecast_results = await self._fetch_forecast_data(session)
 
-                if not db_sensors:
-                    console.log("No sensor data received")
-                    return
+            if not db_sensors:
+                console.log("No sensor data received")
+                return
 
+            # Process sensors (집계 chart read 용 세션)
+            async with get_async_session() as session:
+                service = SensorService(session)
                 # Process sensors
                 sensor_list = []
                 for sensor in db_sensors:
@@ -157,6 +156,8 @@ class DashboardRealtimeState(BaseState):
                     warning_high = None
                     critical_low = 0
                     critical_high = 120
+                    value = sensor.get('value', 0)  # qc_rule 없는 센서에서 UnboundLocalError 방지
+                    range_size = max(max_val - min_val, 1)  # trend 계산 전 항상 정의 (min==max 보호)
 
                     if 'qc_rule' in sensor and sensor['qc_rule']:
                         min_val = sensor["qc_rule"].get("min_val") or 0
@@ -288,12 +289,12 @@ class DashboardRealtimeState(BaseState):
                 self.warning_count = stats['warning']
                 self.critical_count = stats['critical']
 
-                # Update dashboard statistics (새로 추가)
-                self.total_devices = stats_data['total_devices']
-                self.critical_percentage = stats_data['critical_percentage']
-                self.avg_critical_deviation = stats_data['avg_critical_deviation']
-                self.max_alarm_sensor = stats_data['max_alarm_sensor']
-                self.max_alarm_value = stats_data['max_alarm_value']
+                # Update dashboard statistics — stats 쿼리 실패({}) 시에도 freeze 안 되게 .get() 기본값
+                self.total_devices = stats_data.get('total_devices', len(sensor_list))
+                self.critical_percentage = stats_data.get('critical_percentage', 0)
+                self.avg_critical_deviation = stats_data.get('avg_critical_deviation', 0)
+                self.max_alarm_sensor = stats_data.get('max_alarm_sensor') or "-"
+                self.max_alarm_value = stats_data.get('max_alarm_value') or 0
 
                 self.last_update = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M:%S")
                 # UI update will be triggered by refresh_data()

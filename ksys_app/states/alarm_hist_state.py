@@ -107,8 +107,7 @@ class AlarmHistState(rx.State):
 
         # 센서 목록 로드
         try:
-            sensor_query = q("SELECT tag_name FROM influx_tag ORDER BY tag_name")
-            sensors_result = await execute_query(sensor_query)
+            sensors_result = await q("SELECT tag_name FROM influx_tag ORDER BY tag_name")
             async with self:
                 self.sensor_list = [row['tag_name'] for row in sensors_result] if sensors_result else []
         except Exception as e:
@@ -123,26 +122,26 @@ class AlarmHistState(rx.State):
             self.last_fetch = "로딩중..."
 
         try:
-            # 필터 조건 생성
+            # 필터 조건 생성 (asyncpg → $1,$2.. 위치 placeholder. param 추가 후 len 사용해 위치 일치)
             where_clauses = []
             params = []
 
             # 날짜 필터
-            where_clauses.append("triggered_at >= %s")
             params.append(datetime.fromisoformat(self.start_date))
+            where_clauses.append(f"triggered_at >= ${len(params)}")
 
-            where_clauses.append("triggered_at <= %s")
             params.append(datetime.fromisoformat(self.end_date))
+            where_clauses.append(f"triggered_at <= ${len(params)}")
 
             # 센서 필터
             if self.sensor_filter != "전체":
-                where_clauses.append("sensor_data->>'tag_name' = %s")
                 params.append(self.sensor_filter)
+                where_clauses.append(f"sensor_data->>'tag_name' = ${len(params)}")
 
             # 시나리오 필터
             if self.scenario_filter != "전체":
-                where_clauses.append("scenario_id = %s")
                 params.append(self.scenario_filter)
+                where_clauses.append(f"scenario_id = ${len(params)}")
 
             # 레벨 필터
             if self.level_filter != "전체":
@@ -154,8 +153,8 @@ class AlarmHistState(rx.State):
                     "INFO": 1
                 }
                 if self.level_filter in level_map:
-                    where_clauses.append("level = %s")
                     params.append(level_map[self.level_filter])
+                    where_clauses.append(f"level = ${len(params)}")
 
             # 미해결 필터
             if self.unresolved_only:
@@ -173,8 +172,10 @@ class AlarmHistState(rx.State):
             total_alarms = count_result[0]['total'] if count_result else 0
             total_pages = max(1, (total_alarms + self.page_size - 1) // self.page_size)
 
-            # 페이지 데이터 조회
+            # 페이지 데이터 조회 (LIMIT/OFFSET 은 where_clause 다음 위치 placeholder)
             offset = (self.current_page - 1) * self.page_size
+            limit_ph = len(params) + 1
+            offset_ph = len(params) + 2
             data_query = f"""
                 SELECT
                     event_id,
@@ -189,7 +190,7 @@ class AlarmHistState(rx.State):
                 FROM alarm_history
                 WHERE {where_clause}
                 ORDER BY triggered_at DESC
-                LIMIT %s OFFSET %s
+                LIMIT ${limit_ph} OFFSET ${offset_ph}
             """
             params_with_limit = params.copy()
             params_with_limit.extend([self.page_size, offset])

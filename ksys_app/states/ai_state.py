@@ -96,9 +96,9 @@ class AIState(rx.State):
                 self.loading = False
 
     @rx.event(background=True)
-    async def send_message(self):
-        """Send a message to AI"""
-        query = self.current_query.strip()
+    async def send_message(self, form_data: dict):
+        """Send a message to AI. form_data: on_submit/on_click 이 전달하는 {"message": ...}"""
+        query = (form_data or {}).get("message", "").strip()
         if not query:
             return
 

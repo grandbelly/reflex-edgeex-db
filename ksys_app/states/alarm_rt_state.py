@@ -229,7 +229,7 @@ class AlarmRTState(rx.State):
             await execute_query("""
                 UPDATE alarm_history
                 SET acknowledged = true, acknowledged_at = NOW(), acknowledged_by = 'user'
-                WHERE sensor_data->>'tag_name' = %s
+                WHERE sensor_data->>'tag_name' = $1
                 AND acknowledged = false
             """, (tag_name,))
 

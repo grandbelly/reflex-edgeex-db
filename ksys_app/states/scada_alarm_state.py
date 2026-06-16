@@ -281,7 +281,7 @@ class ScadaAlarmState(rx.State):
             self.apply_filters()
 
             # 통계 업데이트
-            await self._update_statistics(connection)
+            await self._update_statistics()
 
             # 업데이트 시간 기록
             self.last_update = datetime.now().strftime("%H:%M:%S")

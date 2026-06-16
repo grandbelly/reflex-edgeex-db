@@ -143,15 +143,15 @@ class AIService:
         stats_result = await self.session.execute(q_stats, {"sensor_id": sensor_id})
         stats = stats_result.mappings().first()
 
-        # Get recent alarms
+        # Get recent alarms (alarm_history: 태그는 sensor_data->>'tag_name', 심각도는 level, 내용은 message)
         q_alarms = text("""
             SELECT
-                alarm_type,
-                alarm_level,
-                description,
+                scenario_id,
+                level,
+                message,
                 triggered_at
             FROM alarm_history
-            WHERE sensor_id = :sensor_id
+            WHERE sensor_data->>'tag_name' = :sensor_id
             AND triggered_at >= NOW() - INTERVAL '24 hours'
             ORDER BY triggered_at DESC
             LIMIT 5
@@ -160,12 +160,11 @@ class AIService:
         alarms_result = await self.session.execute(q_alarms, {"sensor_id": sensor_id})
         alarms = [dict(row) for row in alarms_result.mappings()]
 
-        # Get QC rules
+        # Get QC rules (influx_qc_rule: 컬럼은 min_val/max_val, description 없음)
         q_qc = text("""
             SELECT
-                min_value::float AS min_threshold,
-                max_value::float AS max_threshold,
-                description
+                min_val::float AS min_threshold,
+                max_val::float AS max_threshold
             FROM influx_qc_rule
             WHERE tag_name = :sensor_id
         """)
@@ -249,14 +248,14 @@ class AIService:
             WITH sensor_status AS (
                 SELECT
                     COUNT(*) AS total_sensors,
-                    COUNT(CASE WHEN value > q.max_value OR value < q.min_value THEN 1 END) AS abnormal_sensors
+                    COUNT(CASE WHEN l.value > q.max_val OR l.value < q.min_val THEN 1 END) AS abnormal_sensors
                 FROM influx_latest l
                 LEFT JOIN influx_qc_rule q ON l.tag_name = q.tag_name
             ),
             alarm_stats AS (
                 SELECT
                     COUNT(*) AS total_alarms_24h,
-                    COUNT(CASE WHEN alarm_level >= 4 THEN 1 END) AS critical_alarms
+                    COUNT(CASE WHEN level >= 4 THEN 1 END) AS critical_alarms
                 FROM alarm_history
                 WHERE triggered_at >= NOW() - INTERVAL '24 hours'
             )
@@ -271,14 +270,14 @@ class AIService:
         result = await self.session.execute(q_metrics)
         metrics = result.mappings().first()
 
-        # Get trending sensors
+        # Get trending sensors (태그는 sensor_data->>'tag_name')
         q_trending = text("""
             SELECT
-                sensor_id,
+                sensor_data->>'tag_name' AS sensor_id,
                 COUNT(*) AS alarm_count
             FROM alarm_history
             WHERE triggered_at >= NOW() - INTERVAL '24 hours'
-            GROUP BY sensor_id
+            GROUP BY sensor_data->>'tag_name'
             ORDER BY alarm_count DESC
             LIMIT 3
         """)

@@ -23,6 +23,7 @@ def format_kst_time_str(dt_str: str) -> str:
             return dt_str
     return "-"
 
+@rx.page(route="/alarms_hist", title="알람 이력 분석")
 def alarms_hist_page() -> rx.Component:
     """알람 이력 메인 페이지"""
     return shell(

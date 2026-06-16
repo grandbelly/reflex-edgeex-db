@@ -85,14 +85,16 @@ class SchedulerManager:
             logger.info(f"⏰ ActualValueUpdater will start in {updater_delay}s (at x:{next_updater_minute%60:02d})")
             logger.info(f"⏰ PerformanceAggregator will start in {aggregator_delay}s (at x:{next_aggregator_minute%60:02d})")
 
-            # Start ForecastScheduler (every 5 minutes, at x:00)
+            # Start ForecastScheduler (every 10 minutes, at x:00).
+            # 10-min cycle matches the forecast_time 10-min floor and the
+            # ActualValueUpdater cadence at x:01.
             async def start_forecast_with_delay():
                 await asyncio.sleep(forecast_delay)
-                await forecast_scheduler.start(interval_seconds=300)  # 5 minutes (as per docs)
+                await forecast_scheduler.start(interval_seconds=600)  # 10 minutes
 
             forecast_task = asyncio.create_task(start_forecast_with_delay())
             self.tasks.append(forecast_task)
-            logger.info("✅ ForecastScheduler task created (5-minute interval, starts at x:00)")
+            logger.info("✅ ForecastScheduler task created (10-minute interval, starts at x:00)")
 
             # Start ActualValueUpdater (every 10 minutes, at x:01)
             async def start_updater_with_delay():

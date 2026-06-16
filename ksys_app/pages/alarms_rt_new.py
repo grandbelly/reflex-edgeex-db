@@ -17,6 +17,7 @@ from ..components.alarms import (
 )
 
 
+@rx.page(route="/alarms_rt_new", title="실시간 알람 (개선)")
 def alarms_rt_page() -> rx.Component:
     """실시간 알람 대시보드 - Light Mode"""
     return shell(

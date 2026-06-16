@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Verify-0 — Docker Build + Route Verification</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1280px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 32px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  .subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 36px; border-left: 4px solid #79c0ff; padding-left: 12px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d; overflow-x: auto; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 30px; font-weight: 700; color: #79c0ff; }
+  .kpi.green .v { color: #3fb950; }
+  .kpi.red .v { color: #f85149; }
+  .kpi.orange .v { color: #ffa657; }
+  .kpi .l { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .callout { background: #1c2128; border-left: 4px solid #d29922; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; }
+  .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .status-pass { background: #2ea043; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 12px; }
+  .status-warn { background: #d29922; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 12px; }
+  .status-fail { background: #f85149; color: #fff; padding: 2px 10px; border-radius: 10px; font-weight: 600; font-size: 12px; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .good { color: #3fb950; font-weight: 700; }
+  .warn { color: #d29922; font-weight: 700; }
+  .bad { color: #f85149; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>✅ Verify-0 — Docker Build + Route Verification</h1>
+<p class="subtitle">
+  Plan: <code>docs/01-plan/features/rpi-stage5-7-mcp-integration.plan.html</code> §Verify-0 ·
+  Branch <code>refactor/rpi-baseline-sync</code> · HEAD <code>2a18d27</code> ·
+  Generated 2026-05-20 00:25 KST
+</p>
+
+<div class="callout success">
+<strong>전체 결과:</strong> <span class="status-pass">PASS</span> — Docker build 성공, Reflex 부팅 정상,
+15/15 라우트 HTTP 200. Stage 4 Deep 진행 준비됨.
+</div>
+
+<h2>📊 Headline</h2>
+
+<div class="kpi-grid">
+  <div class="kpi green"><div class="v">PASS</div><div class="l">overall</div></div>
+  <div class="kpi green"><div class="v">15 / 15</div><div class="l">routes HTTP 200</div></div>
+  <div class="kpi green"><div class="v">4 / 4</div><div class="l">containers Up</div></div>
+  <div class="kpi"><div class="v">~14s</div><div class="l">build (cached)</div></div>
+  <div class="kpi"><div class="v">~25s</div><div class="l">Reflex compile (frontend)</div></div>
+  <div class="kpi orange"><div class="v">1</div><div class="l">SSR fallback (warn)</div></div>
+</div>
+
+<h2>🔧 Verify-0 Steps Executed</h2>
+
+<table>
+  <tr><th>#</th><th>Step</th><th>Result</th><th>Output / Note</th></tr>
+  <tr>
+    <td>1</td><td><code>git status</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>working tree clean</td>
+  </tr>
+  <tr>
+    <td>2</td><td><code>git log --oneline -1</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td><code>2a18d27 docs: stage5-7 plan + mcp framework + session report</code></td>
+  </tr>
+  <tr>
+    <td>3</td><td><code>docker ps</code> (Docker Desktop check)</td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>Docker Desktop ON — 4 containers Up (1h before Verify-0)</td>
+  </tr>
+  <tr>
+    <td>4</td><td><code>docker compose build reflex-app</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>Image <code>reflex-rpi-local-deployment-poongdo-reflex-app</code> built in 13.7s (cached layers)</td>
+  </tr>
+  <tr>
+    <td>5</td><td><code>docker compose up -d</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>reflex-app Recreated + Started. data-injector / forecast-scheduler 그대로 Running.</td>
+  </tr>
+  <tr>
+    <td>6</td><td>60s wait + <code>docker ps</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>All 4 containers Up > 1 minute</td>
+  </tr>
+  <tr>
+    <td>7</td><td><code>docker logs ksys-local-reflex-app --tail 100</code></td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>"App Running" + Granian backend started + DB pool init OK + 0 traceback</td>
+  </tr>
+  <tr>
+    <td>8</td><td>Route auto-discovery</td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>15 routes found via <code>grep @rx.page</code> in ksys_app/pages/</td>
+  </tr>
+  <tr>
+    <td>9</td><td><code>curl</code> all routes</td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>15/15 → HTTP 200 (1 with SSR fallback size; see warning below)</td>
+  </tr>
+  <tr>
+    <td>10</td><td>HTML report</td>
+    <td><span class="status-pass">PASS</span></td>
+    <td>This file: <code>reports/verify_2026-05-20.html</code></td>
+  </tr>
+</table>
+
+<h2>🐳 Container State (post-up)</h2>
+
+<pre><code>NAMES                           STATUS
+ksys-local-reflex-app           Up About a minute   (recreated)
+ksys-local-forecast-scheduler   Up About an hour    (untouched)
+ksys-local-data-injector        Up About an hour    (untouched)
+ksys-dev-db                     Up About an hour (healthy)   (external network)</code></pre>
+
+<h2>🚦 Route HTTP Status (15 routes)</h2>
+
+<table>
+  <tr><th>Route</th><th>Status</th><th>Bytes</th><th>Module</th><th>Note</th></tr>
+  <tr><td><code>/</code></td><td><span class="status-pass">200</span></td><td>45,389</td><td>pages/dashboard.py</td><td>main dashboard</td></tr>
+  <tr><td><code>/alarms</code></td><td><span class="status-pass">200</span></td><td>44,213</td><td>pages/alarms.py</td><td>rule-based alarms</td></tr>
+  <tr><td><code>/alarms_hist</code></td><td><span class="status-pass">200</span></td><td>38,487</td><td>pages/alarms_hist_simple.py</td><td>alarm history</td></tr>
+  <tr><td><code>/alarms_hist_new</code></td><td><span class="status-pass">200</span></td><td>42,395</td><td>pages/alarms_hist_new.py</td><td>improved alarm history</td></tr>
+  <tr><td><code>/alarms_rt</code></td><td><span class="status-pass">200</span></td><td>50,826</td><td>pages/alarms_rt_simple.py</td><td>realtime alarm</td></tr>
+  <tr><td><code>/alarms_rt_new</code></td><td><span class="status-pass">200</span></td><td>45,959</td><td>pages/alarms_rt_new.py</td><td>improved realtime alarm</td></tr>
+  <tr><td><code>/comm</code></td><td><span class="status-pass">200</span></td><td>64,877</td><td>pages/communication.py</td><td>communication monitoring</td></tr>
+  <tr><td><code>/design-system-demo</code></td><td><span class="status-warn">200 ⚠</span></td><td>24,019</td><td>pages/design_system_demo.py</td><td><strong>SSR fallback size</strong> — may render correctly client-side; not on critical path</td></tr>
+  <tr><td><code>/forecast</code></td><td><span class="status-pass">200</span></td><td>41,908</td><td>pages/forecast_player.py</td><td>forecast player (Stage 3.3 renamed)</td></tr>
+  <tr><td><code>/model-performance</code></td><td><span class="status-pass">200</span></td><td>45,867</td><td>pages/model_performance.py</td><td>ML model monitoring</td></tr>
+  <tr><td><code>/scada-alarm-comparison</code></td><td><span class="status-pass">200</span></td><td>40,784</td><td>pages/scada_alarm_comparison.py</td><td>rule vs AI alarms</td></tr>
+  <tr><td><code>/scada-alarms</code></td><td><span class="status-pass">200</span></td><td>32,582</td><td>pages/scada_alarm_viewer.py</td><td>SCADA alarm log</td></tr>
+  <tr><td><code>/training-wizard</code></td><td><span class="status-pass">200</span></td><td>43,654</td><td>pages/training_wizard/__init__.py</td><td>training wizard (subpackage)</td></tr>
+  <tr><td><code>/trend</code></td><td><span class="status-pass">200</span></td><td>54,152</td><td>pages/trend_enhanced_v2.py</td><td>trend analysis</td></tr>
+  <tr><td><code>/viewer-tag</code></td><td><span class="status-pass">200</span></td><td>29,814</td><td>pages/viewer_tag.py</td><td>tag viewer (positional route arg)</td></tr>
+</table>
+
+<div class="callout">
+<strong>⚠️ 단일 SSR fallback 발견:</strong> <code>/design-system-demo</code> 24,019 bytes.
+이전 세션(2026-05-19)에서 9개 페이지가 24,019 bytes SSR fallback이었던 것 대비 1개로 감소.
+운영 critical path 아님 (개발용 디자인 시스템 데모 페이지) — Stage 5 lazy-import 작업과 함께 검토.
+</div>
+
+<h2>📜 Reflex Boot Log (key lines)</h2>
+
+<pre><code>───────────────────────────────── App Running ──────────────────────────────────
+App running at: http://0.0.0.0:14000/
+Backend running at: http://0.0.0.0:14001
+Debug: Running command: ['granian', '--log-level', 'critical', '--host',
+'0.0.0.0', '--port', '14001', '--interface', 'asgi', '--factory',
+'/app/ksys_app/ksys_app.py:app']
+
+00:22:49 | INFO | SESSION STARTED - 20260520_002249
+00:22:50 | INFO | Database pool initialized successfully
+00:22:50 | INFO | END OPERATION: database_pool_initialization [SUCCESS in 0.02s]
+00:22:51 | INFO | AI Features: ENABLED
+00:22:53 | INFO | SCHEDULER INITIALIZATION: Will start on app mount via SchedulerState</code></pre>
+
+<div class="callout info">
+주목 사항 (운영 영향 없음):
+<ul>
+  <li>Node.js 18.20.8 → 20.19.0 권장 경고 (Dockerfile node base 업그레이드 후보, Stage 5에서)</li>
+  <li>3개 보안 경고: postgres admin 계정 / SSL 비활성 / 약한 패스워드 (development 환경 명시적으로 허용)</li>
+  <li><code>.env</code> 파일 없음 (TS_DSN 등 docker-compose env 로 주입 — 정상)</li>
+</ul>
+</div>
+
+<h2>✅ Acceptance Criteria (Plan §Verify-0)</h2>
+
+<table>
+  <tr><th>AC</th><th>목표</th><th>실측</th><th>결과</th></tr>
+  <tr><td>AC-1</td><td>모든 컨테이너 Up 30초 이상 유지</td><td>4/4 Up > 1분</td><td><span class="status-pass">PASS</span></td></tr>
+  <tr><td>AC-2</td><td>14개 라우트 HTTP 200 (or 3xx)</td><td>15/15 → 200 (1 SSR fallback size, status는 200)</td><td><span class="status-pass">PASS</span></td></tr>
+  <tr><td>AC-3</td><td><code>reports/verify_2026-05-20.html</code> 생성</td><td>본 파일</td><td><span class="status-pass">PASS</span></td></tr>
+  <tr><td>AC-4</td><td>실패 시 traceback + 모듈명</td><td>실패 없음</td><td><span class="status-pass">N/A</span></td></tr>
+</table>
+
+<h2>🎯 14 commits 누적 결과 — 운영 baseline 검증됨</h2>
+
+<p>이전 세션 (2026-05-19) 의 14 commits 누적분이 풍도 Docker 환경에서 정상 부팅 + 모든 운영 라우트 응답 확인.
+즉 Stage 1-4 partial refactor 결과물이 <strong>regression 없이 동작</strong>.</p>
+
+<table>
+  <tr><th>commit</th><th>변경</th></tr>
+  <tr><td><code>e397d8f</code></td><td>baseline sync</td></tr>
+  <tr><td><code>7618aa2</code></td><td>Stage 1 — ksys_app_clean/ + 18 dead files 삭제 (-89,601L)</td></tr>
+  <tr><td><code>4bf9cf9</code> + <code>4c0203b</code></td><td>Stage 2 — 11 dead pages + 7 orphan services/queries</td></tr>
+  <tr><td><code>663aee6</code> + <code>ec3ba96</code></td><td>Stage 3 — @rx.page 통일 + /forecast rename</td></tr>
+  <tr><td><code>b52ec6b</code></td><td>Stage 3.5 — ksys_app.py 죽은 함수 14개 제거 (1078→208)</td></tr>
+  <tr><td><code>907a1b4</code> ~ <code>d77988f</code></td><td>Stage 4 Sprint 1-4 — 4 monolith package화 + 1 dead 삭제</td></tr>
+  <tr><td><code>fb005ea</code></td><td>session report</td></tr>
+  <tr><td><code>811689e</code></td><td>.gitignore .claude/worktrees/</td></tr>
+  <tr><td><code>2a18d27</code></td><td>docs: stage5-7 plan + mcp framework + session report HTML</td></tr>
+</table>
+
+<h2>🚀 Next Step (per Plan)</h2>
+
+<div class="callout success">
+Verify-0 PASS — 다음은 <strong>Stage 4 Deep — DEEP-1 (training_state helper extraction)</strong>.
+사용자 컨펌 받은 뒤 진행. 자동 진행 X.
+</div>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+Verify-0 executed 2026-05-20 00:22-00:25 KST · 4 containers / 15 routes / 0 traceback · <strong>PASS</strong>
+</p>
+
+</body>
+</html>

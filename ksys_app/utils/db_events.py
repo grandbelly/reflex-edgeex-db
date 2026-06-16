@@ -15,7 +15,18 @@ logger = logging.getLogger(__name__)
 class DatabaseEventListener:
     """PostgreSQL NOTIFY 이벤트 리스너"""
 
+    # PostgreSQL identifier rule: letter/underscore start, then alphanumerics/underscores.
+    # LISTEN/NOTIFY channel names cannot be parameterized via $N — they must be
+    # literal identifiers. Validate at construction to prevent SQL injection
+    # if the channel name ever flows from a user-controlled source.
+    _CHANNEL_RE = __import__('re').compile(r'^[A-Za-z_][A-Za-z0-9_]{0,62}$')
+
     def __init__(self, channel: str = "data_update"):
+        if not self._CHANNEL_RE.match(channel):
+            raise ValueError(
+                f"Invalid PostgreSQL channel name: {channel!r}. "
+                "Must match [A-Za-z_][A-Za-z0-9_]{0,62}"
+            )
         self.channel = channel
         self.connection: Optional[psycopg.AsyncConnection] = None
         self.callback: Optional[Callable] = None

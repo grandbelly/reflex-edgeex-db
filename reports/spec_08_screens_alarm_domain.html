@@ -1,0 +1,2950 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_08_screens_alarm_domain</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="screen-design-specification">화면 설계서 (Screen Design Specification)</h1>
+<h2 id="alarm-scada-7">Alarm + SCADA 도메인 — 7 페이지</h2>
+<p><strong>작성일</strong>: 2026-05-28<br />
+<strong>버전</strong>: 1.0<br />
+<strong>대상</strong>: 디자이너, 프론트엔드 개발자, QA<br />
+<strong>근거 소스</strong>: ksys_app/pages/alarms<em>.py, scada_alarm</em>.py + 대응 state 파일 전체 실측</p>
+<blockquote>
+<p>이 문서는 SI 수준의 화면 설계서입니다. 각 페이지를 재구현하거나 수정할 때 단일 참조 출처(Single Source of Truth)로 사용합니다.</p>
+</blockquote>
+<hr />
+<h2 id="_1">도메인 구성 개요</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Route</th>
+<th>파일</th>
+<th>상태</th>
+<th>LoC(page)</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>/alarms</code></td>
+<td>alarms.py</td>
+<td>✓ live</td>
+<td>465</td>
+<td>통합 알람 (Active + History)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>/alarms_rt</code></td>
+<td>alarms_rt_simple.py</td>
+<td>⚠️ duplicate</td>
+<td>401</td>
+<td>실시간 알람 v1</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>/alarms_rt_new</code></td>
+<td>alarms_rt_new.py</td>
+<td>⚠️ duplicate</td>
+<td>180</td>
+<td>실시간 알람 v2</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>/alarms_hist</code></td>
+<td>alarms_hist_simple.py</td>
+<td>⚠️ duplicate</td>
+<td>287</td>
+<td>알람 이력 v1</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>/alarms_hist_new</code></td>
+<td>alarms_hist_new.py</td>
+<td>⚠️ duplicate</td>
+<td>286</td>
+<td>알람 이력 v2</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>/scada-alarms</code></td>
+<td>scada_alarm_viewer.py</td>
+<td>✓ live</td>
+<td>220</td>
+<td>SCADA NOTIFY viewer</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>/scada-alarm-comparison</code></td>
+<td>scada_alarm_comparison.py</td>
+<td>✓ live</td>
+<td>373</td>
+<td>Rule vs AI 비교</td>
+</tr>
+</tbody>
+</table>
+<p><strong>canonical 추천</strong>:
+- 실시간 알람: <code>/alarms</code> (AlarmsState, ISA-18.2 지원, DashboardRealtimeState 연동, on_load 정상)
+- 알람 이력: <code>/alarms</code> (History 탭, server-side 페이지네이션, filter_bar 컴포넌트 활용)
+- <code>/alarms_rt</code>, <code>/alarms_rt_new</code>, <code>/alarms_hist</code>, <code>/alarms_hist_new</code> 4개는 중복 — Phase A 정리 대상</p>
+<hr />
+<h2 id="page-1-alarms-kr">Page 1: <code>/alarms</code> — 통합 알람 대시보드 (KR)</h2>
+<h3 id="_2">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/alarms.py</code> (LoC: 465)</li>
+<li><strong>@rx.page decorator</strong>: line 233, <code>route="/alarms"</code>, <code>title="Alarms"</code>, <code>on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming]</code></li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/alarms.py</code> (LoC: 608+, class: <code>AlarmsState</code>)</li>
+<li><strong>보조 State</strong>: <code>ksys_app/states/dashboard_realtime.py</code> (class: <code>DashboardRealtimeState</code>)</li>
+<li><strong>등록 상태</strong>: ✓ live</li>
+</ul>
+<h3 id="_3">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ SHELL (좌측 사이드바 + 상단 nav 포함)                                │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ [H1] 🚨 Alarm Dashboard              [↺ Refresh (loading 연동)]│   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌──────────┐ │   │
+│ │ │ Total       │ │ Normal      │ │ Warning     │ │ Critical │ │   │
+│ │ │ Sensors: N  │ │ N           │ │ N           │ │ N        │ │   │
+│ │ │ [cpu icon]  │ │[check icon] │ │[alert icon] │ │[crit icon│ │   │
+│ │ └─────────────┘ └─────────────┘ └─────────────┘ └──────────┘ │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [조건부: view_mode == &quot;history&quot;만 표시]                        │   │
+│ │ &quot;ISA-18.2 Alarm Priority Distribution&quot;                        │   │
+│ │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │   │
+│ │ │P1:Advisory│ │P2:Caution│ │P3:Warning│ │P4:Emergency│        │   │
+│ │ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [▶ Active Alarms] [  History  ]    ← view mode toggle buttons │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [조건부: history만] Time Range: [1h][6h][24h][7d]  [Show Acked]│   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [조건부: history만] FilterBar: [검색] [심각도▼] [상태▼]       │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [조건부: history만] Showing N alarms   Last update: HH:MM      │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [조건부: error] ⚠ Error callout (red)                         │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [loading] → 스피너 (center)                                   │   │
+│ │ [active view] → 실시간 알람 모니터링 표 (8 col)               │   │
+│ │   ID | 상태 | 현재값 | 범위 | 초과량 | 위험도 | 판정시간 | 액션│   │
+│ │ [history view] → VTScada 스타일 표 (8 col) + pagination       │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_4">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>라벨/값</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1 제목</td>
+<td>row 1 left</td>
+<td>heading size=6</td>
+<td>static</td>
+<td>-</td>
+<td>"🚨 Alarm Dashboard"</td>
+<td>weight=bold, #111827</td>
+</tr>
+<tr>
+<td>Refresh 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td><code>AlarmsState.loading</code> (loading prop)</td>
+<td><code>AlarmsState.refresh_data</code></td>
+<td>"↺ Refresh"</td>
+<td>variant=soft, blue</td>
+</tr>
+<tr>
+<td>KPI 카드 Total Sensors</td>
+<td>row 2, col 1</td>
+<td>stat_card</td>
+<td><code>DashboardRealtimeState.total_devices</code></td>
+<td>hover only</td>
+<td>"Total Sensors"</td>
+<td>icon=cpu, gray</td>
+</tr>
+<tr>
+<td>KPI 카드 Normal</td>
+<td>row 2, col 2</td>
+<td>stat_card</td>
+<td><code>DashboardRealtimeState.normal_count</code></td>
+<td>hover only</td>
+<td>"Normal"</td>
+<td>icon=circle-check, green</td>
+</tr>
+<tr>
+<td>KPI 카드 Warning</td>
+<td>row 2, col 3</td>
+<td>stat_card</td>
+<td><code>DashboardRealtimeState.warning_count</code></td>
+<td>hover only</td>
+<td>"Warning"</td>
+<td>icon=triangle-alert, orange</td>
+</tr>
+<tr>
+<td>KPI 카드 Critical</td>
+<td>row 2, col 4</td>
+<td>stat_card</td>
+<td><code>DashboardRealtimeState.critical_count</code></td>
+<td>hover only</td>
+<td>"Critical"</td>
+<td>icon=circle-alert, red</td>
+</tr>
+<tr>
+<td>ISA 배포 섹션 (조건부)</td>
+<td>row 3 (history만)</td>
+<td>vstack + 4×stat_card</td>
+<td><code>AlarmsState.stat_priority_{1..4}_*</code></td>
+<td>-</td>
+<td>"ISA-18.2 Alarm Priority Distribution"</td>
+<td>history view에서만 렌더</td>
+</tr>
+<tr>
+<td>Active 버튼</td>
+<td>row 4 left</td>
+<td>button</td>
+<td><code>AlarmsState.view_mode</code> (color/variant)</td>
+<td><code>set_view_mode("active")</code></td>
+<td>"Active Alarms"</td>
+<td>active 시 solid blue</td>
+</tr>
+<tr>
+<td>History 버튼</td>
+<td>row 4 right</td>
+<td>button</td>
+<td><code>AlarmsState.view_mode</code></td>
+<td><code>set_view_mode("history")</code></td>
+<td>"History"</td>
+<td>active 시 solid blue</td>
+</tr>
+<tr>
+<td>Time Range segmented (조건부)</td>
+<td>row 5 (history)</td>
+<td>segmented_control</td>
+<td><code>AlarmsState.selected_hours</code></td>
+<td><code>AlarmsState.set_hours_filter</code></td>
+<td>"1h/6h/24h/7d"</td>
+<td></td>
+</tr>
+<tr>
+<td>Show Acknowledged 스위치 (조건부)</td>
+<td>row 5 right</td>
+<td>switch</td>
+<td><code>AlarmsState.show_acknowledged</code></td>
+<td><code>AlarmsState.toggle_show_acknowledged</code></td>
+<td>"Show Acknowledged"</td>
+<td>ISA-18.2 기본 off</td>
+</tr>
+<tr>
+<td>filter_bar (조건부)</td>
+<td>row 6 (history)</td>
+<td>컴포넌트</td>
+<td>search/severity/status</td>
+<td>set_search_query, set_severity_filter, set_status_filter</td>
+<td>-</td>
+<td><code>ksys_app/components/alarms/filter_bar.py</code></td>
+</tr>
+<tr>
+<td>Info bar (조건부)</td>
+<td>row 7 (history)</td>
+<td>flex</td>
+<td><code>AlarmsState.filtered_count</code>, <code>last_update</code></td>
+<td>-</td>
+<td>"Showing N alarms / Last update: T"</td>
+<td>bg=#f9fafb</td>
+</tr>
+<tr>
+<td>Error callout</td>
+<td>row 8</td>
+<td>callout</td>
+<td><code>AlarmsState.error_message != ""</code></td>
+<td>-</td>
+<td>에러 문자열</td>
+<td>color_scheme=red, icon=triangle-alert</td>
+</tr>
+<tr>
+<td>Loading spinner</td>
+<td>content</td>
+<td>vstack center</td>
+<td><code>AlarmsState.loading</code></td>
+<td>-</td>
+<td>"Loading alarms..."</td>
+<td>spinner size=3</td>
+</tr>
+<tr>
+<td>Active view 표</td>
+<td>content</td>
+<td>table.root</td>
+<td><code>DashboardRealtimeState.sensors</code></td>
+<td>row 버튼 클릭 → 조치</td>
+<td>8 cols: ID/상태/현재값/범위/초과량/위험도/판정시간/액션</td>
+<td>bg=white, status별 row 색상</td>
+</tr>
+<tr>
+<td>History view 표</td>
+<td>content</td>
+<td>table.root</td>
+<td><code>AlarmsState.paginated_alarms</code></td>
+<td>acknowledge_alarm</td>
+<td>8 cols: 상태/시간/센서/ISA Priority/시나리오/값/메시지/액션</td>
+<td></td>
+</tr>
+<tr>
+<td>Pagination</td>
+<td>footer</td>
+<td>pagination 컴포넌트</td>
+<td><code>AlarmsState.page</code>, <code>total_pages</code>, <code>has_prev/next_page</code></td>
+<td><code>prev_page</code>, <code>next_page</code></td>
+<td>"&lt; N of M &gt;"</td>
+<td>history view만</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-alarmsstate">State 변수 매핑 (AlarmsState)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alarms</code></td>
+<td>List[Dict]</td>
+<td>현재 페이지 알람 rows (server-side paged)</td>
+</tr>
+<tr>
+<td><code>stat_total</code></td>
+<td>int</td>
+<td>전체 알람 수</td>
+</tr>
+<tr>
+<td><code>stat_critical</code></td>
+<td>int</td>
+<td>Level 5 + Level 4 합산</td>
+</tr>
+<tr>
+<td><code>stat_warning</code></td>
+<td>int</td>
+<td>Level 3</td>
+</tr>
+<tr>
+<td><code>stat_info</code></td>
+<td>int</td>
+<td>Level 2 + Level 1</td>
+</tr>
+<tr>
+<td><code>stat_unacknowledged</code></td>
+<td>int</td>
+<td>미확인 알람 수</td>
+</tr>
+<tr>
+<td><code>stat_priority_1_low</code></td>
+<td>int</td>
+<td>ISA P1: Advisory</td>
+</tr>
+<tr>
+<td><code>stat_priority_2_medium</code></td>
+<td>int</td>
+<td>ISA P2: Caution</td>
+</tr>
+<tr>
+<td><code>stat_priority_3_high</code></td>
+<td>int</td>
+<td>ISA P3: Warning</td>
+</tr>
+<tr>
+<td><code>stat_priority_4_critical</code></td>
+<td>int</td>
+<td>ISA P4: Emergency</td>
+</tr>
+<tr>
+<td><code>loading</code></td>
+<td>bool</td>
+<td>로딩 상태 (Refresh 버튼 loading prop)</td>
+</tr>
+<tr>
+<td><code>error_message</code></td>
+<td>str</td>
+<td>에러 callout 표시용</td>
+</tr>
+<tr>
+<td><code>last_update</code></td>
+<td>str</td>
+<td>info bar 타임스탬프</td>
+</tr>
+<tr>
+<td><code>view_mode</code></td>
+<td>str</td>
+<td>"active" / "history"</td>
+</tr>
+<tr>
+<td><code>selected_hours</code></td>
+<td>int</td>
+<td>시간 필터 (1/6/24/168)</td>
+</tr>
+<tr>
+<td><code>show_acknowledged</code></td>
+<td>bool</td>
+<td>확인된 알람 표시 여부</td>
+</tr>
+<tr>
+<td><code>search_query</code></td>
+<td>str</td>
+<td>검색 쿼리</td>
+</tr>
+<tr>
+<td><code>severity_filter</code></td>
+<td>str</td>
+<td>"all" / "CRITICAL" / "WARNING" / "INFO"</td>
+</tr>
+<tr>
+<td><code>status_filter</code></td>
+<td>str</td>
+<td>"all" / "UNACKNOWLEDGED" / "ACKNOWLEDGED"</td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td>int</td>
+<td>현재 페이지 (1-based)</td>
+</tr>
+<tr>
+<td><code>page_size</code></td>
+<td>int</td>
+<td>페이지당 항목 수 (기본 20)</td>
+</tr>
+<tr>
+<td><code>total_count</code></td>
+<td>int</td>
+<td>서버 집계 전체 알람 수</td>
+</tr>
+<tr>
+<td><code>selected_alarms</code></td>
+<td>List[str]</td>
+<td>선택된 event_id 목록</td>
+</tr>
+<tr>
+<td><code>all_sensors</code></td>
+<td>List[Dict]</td>
+<td>전체 센서 상태 목록</td>
+</tr>
+<tr>
+<td><code>total_sensors_count</code></td>
+<td>int</td>
+<td>전체 센서 수</td>
+</tr>
+<tr>
+<td><code>normal_sensors_count</code></td>
+<td>int</td>
+<td>정상 센서 수</td>
+</tr>
+<tr>
+<td><code>warning_sensors_count</code></td>
+<td>int</td>
+<td>주의 센서 수</td>
+</tr>
+<tr>
+<td><code>critical_sensors_count</code></td>
+<td>int</td>
+<td>위험 센서 수</td>
+</tr>
+</tbody>
+</table>
+<p><strong>DashboardRealtimeState</strong> (row 2 카드에서 바인딩):
+- <code>total_devices</code>, <code>normal_count</code>, <code>warning_count</code>, <code>critical_count</code>, <code>sensors</code></p>
+<h3 id="event-handler">Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>핸들러</th>
+<th>트리거</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AlarmsState.initialize</code></td>
+<td>on_load (page enter)</td>
+<td>background event, loading=True → data fetch</td>
+</tr>
+<tr>
+<td><code>DashboardRealtimeState.start_streaming</code></td>
+<td>on_load</td>
+<td>WebSocket 스트리밍 시작</td>
+</tr>
+<tr>
+<td><code>AlarmsState.refresh_data</code></td>
+<td>Refresh 버튼 클릭</td>
+<td>background event, loading=True</td>
+</tr>
+<tr>
+<td><code>AlarmsState.set_view_mode("active"/"history")</code></td>
+<td>view toggle 버튼</td>
+<td>page reset → refresh_data</td>
+</tr>
+<tr>
+<td><code>AlarmsState.set_hours_filter(hours)</code></td>
+<td>segmented_control change</td>
+<td>background, page reset</td>
+</tr>
+<tr>
+<td><code>AlarmsState.toggle_show_acknowledged</code></td>
+<td>switch change</td>
+<td>동기 이벤트</td>
+</tr>
+<tr>
+<td><code>AlarmsState.set_search_query(query)</code></td>
+<td>filter_bar 검색 입력</td>
+<td>background, 서버 재조회</td>
+</tr>
+<tr>
+<td><code>AlarmsState.set_severity_filter(sev)</code></td>
+<td>filter_bar 심각도 변경</td>
+<td>background, 서버 재조회</td>
+</tr>
+<tr>
+<td><code>AlarmsState.set_status_filter(status)</code></td>
+<td>filter_bar 상태 변경</td>
+<td>background, 서버 재조회</td>
+</tr>
+<tr>
+<td><code>AlarmsState.acknowledge_alarm(event_id)</code></td>
+<td>History 표 Acknowledge 버튼</td>
+<td>background, @event_with_error 래퍼</td>
+</tr>
+<tr>
+<td><code>AlarmsState.prev_page</code> / <code>next_page</code></td>
+<td>Pagination 버튼</td>
+<td>background, 서버 재조회</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ui">상태별 UI 표현</h3>
+<ul>
+<li><strong>loading state</strong>: 전체 content 영역을 <code>rx.center</code> 스피너로 교체. Refresh 버튼 <code>loading=True</code>로 disabled + 스피너. 사용자 액션 (view toggle, filter) 가능하나 데이터 갱신은 대기.</li>
+<li><strong>error state</strong>: <code>AlarmsState.error_message != ""</code>일 때 red callout 표시 (표 위). dismiss 불가 (조건부 렌더만). 표는 그대로 유지 (이전 데이터 표시).</li>
+<li><strong>empty state (history)</strong>: <code>rx.center</code> → inbox 아이콘 + "No alarms found" + "Try adjusting the filters or time range". <code>AlarmsState.total_count == 0</code>일 때.</li>
+<li><strong>populated state</strong>: 알람 rows foreach 렌더. CRITICAL rows: <code>rgba(239,68,68,0.1)</code> + 4px red left border. WARNING: <code>rgba(245,158,11,0.1)</code> + 4px amber. NORMAL: white.</li>
+</ul>
+<h3 id="edge-cases">Edge Cases</h3>
+<table>
+<thead>
+<tr>
+<th>케이스</th>
+<th>현재 처리</th>
+<th>평가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>알람 0개 (empty)</td>
+<td>inbox 아이콘 + 텍스트</td>
+<td>정상 처리</td>
+</tr>
+<tr>
+<td>알람 1000개+</td>
+<td>server-side pagination (page_size=20)</td>
+<td>정상 — total_count 기반 페이지 계산</td>
+</tr>
+<tr>
+<td>DB 연결 끊김</td>
+<td>error_message callout</td>
+<td>처리됨 — @event_with_error 래퍼</td>
+</tr>
+<tr>
+<td>WebSocket 끊김</td>
+<td>처리 없음 (DashboardRealtimeState 의존)</td>
+<td><strong>결함</strong> — 재연결 로직 없음</td>
+</tr>
+<tr>
+<td>acknowledge 중 중복 클릭</td>
+<td>처리 없음 (버튼 disable 없음)</td>
+<td><strong>결함</strong> — race condition 가능</td>
+</tr>
+<tr>
+<td>동일 alarm 이중 acknowledge</td>
+<td>DB: <code>UPDATE WHERE acknowledged=false</code></td>
+<td>안전 — WHERE 조건으로 중복 방지</td>
+</tr>
+<tr>
+<td>filter 변경 중 페이지 이동</td>
+<td>page=1 리셋 후 서버 재조회</td>
+<td>정상</td>
+</tr>
+<tr>
+<td>search_query + page 동시 변경</td>
+<td>각각 독립 background event</td>
+<td>경쟁 조건 가능 (큐잉 없음)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="responsive">Responsive 대응</h3>
+<ul>
+<li><strong>desktop (≥1280px)</strong>: 4열 KPI 카드 + 전체 테이블 정상 표시</li>
+<li><strong>tablet (768-1279px)</strong>: KPI 카드 4열 유지 (columns="4" 고정). 테이블 수평 스크롤 없음 — width 오버플로우 가능</li>
+<li><strong>mobile (&lt;768px)</strong>: stat_card columns="4" 고정으로 <strong>레이아웃 깨짐 예상</strong>. 테이블 컬럼 압축 없음 — <strong>미대응</strong></li>
+</ul>
+<h3 id="_5">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>위치</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-ALM-01</td>
+<td>Active view table</td>
+<td>DashboardRealtimeState.sensors 바인딩 — Active 알람이 아닌 sensor 상태 표시. "실시간 알람 모니터링"과 실제 alarm_history 불일치</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-ALM-02</td>
+<td>WebSocket</td>
+<td>start_streaming 후 연결 끊김 시 재연결 없음. "Connection Error" 알림 부재</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-ALM-03</td>
+<td>Acknowledge 버튼</td>
+<td>클릭 중 disabled 처리 없음. 빠른 중복 클릭 시 race condition</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-ALM-04</td>
+<td>Mobile</td>
+<td>KPI 카드 columns="4" 고정. 모바일 깨짐</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>BUG-ALM-05</td>
+<td>History filter</td>
+<td><code>show_acknowledged=False</code> 와 <code>status_filter="ACKNOWLEDGED"</code> 동시 적용 시 논리 충돌 (alarms.py line 99-101)</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_6">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-ALM-01</td>
+<td>페이지 로드 시 KPI 카드 4개 모두 표시</td>
+<td>Total/Normal/Warning/Critical 카드 렌더</td>
+</tr>
+<tr>
+<td>TC-ALM-02</td>
+<td>Refresh 클릭 시 버튼 loading 상태 + 표 갱신</td>
+<td>loading=True → 스피너 → 데이터 반영</td>
+</tr>
+<tr>
+<td>TC-ALM-03</td>
+<td>Active→History 전환 시 ISA 배포 섹션 노출</td>
+<td>view_mode="history" 조건 컴포넌트 표시</td>
+</tr>
+<tr>
+<td>TC-ALM-04</td>
+<td>Time Range 1h 선택 → 데이터 1시간치 표시</td>
+<td>selected_hours=1 → 서버 재조회</td>
+</tr>
+<tr>
+<td>TC-ALM-05</td>
+<td>Search "temp" 입력 → 필터된 rows 표시</td>
+<td>server-side 검색, total_count 갱신</td>
+</tr>
+<tr>
+<td>TC-ALM-06</td>
+<td>History 표 Acknowledge 클릭 → "확인완료" 배지</td>
+<td>alarm["acknowledged"]=True 로컬 반영</td>
+</tr>
+<tr>
+<td>TC-ALM-07</td>
+<td>알람 0건 시 empty state 표시</td>
+<td>inbox 아이콘 + 안내 문구</td>
+</tr>
+<tr>
+<td>TC-ALM-08</td>
+<td>DB 오류 시 red callout 표시</td>
+<td>error_message callout 렌더</td>
+</tr>
+<tr>
+<td>TC-ALM-09</td>
+<td>Pagination "다음" 클릭 → 2페이지 데이터</td>
+<td>page=2, 서버 재조회, URL 변경 없음</td>
+</tr>
+<tr>
+<td>TC-ALM-10</td>
+<td>Show Acknowledged ON → acknowledge된 알람 포함</td>
+<td>filtered list 재계산</td>
+</tr>
+</tbody>
+</table>
+<h3 id="navigation">Navigation 연계</h3>
+<ul>
+<li><strong>진입 경로</strong>: 좌측 사이드바 "Alarms" 메뉴 (active_route="/alarms")</li>
+<li><strong>연결 페이지</strong>: 없음 (현재 모달 없음, row 클릭 → detail dialog 미구현)</li>
+<li><strong>spec_06 cross-ref</strong>: 사이드바 "Alarms" 메뉴 → /alarms (canonical)</li>
+</ul>
+<hr />
+<h2 id="page-2-alarms_rt-v1-kr">Page 2: <code>/alarms_rt</code> — 실시간 알람 대시보드 v1 (KR)</h2>
+<h3 id="_7">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_rt_simple.py</code> (LoC: 401)</li>
+<li><strong>@rx.page decorator</strong>: line 19, <code>route="/alarms_rt"</code>, <code>title="실시간 알람 상태"</code>, <code>on_load=[A.load_all_data]</code></li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_rt_state.py</code> (LoC: 282, class: <code>AlarmRTState</code>, alias <code>A</code>)</li>
+<li><strong>등록 상태</strong>: ⚠️ duplicate — <code>/alarms</code> Active 탭과 기능 중복. canonical 후보 아님.</li>
+</ul>
+<h3 id="_8">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ SHELL (사이드바 포함)                                                │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ page_header: [🔔 알람 대시보드]   [LIVE ●] [↺ 새로고침]       │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Sensor KPI 4-col grid]                                        │   │
+│ │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │   │
+│ │ │ Total    │ │ Normal   │ │ 주의알람  │ │ 위험알람  │          │   │
+│ │ │ Sensors  │ │          │ │          │ │          │          │   │
+│ │ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ 🔍 All Sensor Status [heading]                                 │   │
+│ │ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐ ...                │   │
+│ │ │센서│ │센서│ │센서│ │센서│ │센서│ │센서│ (responsive grid)  │   │
+│ │ │카드│ │카드│ │카드│ │카드│ │카드│ │카드│                    │   │
+│ │ └────┘ └────┘ └────┘ └────┘ └────┘ └────┘                    │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Alarm Stats 6-col grid]                                       │   │
+│ │ 전체/위험/주의/정보/미확인/확인완료 카드                       │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ filter_bar (search_value=&quot;&quot;, severity_filter=&quot;all&quot; — 하드코딩) │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ action_bar (shown_count=A.total_alarm_count, selected=0)       │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ Alarm List (foreach A.realtime_alarms → 카드형)                │   │
+│ │ ┌─────────────────────────────────────────────────────────┐   │   │
+│ │ │ [CRITICAL badge] [tag_name]           [time] [Acknowledge│   │
+│ │ │ 현재값: N.NN  임계값: L~H  시나리오: [RULE/AI badge]    │   │
+│ │ └─────────────────────────────────────────────────────────┘   │   │
+│ │ (반복)                                                         │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ Showing N alarms                           [Load More]         │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_9">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page_header</td>
+<td>row 1</td>
+<td>컴포넌트</td>
+<td>static title</td>
+<td>-</td>
+<td>icon=bell, actions 슬롯</td>
+</tr>
+<tr>
+<td>live_indicator</td>
+<td>row 1 right</td>
+<td>컴포넌트</td>
+<td><code>A.last_update</code></td>
+<td>-</td>
+<td>is_live=True 하드코딩</td>
+</tr>
+<tr>
+<td>새로고침 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td>-</td>
+<td><code>A.load_all_data</code></td>
+<td>variant=soft, blue</td>
+</tr>
+<tr>
+<td>Sensor KPI 4개</td>
+<td>row 2</td>
+<td>stat_card × 4</td>
+<td><code>A.total/normal/warning/critical_sensors_count</code></td>
+<td>hover only</td>
+<td>responsive: 2/2/4/4</td>
+</tr>
+<tr>
+<td>All Sensor grid</td>
+<td>row 3</td>
+<td>grid(foreach)</td>
+<td><code>A.all_sensors</code></td>
+<td>hover border</td>
+<td>2/3/4/6 columns (responsive)</td>
+</tr>
+<tr>
+<td>센서 카드 상세</td>
+<td>row 3 item</td>
+<td>box+vstack</td>
+<td>sensor["tag_name/status/value/unit/min_val/max_val/timestamp"]</td>
+<td>-</td>
+<td>status badge CRITICAL/WARNING/NORMAL</td>
+</tr>
+<tr>
+<td>Alarm Stats 6개</td>
+<td>row 4</td>
+<td>stat_card × 6</td>
+<td><code>A.total_alarm_count/critical/warning/normal/unacknowledged/acknowledged_count</code></td>
+<td>-</td>
+<td>2/3/6 columns</td>
+</tr>
+<tr>
+<td>filter_bar</td>
+<td>row 5</td>
+<td>컴포넌트</td>
+<td><strong>하드코딩</strong> search_value="", severity_filter="all", status_filter="all"</td>
+<td><strong>없음</strong></td>
+<td><strong>결함: state binding 없음</strong></td>
+</tr>
+<tr>
+<td>action_bar</td>
+<td>row 6</td>
+<td>컴포넌트</td>
+<td><code>A.total_alarm_count</code>, selected_count=0 (하드코딩)</td>
+<td><strong>없음</strong></td>
+<td><strong>결함: 선택 기능 연결 없음</strong></td>
+</tr>
+<tr>
+<td>Alarm 카드 목록</td>
+<td>row 7</td>
+<td>foreach(A.realtime_alarms)</td>
+<td>alarm dict</td>
+<td><code>A.acknowledge_alarm(alarm["tag_name"])</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Empty state</td>
+<td>row 7 (조건)</td>
+<td>center+vstack</td>
+<td><code>!A.realtime_alarms</code></td>
+<td>-</td>
+<td>inbox 아이콘</td>
+</tr>
+<tr>
+<td>Pagination bar</td>
+<td>row 8</td>
+<td>flex</td>
+<td><code>A.total_alarm_count</code></td>
+<td>"Load More" 클릭 (미구현)</td>
+<td>"Load More" 버튼 — 이벤트 없음</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-alarmrtstate">State 변수 매핑 (AlarmRTState)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>realtime_alarms</code></td>
+<td>List[Dict]</td>
+<td>alarm_history 최근 50건 (LIMIT 50)</td>
+</tr>
+<tr>
+<td><code>critical_count</code></td>
+<td>int</td>
+<td>level &gt;= 4</td>
+</tr>
+<tr>
+<td><code>warning_count</code></td>
+<td>int</td>
+<td>level = 3</td>
+</tr>
+<tr>
+<td><code>normal_count</code></td>
+<td>int</td>
+<td>level &lt;= 2 (info로 취급)</td>
+</tr>
+<tr>
+<td><code>unacknowledged_count</code></td>
+<td>int</td>
+<td>acknowledged=false</td>
+</tr>
+<tr>
+<td><code>total_alarm_count</code></td>
+<td>int</td>
+<td>alarm_history 전체 COUNT</td>
+</tr>
+<tr>
+<td><code>acknowledged_count</code></td>
+<td>int</td>
+<td>total - unacked</td>
+</tr>
+<tr>
+<td><code>all_sensors</code></td>
+<td>List[Dict]</td>
+<td>influx_latest 조인 센서 상태</td>
+</tr>
+<tr>
+<td><code>total/normal/warning/critical_sensors_count</code></td>
+<td>int</td>
+<td>센서별 상태 카운트</td>
+</tr>
+<tr>
+<td><code>auto_refresh</code></td>
+<td>bool</td>
+<td>자동 갱신 토글 (UI 없음)</td>
+</tr>
+<tr>
+<td><code>last_update</code></td>
+<td>str</td>
+<td>KST HH:MM:SS</td>
+</tr>
+<tr>
+<td><code>filter_status</code></td>
+<td>str</td>
+<td>"전체" 기본</td>
+</tr>
+<tr>
+<td><code>filter_scenario</code></td>
+<td>str</td>
+<td>"모든 시나리오" 기본</td>
+</tr>
+</tbody>
+</table>
+<h3 id="event-handler_1">Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>핸들러</th>
+<th>트리거</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A.load_all_data</code></td>
+<td>on_load + 새로고침 버튼</td>
+<td><code>load_sensor_status</code> + <code>refresh_realtime</code> 순차 실행</td>
+</tr>
+<tr>
+<td><code>A.refresh_realtime</code></td>
+<td>내부 호출</td>
+<td>alarm_history 최근 50건 조회</td>
+</tr>
+<tr>
+<td><code>A.acknowledge_alarm(tag_name)</code></td>
+<td>카드 Acknowledge 버튼</td>
+<td>tag_name 기준 UPDATE — event_id 아님</td>
+</tr>
+<tr>
+<td><code>A.on_load</code></td>
+<td>on_load 메서드</td>
+<td><code>return load_all_data</code> 위임</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ui_1">상태별 UI 표현</h3>
+<ul>
+<li><strong>loading state</strong>: 없음 — loading 변수 없음. 데이터 로드 중 UI 피드백 없음. <strong>결함</strong></li>
+<li><strong>error state</strong>: 없음 — try/except에서 <code>print()</code>만 하고 UI 에러 표시 없음. <strong>결함</strong></li>
+<li><strong>empty state</strong>: <code>A.realtime_alarms</code>가 falsy일 때 inbox 아이콘 + "알람이 없습니다"</li>
+<li><strong>populated state</strong>: 카드형 알람 목록. 백그라운드 없음 — row 색상 구분 없음</li>
+</ul>
+<h3 id="edge-cases_1">Edge Cases</h3>
+<table>
+<thead>
+<tr>
+<th>케이스</th>
+<th>현재 처리</th>
+<th>평가</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DB 오류</td>
+<td>print만, UI 표시 없음</td>
+<td><strong>결함</strong></td>
+</tr>
+<tr>
+<td>알람 50건 초과</td>
+<td>LIMIT 50으로 절단, "Load More" 미구현</td>
+<td><strong>결함</strong></td>
+</tr>
+<tr>
+<td>filter_bar 상호작용</td>
+<td>state binding 없음</td>
+<td><strong>결함 — 필터 동작 안 함</strong></td>
+</tr>
+<tr>
+<td>자동 갱신</td>
+<td><code>start_auto_refresh</code> 무한루프 구조 문제</td>
+<td><strong>결함</strong> — <code>while self.auto_refresh: return ...</code> 1회만 실행됨</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-RT-01</td>
+<td>filter_bar props 하드코딩 (search_value="", severity_filter="all") — 필터 UI 존재하나 동작 없음</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-RT-02</td>
+<td>action_bar selected_count=0 하드코딩 — 선택 기능 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RT-03</td>
+<td>loading 상태 없음 — 데이터 로드 중 UI 피드백 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RT-04</td>
+<td>에러 UI 없음 — DB 오류 시 사용자 인지 불가</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-RT-05</td>
+<td>"Load More" 버튼 이벤트 없음 — 50건 초과 데이터 접근 불가</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RT-06</td>
+<td>acknowledge by tag_name — 같은 tag_name의 모든 미확인 알람 일괄 확인 (event_id 아님)</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RT-07</td>
+<td>이 페이지는 /alarms의 중복. canonical 정리 필요</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_11">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-RT-01</td>
+<td>페이지 로드 시 센서 KPI 4개 + sensor grid 표시</td>
+<td>on_load → load_all_data 정상 실행</td>
+</tr>
+<tr>
+<td>TC-RT-02</td>
+<td>알람 카드 목록 렌더</td>
+<td>realtime_alarms foreach 표시</td>
+</tr>
+<tr>
+<td>TC-RT-03</td>
+<td>Acknowledge 클릭 시 DB 업데이트 후 목록 갱신</td>
+<td>tag_name 기준 UPDATE + refresh</td>
+</tr>
+<tr>
+<td>TC-RT-04</td>
+<td>알람 없을 때 empty state 표시</td>
+<td>inbox 아이콘 + 안내 문구</td>
+</tr>
+<tr>
+<td>TC-RT-05</td>
+<td>filter_bar 입력 시 목록 필터 동작 확인</td>
+<td><strong>현재 실패 예상</strong> (BUG-RT-01)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="page-3-alarms_rt_new-v2-kr">Page 3: <code>/alarms_rt_new</code> — 실시간 알람 대시보드 v2 (KR)</h2>
+<h3 id="_12">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_rt_new.py</code> (LoC: 180)</li>
+<li><strong>@rx.page decorator</strong>: line 20, <code>route="/alarms_rt_new"</code>, <code>title="실시간 알람 (개선)"</code></li>
+<li><strong>on_load/on_mount</strong>: <code>on_mount=A.on_load</code> (shell 파라미터)</li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_rt_state.py</code> (AlarmRTState, alias <code>A</code>) — /alarms_rt와 동일 state 공유</li>
+<li><strong>등록 상태</strong>: ⚠️ duplicate — v1 대비 All Sensor Grid 섹션 제거, alarm_item 컴포넌트 활용. /alarms_rt보다 경량.</li>
+</ul>
+<h3 id="_13">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ SHELL                                                                │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ [🔴 Alarm Dashboard]        [LIVE ●] [↺ Refresh]              │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Stats 6-col grid]                                             │   │
+│ │ Total | Critical | Warning | Info | Unacked | Acked            │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [filter_bar — 하드코딩 props]                                  │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [action_bar — selected=0 하드코딩]                             │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Alarm 카드 목록 — alarm_item 컴포넌트 사용]                   │   │
+│ │ (empty state: inbox 아이콘)                                    │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ Showing N alarms                              [Next]           │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_14">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H 제목</td>
+<td>row 1</td>
+<td>heading size=5</td>
+<td>static</td>
+<td>-</td>
+<td>"🔴 Alarm Dashboard"</td>
+</tr>
+<tr>
+<td>live_indicator</td>
+<td>row 1</td>
+<td>컴포넌트</td>
+<td><code>A.last_update</code></td>
+<td>-</td>
+<td>is_live=True 하드코딩</td>
+</tr>
+<tr>
+<td>Refresh 버튼</td>
+<td>row 1</td>
+<td>button</td>
+<td>-</td>
+<td><code>A.refresh_realtime</code></td>
+<td>variant=soft, blue</td>
+</tr>
+<tr>
+<td>Stats 6개</td>
+<td>row 2</td>
+<td>stat_card × 6</td>
+<td><code>A.total/critical/warning/normal/unacknowledged/acknowledged_count</code></td>
+<td>-</td>
+<td>2/3/6 columns</td>
+</tr>
+<tr>
+<td>filter_bar</td>
+<td>row 3</td>
+<td>컴포넌트</td>
+<td><strong>하드코딩</strong></td>
+<td><strong>없음</strong></td>
+<td>BUG-RTN-01</td>
+</tr>
+<tr>
+<td>action_bar</td>
+<td>row 4</td>
+<td>컴포넌트</td>
+<td><code>A.total_alarm_count</code>, selected=0</td>
+<td><strong>없음</strong></td>
+<td>BUG-RTN-02</td>
+</tr>
+<tr>
+<td>Alarm 목록</td>
+<td>row 5</td>
+<td>foreach + alarm_item</td>
+<td><code>A.realtime_alarms</code></td>
+<td>alarm_item 내부</td>
+<td>v1 대비 alarm_item 컴포넌트 활용</td>
+</tr>
+<tr>
+<td>Empty state</td>
+<td>row 5 (조건)</td>
+<td>center+vstack</td>
+<td><code>!A.realtime_alarms</code></td>
+<td>-</td>
+<td></td>
+</tr>
+<tr>
+<td>Pagination bar</td>
+<td>row 6</td>
+<td>flex</td>
+<td><code>A.total_alarm_count</code></td>
+<td>"Next" 클릭 (미구현)</td>
+<td>"Next" 버튼 이벤트 없음</td>
+</tr>
+</tbody>
+</table>
+<h3 id="v1">v1 대비 차이점 (알려진 차이)</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>/alarms_rt (v1)</th>
+<th>/alarms_rt_new (v2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All Sensor Grid 섹션</td>
+<td>✓ 있음</td>
+<td>✗ 없음 (제거됨)</td>
+</tr>
+<tr>
+<td>알람 카드 구현</td>
+<td>inline lambda</td>
+<td>alarm_item 컴포넌트</td>
+</tr>
+<tr>
+<td>Refresh 핸들러</td>
+<td><code>A.load_all_data</code></td>
+<td><code>A.refresh_realtime</code> (sensor 로드 없음)</td>
+</tr>
+<tr>
+<td>Pagination text</td>
+<td>"Load More"</td>
+<td>"Next"</td>
+</tr>
+<tr>
+<td>LoC</td>
+<td>401</td>
+<td>180</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_15">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-RTN-01</td>
+<td>filter_bar 하드코딩 — v1과 동일 문제</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-RTN-02</td>
+<td>action_bar selected=0 — 선택 기능 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RTN-03</td>
+<td>"Next" 버튼 이벤트 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-RTN-04</td>
+<td>Refresh가 sensor 상태를 재로드하지 않음 (refresh_realtime만 호출)</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>BUG-RTN-05</td>
+<td>/alarms_rt와 state 공유 — 두 페이지 동시 열면 상태 충돌 가능</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_16">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-RTN-01</td>
+<td>페이지 로드 시 Stats 6개 표시</td>
+<td>on_mount → A.on_load → refresh_realtime</td>
+</tr>
+<tr>
+<td>TC-RTN-02</td>
+<td>Refresh 클릭</td>
+<td>realtime_alarms 갱신 (sensor count 미갱신)</td>
+</tr>
+<tr>
+<td>TC-RTN-03</td>
+<td>alarm_item 컴포넌트 정상 렌더</td>
+<td>각 항목 status badge + tag_name + value 표시</td>
+</tr>
+<tr>
+<td>TC-RTN-04</td>
+<td>빈 목록 시 empty state</td>
+<td>inbox 아이콘 표시</td>
+</tr>
+<tr>
+<td>TC-RTN-05</td>
+<td>"Next" 클릭</td>
+<td><strong>현재 실패 예상</strong> (이벤트 없음)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="page-4-alarms_hist-v1-kr">Page 4: <code>/alarms_hist</code> — 알람 이력 분석 v1 (KR)</h2>
+<h3 id="_17">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_hist_simple.py</code> (LoC: 287)</li>
+<li><strong>@rx.page decorator</strong>: line 26, <code>route="/alarms_hist"</code>, <code>title="알람 이력 분석"</code></li>
+<li><strong>on_mount</strong>: <code>on_mount=AlarmHistState.on_load</code> (vstack prop — shell 미사용)</li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_hist_state.py</code> (LoC: 331, class: <code>AlarmHistState</code>)</li>
+<li><strong>등록 상태</strong>: ⚠️ duplicate — shell 레이아웃 미사용 (사이드바 없음). /alarms History 탭과 중복.</li>
+</ul>
+<h3 id="_18">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ (shell 없음 — 사이드바/nav 없음)                                    │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ page_header: [📋 알람 이력 분석]  [날짜시작] ~ [날짜끝] [🔍조회]│   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ 통계 4-col:                                                    │   │
+│ │ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │   │
+│ │ │ 총 알람  │ │ 최다 센서│ │ 평균레벨 │ │ 해결율   │          │   │
+│ │ │ N건      │ │ SENSOR   │ │ N.NN     │ │ N.NN%    │          │   │
+│ │ │ (gray.50)│ │ (blue.50)│ │(yellow.50│ │(green.50)│          │   │
+│ │ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ 알람 이력 카드 목록 (foreach)                                   │   │
+│ │ ┌─────────────────────────────────────────────────────────────┐│   │
+│ │ │ [상태 12%] [시간+태그 20%] [레벨 15%] [시나리오 15%]       ││   │
+│ │ │ [값 10%]   [메시지 25%]    [해결상태 10%]                   ││   │
+│ │ └─────────────────────────────────────────────────────────────┘│   │
+│ │ (반복)                                                          │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [이전]  페이지 N / M  [다음]  (center)                        │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_19">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page_header</td>
+<td>row 1</td>
+<td>컴포넌트</td>
+<td>-</td>
+<td>-</td>
+<td>icon=history, actions 슬롯에 날짜 input</td>
+</tr>
+<tr>
+<td>날짜 시작 input</td>
+<td>row 1 actions</td>
+<td>input type=datetime-local</td>
+<td><code>AlarmHistState.start_date</code></td>
+<td><code>AlarmHistState.set_start_date</code></td>
+<td>width=200px</td>
+</tr>
+<tr>
+<td>날짜 끝 input</td>
+<td>row 1 actions</td>
+<td>input type=datetime-local</td>
+<td><code>AlarmHistState.end_date</code></td>
+<td><code>AlarmHistState.set_end_date</code></td>
+<td>width=200px</td>
+</tr>
+<tr>
+<td>조회 버튼</td>
+<td>row 1 actions</td>
+<td>button</td>
+<td>-</td>
+<td><code>AlarmHistState.fetch_history</code></td>
+<td>icon=search, variant=soft, blue</td>
+</tr>
+<tr>
+<td>통계 카드 총 알람</td>
+<td>row 2, col 1</td>
+<td>box+vstack</td>
+<td><code>AlarmHistState.total_alarms</code></td>
+<td>-</td>
+<td>bg=gray.50</td>
+</tr>
+<tr>
+<td>통계 카드 최다 센서</td>
+<td>row 2, col 2</td>
+<td>box+vstack</td>
+<td><code>AlarmHistState.top_sensor</code>, <code>top_sensor_count</code></td>
+<td>-</td>
+<td>bg=blue.50</td>
+</tr>
+<tr>
+<td>통계 카드 평균 레벨</td>
+<td>row 2, col 3</td>
+<td>box+vstack</td>
+<td><code>AlarmHistState.avg_level</code></td>
+<td>-</td>
+<td>bg=yellow.50</td>
+</tr>
+<tr>
+<td>통계 카드 해결율</td>
+<td>row 2, col 4</td>
+<td>box+vstack</td>
+<td><code>AlarmHistState.resolution_rate</code>, <code>resolved_count</code>, <code>total_alarms</code></td>
+<td>-</td>
+<td>bg=green.50</td>
+</tr>
+<tr>
+<td>알람 이력 카드</td>
+<td>row 3</td>
+<td>foreach+box+hstack</td>
+<td><code>AlarmHistState.alarm_history</code></td>
+<td>-</td>
+<td>7-col hstack, 비율 지정</td>
+</tr>
+<tr>
+<td>상태 badge</td>
+<td>row 3 col 1</td>
+<td>badge</td>
+<td>alarm["acknowledged"]</td>
+<td>-</td>
+<td>✓확인완료/●미확인</td>
+</tr>
+<tr>
+<td>레벨 badge</td>
+<td>row 3 col 3</td>
+<td>badge</td>
+<td>alarm["level"] (1-5)</td>
+<td>-</td>
+<td>레벨별 색상</td>
+</tr>
+<tr>
+<td>시나리오 badge</td>
+<td>row 3 col 4</td>
+<td>badge</td>
+<td>alarm["scenario_id"]</td>
+<td>-</td>
+<td>AI_BASE=purple, DYNAMIC_RULE=blue</td>
+</tr>
+<tr>
+<td>해결상태 badge</td>
+<td>row 3 col 7</td>
+<td>badge</td>
+<td>alarm["resolved"]</td>
+<td>-</td>
+<td>해결완료/진행중</td>
+</tr>
+<tr>
+<td>Pagination</td>
+<td>row 4</td>
+<td>hstack buttons</td>
+<td><code>AlarmHistState.current_page</code>, <code>total_pages</code></td>
+<td><code>prev_page</code>, <code>next_page</code></td>
+<td>disabled 조건 처리</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-alarmhiststate">State 변수 매핑 (AlarmHistState)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alarm_history</code></td>
+<td>List[Dict]</td>
+<td>페이지 데이터 (event_id, scenario_id, level, triggered_at, message, tag_name, value, acknowledged, resolved)</td>
+</tr>
+<tr>
+<td><code>total_alarms</code></td>
+<td>int</td>
+<td>전체 건수</td>
+</tr>
+<tr>
+<td><code>resolved_count</code></td>
+<td>int</td>
+<td>해결 완료 건수</td>
+</tr>
+<tr>
+<td><code>resolution_rate</code></td>
+<td>float</td>
+<td>해결율 %</td>
+</tr>
+<tr>
+<td><code>avg_level</code></td>
+<td>float</td>
+<td>평균 레벨 (5점 만점)</td>
+</tr>
+<tr>
+<td><code>top_sensor</code></td>
+<td>str</td>
+<td>최다 알람 센서 tag_name</td>
+</tr>
+<tr>
+<td><code>top_sensor_count</code></td>
+<td>int</td>
+<td>최다 센서 알람 수</td>
+</tr>
+<tr>
+<td><code>start_date</code></td>
+<td>str</td>
+<td>"%Y-%m-%dT%H:%M"</td>
+</tr>
+<tr>
+<td><code>end_date</code></td>
+<td>str</td>
+<td>"%Y-%m-%dT%H:%M"</td>
+</tr>
+<tr>
+<td><code>current_page</code></td>
+<td>int</td>
+<td>현재 페이지</td>
+</tr>
+<tr>
+<td><code>total_pages</code></td>
+<td>int</td>
+<td>전체 페이지 수</td>
+</tr>
+<tr>
+<td><code>page_size</code></td>
+<td>int</td>
+<td>25 (기본)</td>
+</tr>
+<tr>
+<td><code>sensor_filter</code></td>
+<td>str</td>
+<td>"전체" / 특정 태그</td>
+</tr>
+<tr>
+<td><code>scenario_filter</code></td>
+<td>str</td>
+<td>"전체" / "AI_BASE" / "DYNAMIC_RULE"</td>
+</tr>
+<tr>
+<td><code>level_filter</code></td>
+<td>str</td>
+<td>"전체" / "EMERGENCY" 등</td>
+</tr>
+<tr>
+<td><code>unresolved_only</code></td>
+<td>bool</td>
+<td>미해결만 표시</td>
+</tr>
+<tr>
+<td><code>total_count</code>, <code>critical_count</code>, <code>warning_count</code>, <code>info_count</code></td>
+<td>int</td>
+<td>alarms_hist_new에서 사용</td>
+</tr>
+<tr>
+<td><code>selected_range</code>, <code>show_critical/warning/info</code></td>
+<td>str/bool</td>
+<td>alarms_hist_new에서 사용</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_20">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-HIST-01</td>
+<td>shell 컴포넌트 미사용 — 사이드바/네비게이션 없음. 독립 페이지처럼 동작</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-HIST-02</td>
+<td>sensor_filter, scenario_filter, level_filter UI 없음 — state에는 있으나 UI 미연결</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-HIST-03</td>
+<td><code>on_mount=AlarmHistState.on_load</code> — on_load에서 q()를 execute_query로 잘못 호출하는 버그 있음 (alarm_hist_state.py line 110)</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-HIST-04</td>
+<td>/alarms History 탭과 중복 — canonical 정리 필요</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_21">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-HIST-01</td>
+<td>페이지 로드 시 기본 24h 데이터 조회</td>
+<td>on_load → fetch_history (최근 24h)</td>
+</tr>
+<tr>
+<td>TC-HIST-02</td>
+<td>날짜 범위 변경 + 조회 클릭</td>
+<td>fetch_history 재실행, 통계 갱신</td>
+</tr>
+<tr>
+<td>TC-HIST-03</td>
+<td>알람 카드에서 상태/레벨/시나리오 badge 정상 표시</td>
+<td>level 1-5 매핑 확인</td>
+</tr>
+<tr>
+<td>TC-HIST-04</td>
+<td>Pagination 다음 페이지 이동</td>
+<td>current_page+1, fetch_history</td>
+</tr>
+<tr>
+<td>TC-HIST-05</td>
+<td>해결율 카드 % 수식 확인</td>
+<td>resolved_count/total_alarms × 100</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="page-5-alarms_hist_new-v2-kr">Page 5: <code>/alarms_hist_new</code> — 알람 이력 조회 v2 (KR)</h2>
+<h3 id="_22">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_hist_new.py</code> (LoC: 286)</li>
+<li><strong>@rx.page decorator</strong>: line 7, <code>route="/alarms_hist_new"</code>, <code>title="알람 이력 (개선)"</code></li>
+<li><strong>on_mount</strong>: <code>on_mount=AlarmHistState.on_load</code> (shell 파라미터)</li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_hist_state.py</code> (AlarmHistState) — /alarms_hist와 동일 state</li>
+<li><strong>등록 상태</strong>: ⚠️ duplicate — v1 대비 필터 UI 보강, 테이블 형식 채택 (카드 → 표)</li>
+</ul>
+<h3 id="_23">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ SHELL                                                                │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ H1: 알람 이력 조회  (text-2xl font-bold)                      │   │
+│ │ P: 과거 발생한 알람 이력을 조회하고 분석합니다 (gray-600)      │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Filter panel — gray-50 bg]                                    │   │
+│ │ 기간선택: [오늘][어제][1주일][1개월]  심각도: □Critical □Warning □Info  [🔍조회]│   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [Stats 4-col grid]                                             │   │
+│ │ ┌──────────┐ ┌─────────────┐ ┌──────────────┐ ┌───────────┐  │   │
+│ │ │ 총 알람  │ │ Critical    │ │ Warning      │ │ Info      │  │   │
+│ │ │ Ngo      │ │ Ngo (red)   │ │ Ngo (amber)  │ │ Ngo (blue)│  │   │
+│ │ └──────────┘ └─────────────┘ └──────────────┘ └───────────┘  │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [알람 이력 Table]                                              │   │
+│ │  발생시간 | 종료시간 | 태그 | 심각도 | 메시지 | 지속시간      │   │
+│ │  ...rows (hover:gray-50)...                                    │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ 총 N개 중 M개 표시          [이전] N/M [다음]                  │   │
+│ │ [빈 결과: inbox 아이콘 + 안내]                                 │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_24">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1 제목</td>
+<td>row 1</td>
+<td>el.h1</td>
+<td>static</td>
+<td>-</td>
+<td>"알람 이력 조회"</td>
+</tr>
+<tr>
+<td>기간 선택 버튼 그룹</td>
+<td>row 2</td>
+<td>el.div + 4×button</td>
+<td><code>AlarmHistState.selected_range</code> (class 변경)</td>
+<td><code>set_date_range("today"/"yesterday"/"week"/"month")</code></td>
+<td>active: bg-blue-500, inactive: bg-gray-200</td>
+</tr>
+<tr>
+<td>Critical checkbox</td>
+<td>row 2</td>
+<td>rx.checkbox</td>
+<td><code>AlarmHistState.show_critical</code></td>
+<td><code>AlarmHistState.toggle_critical</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Warning checkbox</td>
+<td>row 2</td>
+<td>rx.checkbox</td>
+<td><code>AlarmHistState.show_warning</code></td>
+<td><code>AlarmHistState.toggle_warning</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Info checkbox</td>
+<td>row 2</td>
+<td>rx.checkbox</td>
+<td><code>AlarmHistState.show_info</code></td>
+<td><code>AlarmHistState.toggle_info</code></td>
+<td></td>
+</tr>
+<tr>
+<td>조회 버튼</td>
+<td>row 2</td>
+<td>button</td>
+<td>-</td>
+<td><code>AlarmHistState.search_alarms</code></td>
+<td><strong>결함: search_alarms pass만 있음</strong></td>
+</tr>
+<tr>
+<td>Stats 카드 총 알람</td>
+<td>row 3, col 1</td>
+<td>el.div</td>
+<td><code>AlarmHistState.total_count</code></td>
+<td>-</td>
+<td>bg-white border</td>
+</tr>
+<tr>
+<td>Stats 카드 Critical</td>
+<td>row 3, col 2</td>
+<td>el.div</td>
+<td><code>AlarmHistState.critical_count</code></td>
+<td>-</td>
+<td>bg-red-50 border-red-200</td>
+</tr>
+<tr>
+<td>Stats 카드 Warning</td>
+<td>row 3, col 3</td>
+<td>el.div</td>
+<td><code>AlarmHistState.warning_count</code></td>
+<td>-</td>
+<td>bg-amber-50</td>
+</tr>
+<tr>
+<td>Stats 카드 Info</td>
+<td>row 3, col 4</td>
+<td>el.div</td>
+<td><code>AlarmHistState.info_count</code></td>
+<td>-</td>
+<td>bg-blue-50</td>
+</tr>
+<tr>
+<td>알람 이력 테이블</td>
+<td>row 4</td>
+<td>el.table</td>
+<td><code>AlarmHistState.alarm_history</code></td>
+<td>-</td>
+<td>6 col: 발생/종료/태그/심각도/메시지/지속시간</td>
+</tr>
+<tr>
+<td>심각도 badge</td>
+<td>테이블 col 4</td>
+<td>el.span</td>
+<td>alarm["severity"]</td>
+<td>-</td>
+<td>CRITICAL/WARNING/INFO 색상 클래스</td>
+</tr>
+<tr>
+<td>메시지</td>
+<td>테이블 col 5</td>
+<td>el.span</td>
+<td>alarm["message"]</td>
+<td>-</td>
+<td>max-w-md truncate, title hover</td>
+</tr>
+<tr>
+<td>Pagination text</td>
+<td>row 5 left</td>
+<td>el.span</td>
+<td><code>total_count</code>, <code>showing_count</code></td>
+<td>-</td>
+<td>"총 N개 중 M개 표시"</td>
+</tr>
+<tr>
+<td>이전/다음 버튼</td>
+<td>row 5 right</td>
+<td>button</td>
+<td><code>current_page</code>, <code>total_pages</code> (disabled)</td>
+<td><code>prev_page</code>, <code>next_page</code></td>
+<td>disabled styling 조건부</td>
+</tr>
+<tr>
+<td>Empty state</td>
+<td>조건부</td>
+<td>el.div</td>
+<td><code>total_count == 0</code></td>
+<td>-</td>
+<td>inbox 아이콘 + h3 + p</td>
+</tr>
+</tbody>
+</table>
+<h3 id="v1_1">v1 대비 차이점</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>/alarms_hist (v1)</th>
+<th>/alarms_hist_new (v2)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>레이아웃 컴포넌트</td>
+<td>Reflex rx.*</td>
+<td>HTML el.* (Tailwind CSS)</td>
+</tr>
+<tr>
+<td>알람 표시 형식</td>
+<td>카드형 (hstack)</td>
+<td>테이블 (el.table)</td>
+</tr>
+<tr>
+<td>필터</td>
+<td>날짜 범위 datetime-local</td>
+<td>기간 버튼 + 심각도 checkbox</td>
+</tr>
+<tr>
+<td>통계</td>
+<td>총알람/최다센서/평균레벨/해결율</td>
+<td>총알람/Critical/Warning/Info</td>
+</tr>
+<tr>
+<td>shell 사용</td>
+<td>✗ 미사용</td>
+<td>✓ 사용</td>
+</tr>
+<tr>
+<td>테이블 컬럼</td>
+<td>상태/시간/태그/레벨/시나리오/값/메시지/해결상태</td>
+<td>발생시간/종료시간/태그/심각도/메시지/지속시간</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_25">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-HISTN-01</td>
+<td><code>search_alarms</code> 핸들러 body=<code>pass</code> — 조회 버튼 클릭 시 아무 동작 없음</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>BUG-HISTN-02</td>
+<td>기간 선택 버튼이 <code>set_date_range</code>만 호출 (fetch 미호출) — 조회 버튼 별도 클릭 필요하나 그것도 동작 안 함</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-HISTN-03</td>
+<td>테이블 컬럼 "종료시간", "지속시간" — alarm_history dict에 start_time/end_time/duration 키가 있으나 fetch_history에서 이 필드들 미조회</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-HISTN-04</td>
+<td>showing_count state 변수가 fetch_history에서 업데이트 안 됨</td>
+<td>Medium</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_26">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-HISTN-01</td>
+<td>페이지 로드 시 기본 데이터 조회</td>
+<td>on_load → fetch_history</td>
+</tr>
+<tr>
+<td>TC-HISTN-02</td>
+<td>"1주일" 버튼 클릭</td>
+<td>selected_range="week" 변경 (데이터 재조회 없음 — BUG)</td>
+</tr>
+<tr>
+<td>TC-HISTN-03</td>
+<td>조회 버튼 클릭</td>
+<td><strong>현재 실패</strong> (search_alarms=pass)</td>
+</tr>
+<tr>
+<td>TC-HISTN-04</td>
+<td>테이블 렌더</td>
+<td>start_time/end_time/duration 컬럼 표시 확인</td>
+</tr>
+<tr>
+<td>TC-HISTN-05</td>
+<td>Empty state 표시</td>
+<td>total_count==0 조건 확인</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="page-6-scada-alarms-scada-kr">Page 6: <code>/scada-alarms</code> — SCADA 알람 실시간 로그 뷰어 (KR)</h2>
+<h3 id="_27">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/scada_alarm_viewer.py</code> (LoC: 220)</li>
+<li><strong>@rx.page decorator</strong>: line 212, <code>route="/scada-alarms"</code>, <code>title="SCADA 알람 로그"</code></li>
+<li><strong>on_mount</strong>: <code>on_mount=ScadaAlarmState.initialize</code> (vstack prop — shell 미사용)</li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/scada_alarm_state.py</code> (LoC: 293, class: <code>ScadaAlarmState</code>)</li>
+<li><strong>등록 상태</strong>: ✓ live — SCADA 도메인 전용. alarm_history 테이블에서 scenario_id, level, AI 분석 필드 표시.</li>
+</ul>
+<h3 id="_28">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ (shell 없음 — 사이드바/nav 없음)                                    │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ H: SCADA 알람 실시간 로그 (size=5)        총 N건  [↺] [▶/■]  │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ 필터: [심각도▼ 150px] [태그명 검색 200px] 마지막 업데이트: T  │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [알람 로그 테이블 — height=600px, overflow-y:auto]             │   │
+│ │  시간 | 태그 | 값 | 심각도 | AI설명 | 원인 | 권장조치          │   │
+│ │  ...rows (new: bg yellow-10%) ...                              │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [하단 통계 카드 5개 — hstack]                                  │   │
+│ │ 긴급 | 위험 | 경고 | 주의 | 정보                              │   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_29">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>섹션 헤더</td>
+<td>row 1</td>
+<td>heading size=5</td>
+<td>-</td>
+<td>-</td>
+<td>"SCADA 알람 실시간 로그"</td>
+</tr>
+<tr>
+<td>총 N건 텍스트</td>
+<td>row 1 right</td>
+<td>text size=2</td>
+<td><code>ScadaAlarmState.total_alarms</code></td>
+<td>-</td>
+<td></td>
+</tr>
+<tr>
+<td>새로고침 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td>-</td>
+<td><code>ScadaAlarmState.load_alarm_logs</code></td>
+<td>icon=refresh_cw, variant=outline</td>
+</tr>
+<tr>
+<td>실시간 시작/정지 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td><code>ScadaAlarmState.is_streaming</code></td>
+<td><code>ScadaAlarmState.toggle_streaming</code></td>
+<td>is_streaming: "정지"(red) / "실시간 시작"(green)</td>
+</tr>
+<tr>
+<td>심각도 필터</td>
+<td>row 2</td>
+<td>select</td>
+<td><code>ScadaAlarmState.severity_filter</code></td>
+<td><code>ScadaAlarmState.set_severity_filter</code></td>
+<td>전체/긴급/위험/경고/주의/정보</td>
+</tr>
+<tr>
+<td>태그 검색 input</td>
+<td>row 2</td>
+<td>input</td>
+<td><code>ScadaAlarmState.tag_filter</code></td>
+<td><code>ScadaAlarmState.set_tag_filter</code></td>
+<td>placeholder "태그명 검색..."</td>
+</tr>
+<tr>
+<td>마지막 업데이트</td>
+<td>row 2</td>
+<td>text</td>
+<td><code>ScadaAlarmState.last_update</code></td>
+<td>-</td>
+<td>size=1, color=gray</td>
+</tr>
+<tr>
+<td>로그 테이블</td>
+<td>row 3</td>
+<td>table.root</td>
+<td><code>ScadaAlarmState.filtered_alarms</code></td>
+<td>-</td>
+<td>height=600px, overflow-y=auto</td>
+</tr>
+<tr>
+<td>시간 cell</td>
+<td>테이블 col 1</td>
+<td>text</td>
+<td>alarm["timestamp"]</td>
+<td>-</td>
+<td>font-family=monospace</td>
+</tr>
+<tr>
+<td>태그 cell</td>
+<td>테이블 col 2</td>
+<td>badge</td>
+<td>alarm["tag_name"]</td>
+<td>-</td>
+<td>variant=outline</td>
+</tr>
+<tr>
+<td>값 cell</td>
+<td>테이블 col 3</td>
+<td>text</td>
+<td>alarm["value"]</td>
+<td>-</td>
+<td>font-weight=bold</td>
+</tr>
+<tr>
+<td>심각도 cell</td>
+<td>테이블 col 4</td>
+<td>alarm_severity_badge()</td>
+<td>alarm["severity"] (1-5)</td>
+<td>-</td>
+<td>1=정보/2=주의/3=경고/4=위험/5=긴급</td>
+</tr>
+<tr>
+<td>AI설명 cell</td>
+<td>테이블 col 5</td>
+<td>text</td>
+<td>alarm["ai_description"]</td>
+<td>-</td>
+<td>size=2</td>
+</tr>
+<tr>
+<td>원인 cell</td>
+<td>테이블 col 6</td>
+<td>text</td>
+<td>alarm["ai_cause"]</td>
+<td>-</td>
+<td>color=orange</td>
+</tr>
+<tr>
+<td>권장조치 cell</td>
+<td>테이블 col 7</td>
+<td>text</td>
+<td>alarm["ai_action"]</td>
+<td>-</td>
+<td>color=blue</td>
+</tr>
+<tr>
+<td>Row 배경</td>
+<td>테이블 row</td>
+<td>background_color</td>
+<td>alarm["is_new"]</td>
+<td>-</td>
+<td>new: rgba(255,255,0,0.1)</td>
+</tr>
+<tr>
+<td>통계 카드 5개</td>
+<td>row 4</td>
+<td>card × 5</td>
+<td><code>ScadaAlarmState.critical/high/warning/low/info_count</code></td>
+<td>-</td>
+<td>긴급/위험/경고/주의/정보</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-scadaalarmstate">State 변수 매핑 (ScadaAlarmState)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alarm_logs</code></td>
+<td>List[Dict]</td>
+<td>전체 로그 (LIMIT 100, alarm_history)</td>
+</tr>
+<tr>
+<td><code>filtered_alarms</code></td>
+<td>List[Dict]</td>
+<td>필터 적용 결과</td>
+</tr>
+<tr>
+<td><code>severity_filter</code></td>
+<td>str</td>
+<td>"전체" / "긴급" / "위험" 등</td>
+</tr>
+<tr>
+<td><code>tag_filter</code></td>
+<td>str</td>
+<td>태그명 검색 문자열</td>
+</tr>
+<tr>
+<td><code>total_alarms</code></td>
+<td>int</td>
+<td><code>len(alarm_logs)</code> (최대 100)</td>
+</tr>
+<tr>
+<td><code>critical_count</code></td>
+<td>int</td>
+<td>level=5, 최근 24h</td>
+</tr>
+<tr>
+<td><code>high_count</code></td>
+<td>int</td>
+<td>level=4, 최근 24h</td>
+</tr>
+<tr>
+<td><code>warning_count</code></td>
+<td>int</td>
+<td>level=3, 최근 24h</td>
+</tr>
+<tr>
+<td><code>low_count</code></td>
+<td>int</td>
+<td>level=2, 최근 24h</td>
+</tr>
+<tr>
+<td><code>info_count</code></td>
+<td>int</td>
+<td>level=1, 최근 24h</td>
+</tr>
+<tr>
+<td><code>critical_trend</code></td>
+<td>int</td>
+<td>현재-이전 시간 critical 수 차이</td>
+</tr>
+<tr>
+<td><code>is_streaming</code></td>
+<td>bool</td>
+<td>PostgreSQL LISTEN/NOTIFY 활성 여부</td>
+</tr>
+<tr>
+<td><code>last_update</code></td>
+<td>str</td>
+<td>마지막 갱신 HH:MM:SS</td>
+</tr>
+</tbody>
+</table>
+<h3 id="event-handler_2">Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>핸들러</th>
+<th>트리거</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ScadaAlarmState.initialize</code></td>
+<td>on_mount</td>
+<td><code>load_alarm_logs</code> + <code>start_streaming</code></td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.load_alarm_logs</code></td>
+<td>새로고침 버튼, 자동 (5초마다)</td>
+<td>alarm_history 최근 100건 + 통계 계산</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.toggle_streaming</code></td>
+<td>실시간 시작/정지 버튼</td>
+<td>asyncpg LISTEN/NOTIFY toggle</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.start_streaming</code></td>
+<td>initialize 내부</td>
+<td>asyncpg.connect + add_listener('scada_alarm')</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.stop_streaming</code></td>
+<td>toggle_streaming</td>
+<td>task cancel + conn close</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.set_severity_filter(value)</code></td>
+<td>select change</td>
+<td>apply_filters() 재실행</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmState.set_tag_filter(value)</code></td>
+<td>input change</td>
+<td>apply_filters() 재실행</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ui_2">상태별 UI 표현</h3>
+<ul>
+<li><strong>loading state</strong>: 없음 — 로딩 UI 없음. <strong>결함</strong></li>
+<li><strong>streaming state</strong>: is_streaming=True → 버튼 "정지"(red), 5초마다 <code>_keep_listening()</code> 자동 갱신</li>
+<li><strong>error state</strong>: try/except에서 <code>print()</code>만 — UI 표시 없음. <strong>결함</strong></li>
+<li><strong>new alarm</strong>: is_new=True인 row → rgba(255,255,0,0.1) 노란 배경 (NOTIFY로 추가된 실시간 항목)</li>
+<li><strong>empty state</strong>: filtered_alarms 빈 경우 테이블 body 비어있음 — 전용 empty state 없음. <strong>결함</strong></li>
+</ul>
+<h3 id="_30">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-SCADA-01</td>
+<td>shell 미사용 — 사이드바/네비게이션 없음</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-SCADA-02</td>
+<td>loading 상태 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-SCADA-03</td>
+<td>에러 UI 없음</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-SCADA-04</td>
+<td>empty state 없음 (테이블 단순 빈 상태)</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>BUG-SCADA-05</td>
+<td><code>asyncpg</code> LISTEN/NOTIFY — Reflex 상태 비직렬화 가능 객체 (_BACKEND_STORAGE 글로벌 사용). 다중 인스턴스 시 키 충돌 위험</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-SCADA-06</td>
+<td><code>_update_statistics</code> 호출에 connection 파라미터 전달하나 최근 버전에서는 <code>q()</code> 직접 사용 — 인터페이스 불일치</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-SCADA-07</td>
+<td>하드코딩: <code>scenario_id as tag_name</code> — SCADA 알람의 실제 태그명이 아닌 시나리오 ID 표시</td>
+<td>High</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_31">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-SCADA-01</td>
+<td>페이지 로드 시 알람 테이블 표시</td>
+<td>on_mount → initialize → load_alarm_logs</td>
+</tr>
+<tr>
+<td>TC-SCADA-02</td>
+<td>심각도 필터 "긴급" 선택</td>
+<td>filtered_alarms에 level=5만 표시</td>
+</tr>
+<tr>
+<td>TC-SCADA-03</td>
+<td>태그명 검색 입력</td>
+<td>tag_name 포함 필터</td>
+</tr>
+<tr>
+<td>TC-SCADA-04</td>
+<td>실시간 시작 버튼</td>
+<td>is_streaming=True, 버튼 "정지"로 변경</td>
+</tr>
+<tr>
+<td>TC-SCADA-05</td>
+<td>실시간 정지 버튼</td>
+<td>is_streaming=False, LISTEN 해제</td>
+</tr>
+<tr>
+<td>TC-SCADA-06</td>
+<td>새 알람 NOTIFY 수신</td>
+<td>is_new=True row 노란 배경으로 목록 최상단 추가</td>
+</tr>
+<tr>
+<td>TC-SCADA-07</td>
+<td>통계 카드 5개 24h 기준 카운트</td>
+<td>critical/high/warning/low/info 각 count 표시</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="page-7-scada-alarm-comparison-scada-vs-kr">Page 7: <code>/scada-alarm-comparison</code> — SCADA vs 시스템 알람 대조 (KR)</h2>
+<h3 id="_32">기본 정보</h3>
+<ul>
+<li><strong>모듈</strong>: <code>ksys_app/pages/scada_alarm_comparison.py</code> (LoC: 373)</li>
+<li><strong>@rx.page decorator</strong>: line 366, <code>route="/scada-alarm-comparison"</code>, <code>title="AI Alarms | KSYS"</code></li>
+<li><strong>on_mount</strong>: <code>on_mount=ScadaAlarmComparisonState.initialize</code> (shell 파라미터)</li>
+<li><strong>State 모듈</strong>: <code>ksys_app/states/scada_alarm_comparison_state.py</code> (LoC: 174, class: <code>ScadaAlarmComparisonState</code>)</li>
+<li><strong>등록 상태</strong>: ✓ live — Rule-based vs AI-based 알람 비교 전용 페이지.</li>
+</ul>
+<h3 id="_33">화면 레이아웃</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│ SHELL (사이드바 포함)                                                │
+│ ┌────────────────────────────────────────────────────────────────┐   │
+│ │ H: AI Alarms Comparison (size=7, bold, #111827)               │   │
+│ │ P: Rule-based vs AI-based alarm comparison and analysis       │   │
+│ │                     Total: N pairs  [↺ Refresh] [🎲 Generate]│   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [통계 카드 3-col grid]                                         │   │
+│ │ ┌─────────────────┐ ┌──────────────────┐ ┌─────────────────┐  │   │
+│ │ │ Rule-based      │ │ AI-based Alarms  │ │ Match Rate      │  │   │
+│ │ │ Alarms: N       │ │ N                │ │ N%              │  │   │
+│ │ │ Avg: &lt;10ms      │ │ Avg: Ns          │ │ Level agreement │  │   │
+│ │ │ (blue border)   │ │ (purple border)  │ │ (green border)  │  │   │
+│ │ └─────────────────┘ └──────────────────┘ └─────────────────┘  │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ card: Comparison Details                                       │   │
+│ │ [비교 테이블 — max-height=500px, overflow-y=auto]             │   │
+│ │  Time | Sensor | Value | Level | Rule Message | AI Message | Response│
+│ │  ...rows (new: #fef3c7 yellow bg)...                          │   │
+│ ├────────────────────────────────────────────────────────────────┤   │
+│ │ [분석 섹션 2-col grid]                                         │   │
+│ │ ┌─────────────────────────────┐ ┌─────────────────────────────┐│   │
+│ │ │ Message Quality Analysis    │ │ Performance Comparison      ││   │
+│ │ │ Avg: Rule N chars / AI N chr│ │ AI Avg: Ns | Rule: &lt;10ms   ││   │
+│ │ └─────────────────────────────┘ └─────────────────────────────┘│   │
+│ └────────────────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="_34">컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>이벤트 핸들러</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H 제목</td>
+<td>row 1 left</td>
+<td>heading size=7</td>
+<td>static</td>
+<td>-</td>
+<td>"AI Alarms Comparison", #111827</td>
+</tr>
+<tr>
+<td>부제목</td>
+<td>row 1 left</td>
+<td>text size=3</td>
+<td>static</td>
+<td>-</td>
+<td>"Rule-based vs AI-based...", #6b7280</td>
+</tr>
+<tr>
+<td>Total pairs 텍스트</td>
+<td>row 1 right</td>
+<td>text</td>
+<td><code>ScadaAlarmComparisonState.total_pairs</code></td>
+<td>-</td>
+<td>"Total: N pairs"</td>
+</tr>
+<tr>
+<td>Refresh 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td>-</td>
+<td><code>ScadaAlarmComparisonState.load_comparison_data</code></td>
+<td>variant=outline, blue</td>
+</tr>
+<tr>
+<td>Generate Test 버튼</td>
+<td>row 1 right</td>
+<td>button</td>
+<td>-</td>
+<td><code>ScadaAlarmComparisonState.generate_test_data</code></td>
+<td>color_scheme=green</td>
+</tr>
+<tr>
+<td>Rule-based 카드</td>
+<td>row 2, col 1</td>
+<td>stat_card_comparison</td>
+<td><code>ScadaAlarmComparisonState.rule_count</code></td>
+<td>-</td>
+<td>subtitle "Avg response: &lt;10ms", blue border</td>
+</tr>
+<tr>
+<td>AI-based 카드</td>
+<td>row 2, col 2</td>
+<td>stat_card_comparison</td>
+<td><code>ScadaAlarmComparisonState.ai_count</code>, <code>avg_ai_response</code></td>
+<td>-</td>
+<td>subtitle "Avg response: Ns", purple border</td>
+</tr>
+<tr>
+<td>Match Rate 카드</td>
+<td>row 2, col 3</td>
+<td>stat_card_comparison</td>
+<td><code>ScadaAlarmComparisonState.match_rate</code></td>
+<td>-</td>
+<td>subtitle "Level agreement", green border</td>
+</tr>
+<tr>
+<td>비교 테이블</td>
+<td>row 3</td>
+<td>table.root</td>
+<td><code>ScadaAlarmComparisonState.comparison_data</code></td>
+<td>-</td>
+<td>7 columns, max-height=500px</td>
+</tr>
+<tr>
+<td>Time cell</td>
+<td>테이블 col 1</td>
+<td>text</td>
+<td>item["timestamp"]</td>
+<td>-</td>
+<td>monospace, #374151</td>
+</tr>
+<tr>
+<td>Sensor cell</td>
+<td>테이블 col 2</td>
+<td>vstack</td>
+<td>item["tag_name"], item["sensor_type"]</td>
+<td>-</td>
+<td>badge(outline,blue) + text</td>
+</tr>
+<tr>
+<td>Value cell</td>
+<td>테이블 col 3</td>
+<td>text</td>
+<td>item["value"] + item["unit"]</td>
+<td>-</td>
+<td>bold, #111827</td>
+</tr>
+<tr>
+<td>Level cell</td>
+<td>테이블 col 4</td>
+<td>alarm_severity_badge()</td>
+<td>item["level"] (1-5)</td>
+<td>-</td>
+<td>CAUTION/INFO/WARNING/ERROR/CRITICAL</td>
+</tr>
+<tr>
+<td>Rule Message cell</td>
+<td>테이블 col 5</td>
+<td>vstack</td>
+<td>item["rule_message/rule_cause/rule_action"]</td>
+<td>-</td>
+<td>cause: #f59e0b, action: #3b82f6</td>
+</tr>
+<tr>
+<td>AI Message cell</td>
+<td>테이블 col 6</td>
+<td>vstack</td>
+<td>item["ai_message/ai_cause/ai_action"]</td>
+<td>-</td>
+<td>동일 구조</td>
+</tr>
+<tr>
+<td>Response cell</td>
+<td>테이블 col 7</td>
+<td>text (조건부)</td>
+<td>item["ai_response_time"]</td>
+<td>-</td>
+<td>purple, "N/A" if empty</td>
+</tr>
+<tr>
+<td>Row 배경</td>
+<td>테이블 row</td>
+<td>bg</td>
+<td>item["is_new"]</td>
+<td>-</td>
+<td>new: #fef3c7 (yellow-100)</td>
+</tr>
+<tr>
+<td>Message Quality 카드</td>
+<td>row 4, col 1</td>
+<td>card</td>
+<td><code>avg_rule_length</code>, <code>avg_ai_length</code></td>
+<td>-</td>
+<td></td>
+</tr>
+<tr>
+<td>Performance 카드</td>
+<td>row 4, col 2</td>
+<td>card</td>
+<td><code>avg_ai_response</code></td>
+<td>-</td>
+<td>Rule: &lt;10ms 하드코딩</td>
+</tr>
+</tbody>
+</table>
+<h3 id="state-scadaalarmcomparisonstate">State 변수 매핑 (ScadaAlarmComparisonState)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>comparison_data</code></td>
+<td>List[Dict]</td>
+<td>paired_alarms 쿼리 결과 (LIMIT 50)</td>
+</tr>
+<tr>
+<td><code>total_pairs</code></td>
+<td>int</td>
+<td><code>len(comparison_data)</code></td>
+</tr>
+<tr>
+<td><code>rule_count</code></td>
+<td>int</td>
+<td>scenario_id='RULE_BASE' 최근 24h</td>
+</tr>
+<tr>
+<td><code>ai_count</code></td>
+<td>int</td>
+<td>scenario_id='AI_BASE' 최근 24h</td>
+</tr>
+<tr>
+<td><code>match_rate</code></td>
+<td>float</td>
+<td>level 일치 비율 %</td>
+</tr>
+<tr>
+<td><code>avg_ai_response</code></td>
+<td>float</td>
+<td>AI 응답 시간 평균 (초)</td>
+</tr>
+<tr>
+<td><code>avg_rule_length</code></td>
+<td>int</td>
+<td>Rule 메시지 평균 글자 수</td>
+</tr>
+<tr>
+<td><code>avg_ai_length</code></td>
+<td>int</td>
+<td>AI 메시지 평균 글자 수</td>
+</tr>
+</tbody>
+</table>
+<p><strong>paired_alarms SQL 로직</strong>: RULE_BASE + AI_BASE를 tag_name 기준으로 LEFT JOIN. 시간 차이 5초 이내인 쌍을 매칭. RULE_BASE 기준이므로 AI 매칭 없는 Rule 알람도 표시됨.</p>
+<h3 id="event-handler_3">Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>핸들러</th>
+<th>트리거</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ScadaAlarmComparisonState.initialize</code></td>
+<td>on_mount</td>
+<td><code>load_comparison_data</code> 호출</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmComparisonState.load_comparison_data</code></td>
+<td>initialize + Refresh 버튼</td>
+<td>paired_alarms 쿼리 + _calculate_statistics</td>
+</tr>
+<tr>
+<td><code>ScadaAlarmComparisonState.generate_test_data</code></td>
+<td>Generate Test 버튼</td>
+<td><code>generate_test_alarms()</code> DB 함수 호출 + 2초 대기 + reload</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ui_3">상태별 UI 표현</h3>
+<ul>
+<li><strong>loading state</strong>: 없음 — 로딩 중 UI 피드백 없음. <strong>결함</strong></li>
+<li><strong>error state</strong>: try/except <code>print()</code>만 — UI 표시 없음. <strong>결함</strong></li>
+<li><strong>empty state (비교 없음)</strong>: 테이블 body 비어있음 — 전용 empty state 없음. <strong>결함</strong></li>
+<li><strong>new item</strong>: is_new=True → #fef3c7 배경 (NOTIFY 실시간 수신 대비 — 현재 항상 false)</li>
+<li><strong>match rate</strong>: SQL에서 ai_level 필드 없어서 <code>item.get('ai_level', item['level'])</code> 로직이 항상 1 반환 → <strong>match_rate 항상 100% 결함</strong></li>
+</ul>
+<h3 id="_35">알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>내용</th>
+<th>우선순위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-COMP-01</td>
+<td><code>_calculate_statistics(conn)</code> — <code>conn</code> 파라미터를 받으나 내부에서 <code>q()</code> 직접 사용. load_comparison_data에서 <code>conn</code> 없이 호출 시 NameError (scada_alarm_comparison_state.py line 96)</td>
+<td><strong>Critical</strong></td>
+</tr>
+<tr>
+<td>BUG-COMP-02</td>
+<td>match_rate 계산: <code>item.get('ai_level', item['level'])</code> — ai_level 필드 없으므로 항상 item['level']와 동일 → 100% 반환</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-COMP-03</td>
+<td><code>generate_test_data</code>에서 <code>asyncpg.connect(dsn)</code> 직접 연결 후 conn 사용 없이 <code>execute_query</code> 호출 — conn 미사용, 불필요한 연결 생성</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-COMP-04</td>
+<td>로딩 UI 없음</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>BUG-COMP-05</td>
+<td>에러 UI 없음</td>
+<td>High</td>
+</tr>
+<tr>
+<td>BUG-COMP-06</td>
+<td>비교 테이블 empty state 없음</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_36">테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC</th>
+<th>내용</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-COMP-01</td>
+<td>페이지 로드 시 비교 테이블 표시</td>
+<td>on_mount → initialize → comparison_data 렌더</td>
+</tr>
+<tr>
+<td>TC-COMP-02</td>
+<td>통계 카드 3개 수치 표시</td>
+<td>rule_count / ai_count / match_rate 표시</td>
+</tr>
+<tr>
+<td>TC-COMP-03</td>
+<td>Refresh 버튼 클릭</td>
+<td>최근 24h 데이터 재조회</td>
+</tr>
+<tr>
+<td>TC-COMP-04</td>
+<td>Generate Test 클릭</td>
+<td>DB 함수 호출 후 2초 대기 후 재조회</td>
+</tr>
+<tr>
+<td>TC-COMP-05</td>
+<td>Rule Message cell 구조 확인</td>
+<td>message + cause(orange) + action(blue) 3행</td>
+</tr>
+<tr>
+<td>TC-COMP-06</td>
+<td>AI Message cell 구조 확인</td>
+<td>동일 구조</td>
+</tr>
+<tr>
+<td>TC-COMP-07</td>
+<td>Response time "N/A" 표시</td>
+<td>ai_response_time="" 인 경우 "N/A" gray</td>
+</tr>
+<tr>
+<td>TC-COMP-08</td>
+<td>match_rate 수치 확인</td>
+<td><strong>현재 100% 고정 예상</strong> (BUG-COMP-02)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="a">부록 A: 공통 컴포넌트 참조</h2>
+<h3 id="stat_card-ksys_appcomponentscardsstat_cardpy">stat_card (<code>ksys_app/components/cards/stat_card.py</code>)</h3>
+<ul>
+<li>Props: title, value, icon, color</li>
+<li>사용: alarms.py (row 2, 4 ISA), alarms_rt_simple.py (row 2, 4), alarms_rt_new.py (row 2)</li>
+</ul>
+<h3 id="filter_bar-ksys_appcomponentsalarmsfilter_barpy">filter_bar (<code>ksys_app/components/alarms/filter_bar.py</code>)</h3>
+<ul>
+<li>Props: search_value, severity_filter, status_filter, on_search, on_severity_change, on_status_change</li>
+<li><strong>주의</strong>: alarms.py에서만 state binding 정상. alarms_rt_*.py에서는 하드코딩</li>
+</ul>
+<h3 id="pagination-ksys_appcomponentsalarmspaginationpy">pagination (<code>ksys_app/components/alarms/pagination.py</code>)</h3>
+<ul>
+<li>Props: current_page, total_pages, total_items, page_size, has_prev_page, has_next_page, on_prev, on_next</li>
+<li>사용: alarms.py (history view)</li>
+</ul>
+<h3 id="live_indicator-ksys_appcomponentsalarms__init__py">live_indicator (<code>ksys_app/components/alarms/__init__.py</code> 경유)</h3>
+<ul>
+<li>Props: is_live, last_update</li>
+<li>사용: alarms_rt_simple.py, alarms_rt_new.py</li>
+</ul>
+<h3 id="alarm_item-ksys_appcomponentsalarms__init__py">alarm_item (<code>ksys_app/components/alarms/__init__.py</code>)</h3>
+<ul>
+<li>Props: alarm (Dict)</li>
+<li>alarms_rt_new.py에서만 사용 (v2에서 인라인 lambda → 컴포넌트 분리)</li>
+</ul>
+<h3 id="shell-ksys_appcomponentslayoutpy">shell (<code>ksys_app/components/layout.py</code>)</h3>
+<ul>
+<li>Props: *content, active_route, on_mount</li>
+<li>좌측 사이드바 + 상단 nav 포함</li>
+<li>미사용 페이지: /scada-alarms, /alarms_hist (v1)</li>
+</ul>
+<hr />
+<h2 id="b-isa-182">부록 B: ISA-18.2 레벨 매핑 대조표</h2>
+<table>
+<thead>
+<tr>
+<th>DB level</th>
+<th>AlarmsState 표현</th>
+<th>scada_alarm_viewer 표현</th>
+<th>scada_alarm_comparison 표현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>CRITICAL (red)</td>
+<td>긴급 (red)</td>
+<td>CRITICAL (red)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ERROR (orange) — stat_critical에 합산</td>
+<td>위험 (orange)</td>
+<td>ERROR (orange)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>WARNING (yellow)</td>
+<td>경고 (yellow)</td>
+<td>WARNING (yellow)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>CAUTION / INFO (blue)</td>
+<td>주의 (blue)</td>
+<td>INFO (blue)</td>
+</tr>
+<tr>
+<td>1</td>
+<td>INFO / CAUTION (gray)</td>
+<td>정보 (blue)</td>
+<td>CAUTION (gray)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>레벨 매핑이 페이지마다 불일치. <code>/alarms</code>는 4+5를 "Critical"로 합산하고, SCADA 페이지들은 4를 "위험/ERROR"로 분리. 통일 필요.</p>
+</blockquote>
+<hr />
+<h2 id="c">부록 C: 결함 종합 (우선순위 순)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>페이지</th>
+<th>등급</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BUG-COMP-01</td>
+<td>/scada-alarm-comparison</td>
+<td>Critical</td>
+<td><code>_calculate_statistics(conn)</code> NameError — 페이지 Refresh 시 오류</td>
+</tr>
+<tr>
+<td>BUG-HISTN-01</td>
+<td>/alarms_hist_new</td>
+<td>Critical</td>
+<td>search_alarms=pass — 조회 버튼 동작 안 함</td>
+</tr>
+<tr>
+<td>BUG-ALM-01</td>
+<td>/alarms</td>
+<td>High</td>
+<td>Active view가 alarm_history 아닌 sensor 상태 표시</td>
+</tr>
+<tr>
+<td>BUG-ALM-02</td>
+<td>/alarms</td>
+<td>High</td>
+<td>WebSocket 끊김 시 재연결 없음</td>
+</tr>
+<tr>
+<td>BUG-SCADA-07</td>
+<td>/scada-alarms</td>
+<td>High</td>
+<td>scenario_id를 tag_name으로 표시</td>
+</tr>
+<tr>
+<td>BUG-RT-01</td>
+<td>/alarms_rt</td>
+<td>High</td>
+<td>filter_bar 하드코딩 — 필터 동작 없음</td>
+</tr>
+<tr>
+<td>BUG-COMP-02</td>
+<td>/scada-alarm-comparison</td>
+<td>High</td>
+<td>match_rate 항상 100%</td>
+</tr>
+<tr>
+<td>BUG-SCADA-05</td>
+<td>/scada-alarms</td>
+<td>High</td>
+<td>asyncpg 글로벌 스토리지 다중 인스턴스 위험</td>
+</tr>
+<tr>
+<td>BUG-HIST-01</td>
+<td>/alarms_hist</td>
+<td>High</td>
+<td>shell 미사용 — 사이드바 없음</td>
+</tr>
+<tr>
+<td>BUG-SCADA-01</td>
+<td>/scada-alarms</td>
+<td>High</td>
+<td>shell 미사용</td>
+</tr>
+<tr>
+<td>BUG-ALM-03</td>
+<td>/alarms</td>
+<td>Medium</td>
+<td>Acknowledge 중복 클릭 race condition</td>
+</tr>
+<tr>
+<td>BUG-ALM-05</td>
+<td>/alarms</td>
+<td>Medium</td>
+<td>show_acknowledged + status_filter 논리 충돌</td>
+</tr>
+<tr>
+<td>BUG-RT-06</td>
+<td>/alarms_rt</td>
+<td>Medium</td>
+<td>acknowledge by tag_name (event_id 아님)</td>
+</tr>
+<tr>
+<td>BUG-HISTN-03</td>
+<td>/alarms_hist_new</td>
+<td>Medium</td>
+<td>start_time/end_time/duration 컬럼 미조회</td>
+</tr>
+<tr>
+<td>BUG-ALM-04</td>
+<td>/alarms</td>
+<td>Low</td>
+<td>Mobile KPI 카드 columns="4" 고정</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>이 문서는 2026-05-28 소스 코드 실측 기준으로 작성되었습니다.</em><br />
+<em>다음 갱신 조건: 페이지 추가/삭제, State 대규모 변경, 결함 수정 완료 시.</em></p>
+</body></html>

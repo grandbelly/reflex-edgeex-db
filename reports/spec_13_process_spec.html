@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>spec_13 프로세스 명세서 (데이터 흐름 + 백엔드 프로세스)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+  h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 12.5px; line-height: 1.4; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+  th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 12px 16px; margin: 14px 0; border-radius: 6px; }
+  .callout.crit { border-left-color: #f85149; background: #2b1414; }
+  .callout.good { border-left-color: #3fb950; background: #0e2417; }
+  .proc { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+          border-radius: 8px; padding: 16px; margin: 14px 0; }
+  .proc .id { color: #ffa657; font-weight: 700; font-size: 13px; }
+  .proc .name { color: #79c0ff; font-weight: 600; font-size: 16px; margin: 4px 0 8px; }
+  .meta { color: #8b949e; font-size: 12px; }
+  .tag-data { background: #0a1f33; color: #79c0ff; border: 1px solid #79c0ff; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .tag-biz  { background: #0e2417; color: #3fb950; border: 1px solid #3fb950; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .tag-sys  { background: #2a1f08; color: #d29922; border: 1px solid #d29922; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>spec_13 — 프로세스 명세서 (Process Specification)</h1>
+<p class="meta">작성 2026-05-29 · 작성자: bkend-expert + 메인 세션 (보강) · 정통 SI Process Spec — 비즈니스/데이터/시스템 흐름</p>
+
+<div class="callout">
+<strong>본 문서는 흐름 단위 명세</strong>. 페이지/기능 단위가 아닌 <em>프로세스 단위</em> — 트리거 → 단계 → 출력 → SLA → 실패 처리. 외부 시스템(센서 → DB → AI → 사용자) 간 데이터 이동 + 시간 예산을 추적.
+</div>
+
+<h2>📑 프로세스 분류</h2>
+
+<table>
+<tr><th>카테고리</th><th>설명</th><th>프로세스 ID 범위</th><th>대표</th></tr>
+<tr><td><span class="tag-data">데이터</span></td><td>센서 데이터 ingestion → 집계 → 가공 → 저장 흐름</td><td>PROC-001..005</td><td>continuous aggregate, virtual tag 계산</td></tr>
+<tr><td><span class="tag-biz">비즈니스</span></td><td>도메인 비즈니스 규칙 흐름 (알람, 예측, 학습)</td><td>PROC-010..015</td><td>알람 발생/acknowledge, forecast 사이클, training wizard</td></tr>
+<tr><td><span class="tag-sys">시스템</span></td><td>배포, 백업, 인프라 운영, 통신 흐름</td><td>PROC-020..024</td><td>부팅 sequence, RPI bootstrap, 모델 pickle BYTEA</td></tr>
+</table>
+
+<h2>📊 프로세스 의존성 그래프</h2>
+
+<pre>
+[PROC-020 시스템 부팅] ──→ [PROC-001 센서 ingest] ──→ [PROC-002 continuous agg]
+                                    │                            │
+                                    ↓                            ↓
+                             [PROC-003 virtual tag]      [PROC-013 모델 학습]
+                                    │                            │
+                                    ↓                            ↓
+                             [PROC-010 알람 발생] ←──── [PROC-014 forecast 사이클]
+                                    │                            │
+                                    ↓                            ↓
+                             [Operator acknowledge]      [PROC-015 모델 lifecycle]
+                                                                 │
+                                                                 ↓
+                                                          [Analyst 검토]
+</pre>
+
+<h2><span class="tag-data">데이터 프로세스</span></h2>
+
+<div class="proc">
+<div class="id">PROC-001 <span class="tag-data">DATA</span></div>
+<div class="name">센서 데이터 수집 (data-injector → influx_hist)</div>
+
+<table>
+<tr><td>트리거</td><td>data-injector 컨테이너 무한 루프 (continuous)</td></tr>
+<tr><td>주체</td><td>ksys-local-data-injector / rpi-finished-data-injector</td></tr>
+<tr><td>SLA</td><td>새 row INSERT 지연 ≤ 1초 (실제 측정 안 됨)</td></tr>
+<tr><td>의존</td><td>ksys-dev-db UP + influx_tag 에 활성 tag 정의</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Sensor source]                  [data-injector]                [PostgreSQL/TimescaleDB]
+        │                              │                                   │
+        │ raw value (push or pull)     │                                   │
+        ├─────────────────────────────→│                                   │
+        │                              │ validate tag + value              │
+        │                              │ build row (tag_name, ts, value)   │
+        │                              │ INSERT influx_hist                │
+        │                              ├──────────────────────────────────→│
+        │                              │ AFTER INSERT trigger:             │
+        │                              │   (1) refresh influx_latest view  │
+        │                              │   (2) compute virtual_tag deps    │
+        │                              ↓                                   ↓
+        │                              done                            ← row in hypertable chunk
+</pre>
+
+<h4>단계별</h4>
+<table>
+<tr><th>Step</th><th>주체</th><th>액션</th><th>시간 예산</th><th>실패 시</th></tr>
+<tr><td>1</td><td>sensor</td><td>raw 측정값 emit</td><td>≤ 100ms</td><td>다음 cycle 재시도</td></tr>
+<tr><td>2</td><td>data-injector</td><td>validate + transform</td><td>≤ 10ms</td><td>잘못된 row drop, log</td></tr>
+<tr><td>3</td><td>asyncpg</td><td>INSERT influx_hist</td><td>≤ 50ms</td><td>retry × 3, fail → DLQ (현재 없음)</td></tr>
+<tr><td>4</td><td>TimescaleDB</td><td>chunk routing + index</td><td>≤ 20ms</td><td>chunk 생성 실패 → alarm</td></tr>
+<tr><td>5</td><td>trigger</td><td>virtual_tag 계산 (pg_cron 1분 후)</td><td>비동기</td><td>다음 pg_cron run</td></tr>
+</table>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>data-injector 가 실제 어떤 sensor source 를 polling 하는지 코드 확인 필요 (가상 데이터 생성 vs 실제 SCADA)</li>
+<li>backpressure 없음 — sensor burst 시 DB pool 고갈 가능</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-002 <span class="tag-data">DATA</span></div>
+<div class="name">Continuous Aggregate Refresh (influx_hist → influx_agg_1m/10m/1h/1d)</div>
+
+<table>
+<tr><td>트리거</td><td>TimescaleDB background worker (자동, 1m/10m/1h/1d 주기)</td></tr>
+<tr><td>주체</td><td>PostgreSQL 17 + TimescaleDB 2.21.3</td></tr>
+<tr><td>SLA</td><td>새 데이터 → agg 반영 지연 ≤ 2분 (1m agg 기준)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[influx_hist (raw 1초~)]      [TS background worker]         [influx_agg_1m]
+        │                              │                            │
+        │ chunk 변경 감지               │                            │
+        │←─ continuous_agg policy ─────┤                            │
+        │                              │ refresh window 계산        │
+        │                              │ (NOW - 2h, NOW)           │
+        │                              │ aggregate 함수 실행:       │
+        │                              │   AVG, MIN, MAX, COUNT     │
+        │                              │ INSERT/UPDATE              │
+        │                              ├───────────────────────────→│
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>HANDOFF.md 기록: continuous_agg 5개 중 일부가 dump 복원 시 누락 (2.21.3 → 2.27 catalog 차이)</li>
+<li>refresh policy 확인 필요 (현재 1m agg는 1m schedule? 2m?)</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-003 <span class="tag-data">DATA</span></div>
+<div class="name">Virtual Tag 계산 (pg_cron + VirtualTagScheduler)</div>
+
+<table>
+<tr><td>트리거</td><td>pg_cron 1분 주기 (PostgreSQL 내부) + VirtualTagScheduler 1분 (Python)</td></tr>
+<tr><td>주체</td><td>pg_cron + ksys-local-reflex-app 내 VirtualTagScheduler</td></tr>
+<tr><td>SLA</td><td>가상 태그 (PRESSURE_DIFF, RECOVERY_RATE, OPERATING_TIME, TOTAL_PRODUCT_VOLUME_1H) 1분 내 갱신</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[pg_cron 1분 schedule]
+        │
+        ↓ SELECT calculate_virtual_tags()
+[PL/pgSQL function]
+        │ for each virtual_tag_def:
+        │   SELECT dependency tags from influx_hist
+        │   evaluate formula (예: PRESSURE_DIFF = inlet - outlet)
+        │   INSERT virtual_tag_values
+        │   INSERT influx_hist (synthetic row)
+        ↓
+[virtual_tag_values + influx_hist (가상 row)]
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>VirtualTagScheduler (Python) 와 pg_cron 이 둘 다 1분 — 중복 계산 가능성. 어느 것이 canonical?</li>
+<li>가상 태그 정의는 virtual_tag_definitions 테이블 — admin UI 없음 (PRD gap)</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-004 <span class="tag-data">DATA</span></div>
+<div class="name">Upstream Sync (외부 IoT cloud → 로컬 DB)</div>
+
+<table>
+<tr><td>트리거</td><td>SyncMonitorState.sync_tags 또는 sync_realtime 수동 호출 (현재 자동 X)</td></tr>
+<tr><td>주체</td><td>SyncMonitorState (orphan — 페이지 없음)</td></tr>
+<tr><td>의존</td><td>UPSTREAM_DB_* env vars 설정 (Day 1 AM 외부화 완료)</td></tr>
+<tr><td>상태</td><td>⚠️ /sync 페이지 404 — 호출 path 없음 (spec_10 발견)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Operator 수동 클릭 (페이지 없음 — dead)]
+        │
+        ↓
+[SyncMonitorState.sync_tags]
+        │ UPSTREAM_DB_HOST/USER/PWD from env
+        │ asyncpg connect (외부 IoT cloud DB)
+        │ SELECT tag_config (대량)
+        │ MERGE → 로컬 influx_tag
+        ↓
+[로컬 influx_tag 업데이트]
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>/sync 라우트 404 → 트리거 path 없음. 수동 sync 불가</li>
+<li>자동 sync 스케줄러 없음</li>
+<li>외부 DB 응답 5+ 초 시 timeout 없음</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-005 <span class="tag-data">DATA</span></div>
+<div class="name">모델 학습 데이터 준비 (Training Wizard)</div>
+
+<table>
+<tr><td>트리거</td><td>TrainingWizardState 사용자가 Step 5 "학습 시작" 클릭</td></tr>
+<tr><td>주체</td><td>TrainingState.start_training (337 LoC, 45 self.* mutation, 22 yield)</td></tr>
+<tr><td>SLA</td><td>학습 1회 ≤ 5분 (RPI 5 기준, 데이터 30일 × AutoARIMA)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Operator] [TrainingState]              [DB]                    [In-memory cache]
+    │           │                         │                            │
+    │ click "학습 시작"                    │                            │
+    ├──────────→│                         │                            │
+    │           │ validate inputs         │                            │
+    │           │ SELECT feature_config   │                            │
+    │           ├────────────────────────→│                            │
+    │           │ SELECT influx_hist + agg│                            │
+    │           ├────────────────────────→│                            │
+    │           │ ← 대량 데이터            │                            │
+    │           │ pandas DataFrame 구성    │                            │
+    │           │ 6-step pipeline:        │                            │
+    │           │   1. 전처리 (outlier)   │                            │
+    │           │   2. interpolation      │                            │
+    │           │   3. feature engineering│                            │
+    │           │   4. model fit          │                            │
+    │           │      (CPU bound, blocking — 우려)                    │
+    │           │   5. walk-forward valid │                            │
+    │           │   6. metric 계산        │                            │
+    │           │ _training_cache[tag] = (result, model)               │
+    │           ├──────────────────────────────────────────────────────→│
+    │ ← yield progress (12 회)            │                            │
+    │←──────────┤                         │                            │
+    │ Step 6 UI                           │                            │
+    │           │                         │                            │
+    │ click "모델 저장"                    │                            │
+    ├──────────→│ save_model (Day 3 refactored)                        │
+    │           │ asyncio.to_thread(pickle.dumps, model)               │
+    │           │ INSERT model_registry (BYTEA)                        │
+    │           │ bulk INSERT training_evaluation (36 rows in 1 round-trip)
+    │           ├────────────────────────→│                            │
+    │           │                         │ ✓                          │
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>학습은 background event 안에서 실행되지만 model.fit() 자체는 CPU bound — event loop 차단 가능성</li>
+<li>_training_cache 는 모듈 레벨 dict — container restart 시 휘발</li>
+<li>학습 취소 불가 (Cancel 버튼 없음, 결함 W-01)</li>
+</ul>
+</div>
+
+<h2><span class="tag-biz">비즈니스 프로세스</span></h2>
+
+<div class="proc">
+<div class="id">PROC-010 <span class="tag-biz">BIZ</span></div>
+<div class="name">실시간 알람 발생 → Acknowledge 처리 (Critical Path)</div>
+
+<table>
+<tr><td>트리거</td><td>AlarmMonitor 10초 폴링 + influx_qc_rule threshold breach</td></tr>
+<tr><td>주체</td><td>AlarmMonitor (Python) + DatabaseEventListener (psycopg3 LISTEN) + AlarmRTState + Operator</td></tr>
+<tr><td>SLA</td><td>알람 발생 → 화면 표시 ≤ 15초, Critical → acknowledge ≤ 2분 (Operator 수동)</td></tr>
+<tr><td>중요도</td><td>★★★ M1 Critical Path (PRD #1)</td></tr>
+</table>
+
+<h4>흐름 (전체)</h4>
+<pre>
+[AlarmMonitor]   [PostgreSQL]   [DatabaseEventListener]   [Reflex Backend]   [Browser]   [Operator]
+     │                │                  │                      │              │            │
+     │ ─ every 10s ─ │                  │                      │              │            │
+     │ SELECT recent │                  │                      │              │            │
+     ├───────────────→                  │                      │              │            │
+     │ ← rows         │                  │                      │              │            │
+     │ threshold check vs influx_qc_rule (5분 dedup)            │              │            │
+     │                │                  │                      │              │            │
+     │ if breach:    │                  │                      │              │            │
+     │ INSERT alarm_history              │                      │              │            │
+     ├───────────────→                  │                      │              │            │
+     │ pg_notify('alarm_event', event_id) ← Day 6 fix          │              │            │
+     ├───────────────→                  │                      │              │            │
+     │                │ NOTIFY signal   │                      │              │            │
+     │                ├─────────────────→                      │              │            │
+     │                │                  │ callback 호출        │              │            │
+     │                │                  ├─────────────────────→              │            │
+     │                │                  │                      │ AlarmRTState │            │
+     │                │                  │                      │ WS push      │            │
+     │                │                  │                      ├──────────────→            │
+     │                │                  │                      │              │ alarm card │
+     │                │                  │                      │              │ 갱신       │
+     │                │                  │                      │              │            │
+     │                │                  │                      │              │ ← click "ack"
+     │                │                  │                      │ ← acknowledge_alarm event │
+     │                │                  │                      │ AlarmService.acknowledge  │
+     │                │ UPDATE alarm_history                    │              │            │
+     │                │←─────────────────┼──────────────────────┤              │            │
+     │                │                  │                      │ WS push      │            │
+     │                │                  │                      ├──────────────→            │
+     │                │                  │                      │              │ "확인완료" │
+</pre>
+
+<h4>단계별 표</h4>
+<table>
+<tr><th>Step</th><th>주체</th><th>액션</th><th>시간 예산</th><th>실패 시</th></tr>
+<tr><td>1</td><td>AlarmMonitor</td><td>influx_hist 폴링 (지난 10초)</td><td>≤ 100ms</td><td>로그, 다음 cycle</td></tr>
+<tr><td>2</td><td>AlarmMonitor</td><td>threshold 평가 + dedup (5분)</td><td>≤ 50ms</td><td>보수적 over-send</td></tr>
+<tr><td>3</td><td>AlarmMonitor</td><td>alarm_history INSERT</td><td>≤ 50ms</td><td>retry × 3</td></tr>
+<tr><td>4</td><td>AlarmMonitor</td><td>pg_notify('alarm_event', $1) — Day 6 parameterized</td><td>≤ 5ms</td><td>signal 누락, alarm 은 저장</td></tr>
+<tr><td>5</td><td>DatabaseEventListener</td><td>LISTEN 수신</td><td>≤ 100ms</td><td>reconnect</td></tr>
+<tr><td>6</td><td>Reflex Backend</td><td>AlarmRTState 갱신 + WS push</td><td>≤ 500ms</td><td>"Connection Error" 표시 (현재 발견)</td></tr>
+<tr><td>7</td><td>Browser</td><td>UI 갱신</td><td>≤ 50ms</td><td>React err → reload</td></tr>
+<tr><td>8</td><td>Operator</td><td>ack 클릭 (인간 시간)</td><td>~10초~2분</td><td>—</td></tr>
+<tr><td>9</td><td>Reflex Backend</td><td>acknowledge_alarm event 처리 + UPDATE</td><td>≤ 500ms</td><td>error_message 설정</td></tr>
+<tr><td>10</td><td>Browser</td><td>"확인완료" 배지 표시</td><td>≤ 50ms</td><td>—</td></tr>
+</table>
+
+<h4>알려진 이슈 (cross-spec)</h4>
+<ul>
+<li>spec_10 D-01: 페이지 unmount 시 streaming 미취소 — zombie</li>
+<li>spec_02: BaseState._polling_task 선언만, assign 없음</li>
+<li>playwright_test: alarms 페이지에 "Connection Error" notification (WS 통신 이슈)</li>
+<li>acknowledged_by = "user" 하드코딩 — 인증 도입 시 실제 user_id</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-011 <span class="tag-biz">BIZ</span></div>
+<div class="name">SCADA 알람 vs 시스템 알람 대조 (/scada-alarm-comparison)</div>
+
+<table>
+<tr><td>트리거</td><td>Operator 수동 페이지 진입</td></tr>
+<tr><td>주체</td><td>ScadaAlarmComparisonState</td></tr>
+<tr><td>SLA</td><td>비교 데이터 로드 ≤ 3초</td></tr>
+<tr><td>상태</td><td>⚠️ Refresh 시 NameError (spec_08 BUG-COMP-01)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Operator] ─→ [ScadaAlarmComparisonState]
+    │              │
+    │              │ SELECT alarm_history (시스템 알람)
+    │              │ SELECT scada_alarm_log or upstream (SCADA 알람)
+    │              │ join on tag + time window
+    │              │ build comparison table
+    │              ↓
+    │         [/scada-alarm-comparison UI]
+    │              │ 매칭/미스매치 행 highlight
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>Refresh 클릭 시 NameError (spec_08 BUG-COMP-01) — 즉시 fix 필요</li>
+<li>SCADA 알람의 origin 명확 안 됨 — upstream IoT cloud? 별도 SCADA 시스템?</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-012 <span class="tag-biz">BIZ</span></div>
+<div class="name">알람 이력 검색 + Excel 내보내기</div>
+
+<table>
+<tr><td>트리거</td><td>Operator/Analyst 수동 — /alarms (History 탭) 또는 /alarms_hist*</td></tr>
+<tr><td>주체</td><td>AlarmHistState.fetch_history + export_excel</td></tr>
+<tr><td>SLA</td><td>1만 row 검색 ≤ 5초, Excel 다운로드 ≤ 10초</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[User]
+  ↓ 필터 선택 (1h/6h/24h/7d, severity, search query)
+[AlarmHistState.fetch_history]
+  ↓ SELECT alarm_history WHERE time_range + severity + LIKE search
+[Result rows]
+  ↓ 페이지네이션 적용
+[UI 표]
+  ↓ "Excel 내보내기" 클릭
+[export_excel]
+  ↓ openpyxl writer
+  ↓ HTTP response with .xlsx
+[Browser download]
+</pre>
+</div>
+
+<div class="proc">
+<div class="id">PROC-013 <span class="tag-biz">BIZ</span></div>
+<div class="name">모델 학습 (Training Wizard 6-step 완주) → save_model</div>
+
+<table>
+<tr><td>트리거</td><td>Analyst /training-wizard 접속</td></tr>
+<tr><td>주체</td><td>TrainingWizardState + TrainingState</td></tr>
+<tr><td>SLA</td><td>전체 6-step 완주 ≤ 10분 (학습 자체 ≤ 5분 + 사용자 입력 시간)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+Step 1 (센서 선택) → Step 2 (모델 선택) → Step 3 (Feature Config) →
+Step 4 (학습 파라미터) → Step 5 (학습 실행, PROC-005 호출) → Step 6 (결과 검토 + 저장)
+                                                                    ↓
+                                                          save_model (Day 3)
+                                                          asyncio.to_thread(pickle.dumps)
+                                                          bulk INSERT training_evaluation
+                                                                    ↓
+                                                          model_registry row 생성
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>학습 취소 불가 (W-01)</li>
+<li>pickle cache 휘발 (W-02) — restart 시 wizard 재시작</li>
+<li>Step 6 Back → Step 4 (Step 5 건너뜀) UX 혼란 (spec_09)</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-014 <span class="tag-biz">BIZ</span></div>
+<div class="name">Forecast 사이클 (ForecastScheduler 10분 주기)</div>
+
+<table>
+<tr><td>트리거</td><td>ForecastScheduler @ x:00 매 10분</td></tr>
+<tr><td>주체</td><td>ForecastScheduler + asyncio + ThreadPoolExecutor</td></tr>
+<tr><td>SLA</td><td>1 cycle ≤ 5분 (10분 주기 안)</td></tr>
+<tr><td>중요도</td><td>★★★ M1 Critical Path</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[ForecastScheduler tick (x:00)]
+        │
+        ↓ for each deployed model in model_registry:
+[model load]
+        ↓ SELECT model_pickle FROM model_registry WHERE is_deployed=true
+        ↓ asyncio.to_thread(pickle.loads, BYTEA) ← H-03 audit risk
+[predict]
+        ↓ SELECT influx_agg_10m WHERE ts > NOW()-2h
+        ↓ ThreadPoolExecutor (timeout 45s)
+        ↓ model.predict(N horizons)
+[persist]
+        ↓ INSERT predictions (N rows for N horizons)
+        ↓ INSERT forecast_player_cache (1 snapshot)
+[done]
+</pre>
+
+<h4>이후 cycle</h4>
+<pre>
+ActualValueUpdater @ x:01 (10분 주기)
+  ↓ UPDATE predictions SET actual_value = ... WHERE target_time < NOW()
+
+PerformanceAggregator @ x:03 (1시간 주기)
+  ↓ INSERT prediction_performance
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>pickle.loads 보안 risk (audit H-03): DB 침해 시 RCE 가능</li>
+<li>45초 timeout 후 동작? — 큰 모델 시 forecast 실패 가능</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-015 <span class="tag-biz">BIZ</span></div>
+<div class="name">모델 lifecycle (Deploy → ActualValueUpdater → PerformanceAggregator → Undeploy/Delete)</div>
+
+<table>
+<tr><td>트리거</td><td>Analyst /model-performance 에서 deploy / undeploy / delete</td></tr>
+<tr><td>주체</td><td>ModelPerformanceState</td></tr>
+<tr><td>SLA</td><td>deploy 액션 ≤ 2초 (DB UPDATE 만)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Saved model rows in model_registry (is_deployed=false)]
+        │
+        ↓ Analyst clicks Deploy
+[deploy_model]
+        ↓ 원자적: UPDATE 기존 is_deployed=true → false, 새 모델 → true
+        ↓ ForecastScheduler 다음 cycle 부터 새 모델 사용
+        │
+        ↓ 시간 흐름 (ActualValueUpdater 가 actual 채움)
+        │
+        ↓ 1시간 주기 PerformanceAggregator 실행
+        ↓ prediction_performance 에 metrics 누적
+        │
+        ↓ Analyst 검토 후 Undeploy 또는 Delete
+[undeploy_model]: is_deployed=false
+[delete_model]: predictions FK 먼저 삭제 → model_registry row 삭제
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>삭제 confirm 다이얼로그 없음 (MP-01)</li>
+<li>모델 비교 view 없음 (spec_09 발견)</li>
+</ul>
+</div>
+
+<h2><span class="tag-sys">시스템 프로세스</span></h2>
+
+<div class="proc">
+<div class="id">PROC-020 <span class="tag-sys">SYS</span></div>
+<div class="name">시스템 부팅 (docker compose up)</div>
+
+<table>
+<tr><td>트리거</td><td>운영자 docker compose up -d 또는 RPI 재부팅</td></tr>
+<tr><td>SLA</td><td>전체 서비스 healthy ≤ 60초</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[docker compose up -d]
+        ↓
+[rpi-finished-pgai-db] START → PG init → healthcheck OK (≤30s)
+        ↓ (depends_on: condition: service_healthy)
+[rpi-finished-reflex-app] START
+        ↓ env vars from .env interpolation
+        ↓ Python import ksys_app
+        ↓ DB pool init (asyncpg)
+        ↓ SchedulerState.start_schedulers (lifespan)
+            ↓ ForecastScheduler 시작
+            ↓ AlarmMonitor 시작
+            ↓ VirtualTagScheduler 시작
+            ↓ ActualValueUpdater 시작
+            ↓ PerformanceAggregator 시작
+        ↓ Reflex compile (.web build)
+        ↓ uvicorn serve on 0.0.0.0:14000, :14001
+        ↓ "App running at http://0.0.0.0:14000/"
+[rpi-finished-forecast-scheduler] START (depends_on: db)
+[rpi-finished-data-injector] START
+[cloudflared-tunnel] START (depends_on: reflex-app)
+        ↓ tunnel connect to Cloudflare edge
+</pre>
+</div>
+
+<div class="proc">
+<div class="id">PROC-021 <span class="tag-sys">SYS</span></div>
+<div class="name">새 RPI 배포 (bootstrap_rpi.sh)</div>
+
+<table>
+<tr><td>트리거</td><td>운영자 — 새 RPI 5 에서 수동 실행</td></tr>
+<tr><td>SLA</td><td>전체 절차 ≤ 30분 (이미지 pull + DB restore 포함)</td></tr>
+<tr><td>도구</td><td>scripts/bootstrap_rpi.sh, restore_db.sh (Day 4 작성)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[scripts/bootstrap_rpi.sh] (idempotent)
+   ├─→ OS sanity (ARM64, Debian, internet)
+   ├─→ Docker + compose plugin 설치
+   ├─→ .env 생성 + POSTGRES_PASSWORD 자동생성 (openssl rand)
+   ├─→ chmod 600 .env
+   ├─→ 사용자에게 CLOUDFLARE_TUNNEL_TOKEN + RPI_NODE_ID 입력 요청
+   ├─→ docker compose pull (smoke)
+   └─→ (--harden 옵션 시) ssh password 비활성 + ufw 활성
+
+[수동 다음 단계]
+   ├─→ rsync DB dump from existing RPI
+   ├─→ ./scripts/restore_db.sh /tmp/ecoanp.dump
+   │     ├─→ DROP/CREATE ecoanp on template0
+   │     ├─→ CREATE EXTENSION timescaledb '2.21.3'
+   │     ├─→ SELECT timescaledb_pre_restore()
+   │     ├─→ pg_restore (single-thread, no-owner)
+   │     └─→ SELECT timescaledb_post_restore()
+   ├─→ docker compose up -d
+   └─→ ./scripts/measure_rpi_baseline.sh (RPI baseline 기록)
+</pre>
+</div>
+
+<div class="proc">
+<div class="id">PROC-022 <span class="tag-sys">SYS</span></div>
+<div class="name">DB 백업 + 복원 (정기 운영)</div>
+
+<table>
+<tr><td>주기</td><td>일 1회 (권고, 현재 자동 없음)</td></tr>
+<tr><td>SLA</td><td>백업 ≤ 5분, 복원 ≤ 15분 (1GB dump 기준)</td></tr>
+</table>
+
+<h4>백업 흐름 (정기 cron 권고)</h4>
+<pre>
+[crontab] daily @ 02:00
+   ↓ docker exec rpi-finished-pgai-db pg_dump -U postgres -Fc ecoanp > /backup/ecoanp_$(date +%F).dump
+[/backup/ecoanp_YYYY-MM-DD.dump]
+   ↓ scp to remote (별도 백업 사이트, 권고)
+</pre>
+
+<h4>복원 흐름</h4>
+<pre>
+[scripts/restore_db.sh /backup/ecoanp_YYYY-MM-DD.dump]
+   (PROC-021 의 restore 단계와 동일 TimescaleDB pre/post restore 절차)
+</pre>
+</div>
+
+<div class="proc">
+<div class="id">PROC-023 <span class="tag-sys">SYS</span></div>
+<div class="name">Cloudflare Tunnel Routing (외부 → 내부)</div>
+
+<table>
+<tr><td>주체</td><td>cloudflared-tunnel 컨테이너</td></tr>
+<tr><td>SLA</td><td>tunnel reconnect ≤ 30초 (network blip 시)</td></tr>
+</table>
+
+<h4>흐름</h4>
+<pre>
+[Browser (external)]
+    ↓ HTTPS https://ksys.kr
+[Cloudflare edge]
+    ↓ tunnel routing (UUID 09667144-...)
+[cloudflared-tunnel container]
+    ↓ egress only (no inbound port open on RPI)
+[rpi-finished-reflex-app:14000]
+    ↓ HTTP response
+[back via tunnel]
+    ↓ HTTPS response to browser
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>auth 없음 — 누구나 tunnel 접근 가능 (PRD industry gap)</li>
+<li>토큰 분기별 rotate 필요 (audit security)</li>
+</ul>
+</div>
+
+<div class="proc">
+<div class="id">PROC-024 <span class="tag-sys">SYS</span></div>
+<div class="name">모델 pickle BYTEA 저장/로드 (asyncio.to_thread offload)</div>
+
+<table>
+<tr><td>트리거</td><td>save_model (저장) + ForecastScheduler (로드)</td></tr>
+<tr><td>SLA</td><td>pickle.dumps ≤ 500ms (typical XGBoost, RPI 5), pickle.loads ≤ 200ms</td></tr>
+</table>
+
+<h4>흐름 (저장 — Day 3 refactored)</h4>
+<pre>
+[save_model event handler]
+   ↓ trained_model = _get_cached_model(tag)
+   ↓ model_pickle_bytes = await asyncio.to_thread(pickle.dumps, trained_model) ← Day 3 fix
+       (event loop 차단 회피)
+   ↓ INSERT model_registry (model_pickle = BYTEA)
+</pre>
+
+<h4>흐름 (로드)</h4>
+<pre>
+[ForecastScheduler cycle]
+   ↓ SELECT model_pickle FROM model_registry WHERE is_deployed=true
+   ↓ asyncio.to_thread(pickle.loads, BYTEA)  ← 동일하게 offload
+   ↓ model.predict(...)
+</pre>
+
+<h4>알려진 이슈</h4>
+<ul>
+<li>pickle.loads 자체가 보안 risk (audit H-03 — DB 침해 시 컨테이너-root RCE)</li>
+<li>완화: DB 쓰기 권한 분리, 향후 ONNX/TFLite 마이그레이션 검토 (ADR 후보)</li>
+</ul>
+</div>
+
+<h2>📋 SLA 요약 표</h2>
+
+<table>
+<tr><th>프로세스</th><th>SLA 목표</th><th>측정 가능?</th><th>현재 상태</th></tr>
+<tr><td>PROC-001 센서 ingest</td><td>row INSERT 지연 ≤ 1초</td><td>로그 필요</td><td>미측정</td></tr>
+<tr><td>PROC-002 cont agg refresh</td><td>1분 agg ≤ 2분 지연</td><td>psql 가능</td><td>미측정</td></tr>
+<tr><td>PROC-010 알람 발생 → 화면</td><td>≤ 15초</td><td>Playwright 가능</td><td>미측정 (WS issue 의심)</td></tr>
+<tr><td>PROC-013 학습 1회</td><td>≤ 5분 (RPI 5)</td><td>training_state 로그</td><td>미측정</td></tr>
+<tr><td>PROC-014 forecast 1 cycle</td><td>≤ 5분 (10분 주기 안)</td><td>forecast_scheduler 로그</td><td>미측정</td></tr>
+<tr><td>PROC-020 부팅 sequence</td><td>healthy ≤ 60초</td><td>docker stats 가능</td><td>미측정</td></tr>
+<tr><td>PROC-021 신규 RPI 배포</td><td>≤ 30분</td><td>script timing 가능</td><td>미측정 (RPI ssh 차단)</td></tr>
+</table>
+
+<h2>🚨 결함 종합 (cross-spec 매핑)</h2>
+
+<table>
+<tr><th>결함</th><th>영향 프로세스</th><th>출처 spec</th><th>우선순위</th></tr>
+<tr><td>zombie streaming loop</td><td>PROC-010 (알람 표시)</td><td>spec_10 D-01</td><td>P0</td></tr>
+<tr><td>_polling_task 미할당</td><td>모든 streaming proc</td><td>spec_02</td><td>P0</td></tr>
+<tr><td>"Connection Error" notification</td><td>PROC-010 (Step 6 WS push)</td><td>playwright_test</td><td>P1</td></tr>
+<tr><td>/sync 페이지 404</td><td>PROC-004 (Upstream sync)</td><td>spec_10 S-01</td><td>P1</td></tr>
+<tr><td>학습 취소 불가</td><td>PROC-005 / PROC-013</td><td>spec_09 W-01</td><td>P1</td></tr>
+<tr><td>pickle cache 휘발</td><td>PROC-013</td><td>spec_09 W-02</td><td>P1</td></tr>
+<tr><td>SCADA comparison NameError</td><td>PROC-011</td><td>spec_08 BUG-COMP-01</td><td>P0</td></tr>
+<tr><td>pickle.loads RCE risk</td><td>PROC-014 / PROC-024</td><td>audit H-03</td><td>P1</td></tr>
+<tr><td>auth 없음 (tunnel public)</td><td>PROC-023</td><td>audit C-03</td><td>P0</td></tr>
+<tr><td>SLA 측정 도구 없음</td><td>모든 proc</td><td>PRD §7</td><td>P1</td></tr>
+</table>
+
+<h2>📌 결론</h2>
+
+<div class="callout good">
+<strong>15 프로세스 명세 완성</strong> — 데이터 5 + 비즈니스 6 + 시스템 4. 각 프로세스는 트리거/주체/SLA/단계/실패 처리/알려진 이슈 표준 template 적용.
+</div>
+
+<div class="callout crit">
+<strong>측정 인프라 부재</strong> — 모든 SLA 가 "권고" 목표일 뿐 실제 측정 안 됨. Day 8+ 에서 structured logging + metric exporter (Prometheus 권고) 도입 필요.
+</div>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+spec_13_process_spec.html · 15 프로세스 × 표준 template · cross-spec 결함 매핑 · 다음 spec: NFR 정량 명세
+</p>
+
+</body>
+</html>

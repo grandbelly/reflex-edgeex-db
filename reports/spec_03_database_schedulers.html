@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_03_database_schedulers</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="spec-03-database-schema-background-process-catalog">Spec 03 — Database Schema &amp; Background Process Catalog</h1>
+<p><strong>Generated:</strong> 2026-05-28<br />
+<strong>Source scan:</strong> migrations/<em>.sql · ksys_app/models/</em>.py · ksys_app/db.py · ksys_app/db_orm.py · ksys_app/schedulers/<em>.py · ksys_app/monitoring/</em>.py · ksys_app/utils/db_events.py · 20251030-rpi-pgcron/</p>
+<hr />
+<h2 id="1-quick-count-summary">1. Quick Count Summary</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Tables (from migrations + ORM)</strong></td>
+<td>17</td>
+</tr>
+<tr>
+<td><strong>Hypertables (TimescaleDB)</strong></td>
+<td>4</td>
+</tr>
+<tr>
+<td><strong>Continuous Aggregates</strong></td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Materialized Views</strong></td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>Regular Views</strong></td>
+<td>9</td>
+</tr>
+<tr>
+<td><strong>DB Functions / Stored Procs</strong></td>
+<td>12</td>
+</tr>
+<tr>
+<td><strong>DB Triggers</strong></td>
+<td>3</td>
+</tr>
+<tr>
+<td><strong>pg_cron Jobs</strong></td>
+<td>1 (+ optional cleanup)</td>
+</tr>
+<tr>
+<td><strong>Python Schedulers</strong></td>
+<td>6</td>
+</tr>
+<tr>
+<td><strong>Monitoring classes</strong></td>
+<td>4</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-table-catalog">2. Table Catalog</h2>
+<h3 id="21-core-time-series-tables-hypertables">2.1 Core Time-Series Tables (Hypertables)</h3>
+<h4 id="influx_hist-primary-sensor-data-store-hypertable"><code>influx_hist</code> — Primary sensor data store (HYPERTABLE)</h4>
+<blockquote>
+<p>The most important table in the system. All ingested sensor readings land here.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ts</td>
+<td>TIMESTAMPTZ</td>
+<td>Partition key (hypertable time dim)</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50)</td>
+<td>Sensor identifier</td>
+</tr>
+<tr>
+<td>value</td>
+<td>FLOAT</td>
+<td>Measured value</td>
+</tr>
+<tr>
+<td>quality</td>
+<td>INTEGER</td>
+<td>0=Good, 192=OK-legacy</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Indexes:</strong> <code>idx_tag_ts (tag_name, ts)</code><br />
+<strong>Chunk interval:</strong> Not explicitly set (TimescaleDB default = 7 days)<br />
+<strong>Write frequency:</strong> Every sensor polling cycle (upstream data-injector container). Highest write volume table.<br />
+<strong>Also written by:</strong> <code>calculate_virtual_tags()</code> pg_cron function (every 1 min), <code>ForecastScheduler</code> indirectly via virtual tags</p>
+<hr />
+<h4 id="virtual_tag_values-calculated-virtual-sensor-values-hypertable"><code>virtual_tag_values</code> — Calculated virtual sensor values (HYPERTABLE)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>time</td>
+<td>TIMESTAMPTZ</td>
+<td>Partition key</td>
+</tr>
+<tr>
+<td>virtual_tag_id</td>
+<td>VARCHAR(100)</td>
+<td>FK → virtual_tags</td>
+</tr>
+<tr>
+<td>value</td>
+<td>DOUBLE PRECISION</td>
+<td>Calculated result</td>
+</tr>
+<tr>
+<td>quality_code</td>
+<td>INTEGER</td>
+<td>0=Good, 1=Uncertain, 2=Bad, 3=Error</td>
+</tr>
+<tr>
+<td>calculation_time_ms</td>
+<td>INTEGER</td>
+<td>Calculation latency</td>
+</tr>
+<tr>
+<td>error_message</td>
+<td>TEXT</td>
+<td>Error if quality_code &gt; 0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Indexes:</strong> <code>(virtual_tag_id, time DESC)</code>, <code>(quality_code, time DESC)</code><br />
+<strong>Write frequency:</strong> Every 1 minute via <code>batch_update_virtual_tags()</code> or VirtualTagScheduler<br />
+<strong>Trigger:</strong> <code>trigger_sync_virtual_to_influx</code> → copies values to <code>influx_hist</code> on INSERT</p>
+<hr />
+<h4 id="predictions-online-forecast-predictions-hypertable"><code>predictions</code> — Online forecast predictions (HYPERTABLE)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>target_time</td>
+<td>TIMESTAMPTZ</td>
+<td>PK part 1 — future time being predicted</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50)</td>
+<td>PK part 2 — FK → influx_tag</td>
+</tr>
+<tr>
+<td>model_id</td>
+<td>INTEGER</td>
+<td>PK part 3 — FK → model_registry</td>
+</tr>
+<tr>
+<td>horizon_minutes</td>
+<td>INTEGER</td>
+<td>PK part 4</td>
+</tr>
+<tr>
+<td>prediction_id</td>
+<td>BIGSERIAL</td>
+<td>Sequence ID</td>
+</tr>
+<tr>
+<td>forecast_time</td>
+<td>TIMESTAMPTZ</td>
+<td>When prediction was generated</td>
+</tr>
+<tr>
+<td>predicted_value</td>
+<td>NUMERIC(15,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>ci_lower</td>
+<td>NUMERIC(15,4)</td>
+<td>95% CI lower</td>
+</tr>
+<tr>
+<td>ci_upper</td>
+<td>NUMERIC(15,4)</td>
+<td>95% CI upper</td>
+</tr>
+<tr>
+<td>actual_value</td>
+<td>NUMERIC(15,4)</td>
+<td>NULL until target_time passes</td>
+</tr>
+<tr>
+<td>prediction_error</td>
+<td>NUMERIC(15,4)</td>
+<td>Filled by ActualValueUpdater</td>
+</tr>
+<tr>
+<td>absolute_percentage_error</td>
+<td>NUMERIC(10,4)</td>
+<td>MAPE component</td>
+</tr>
+<tr>
+<td>created_at / updated_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Indexes:</strong> <code>idx_predictions_forecast_time</code>, <code>idx_predictions_tag_name</code>, <code>idx_predictions_model_id</code>, <code>idx_predictions_horizon</code>, <code>idx_predictions_tag_horizon</code><br />
+<strong>Write frequency:</strong> Every 10 min (ForecastScheduler writes N_models × N_horizons rows); backfilled every 10 min by ActualValueUpdater</p>
+<hr />
+<h4 id="prediction_performance-hourly-ml-accuracy-metrics-hypertable"><code>prediction_performance</code> — Hourly ML accuracy metrics (HYPERTABLE)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>evaluation_time</td>
+<td>TIMESTAMPTZ</td>
+<td>PK part 1</td>
+</tr>
+<tr>
+<td>model_id</td>
+<td>INTEGER</td>
+<td>PK part 2 — FK → model_registry</td>
+</tr>
+<tr>
+<td>horizon_minutes</td>
+<td>INTEGER</td>
+<td>PK part 3</td>
+</tr>
+<tr>
+<td>performance_id</td>
+<td>BIGSERIAL</td>
+<td></td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50)</td>
+<td></td>
+</tr>
+<tr>
+<td>eval_start_time / eval_end_time</td>
+<td>TIMESTAMPTZ</td>
+<td>Hour window</td>
+</tr>
+<tr>
+<td>num_predictions</td>
+<td>INTEGER</td>
+<td></td>
+</tr>
+<tr>
+<td>mape / rmse / mae</td>
+<td>NUMERIC(10,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>r2_score</td>
+<td>NUMERIC(10,6)</td>
+<td></td>
+</tr>
+<tr>
+<td>mean_error / median_error / std_error</td>
+<td>NUMERIC(15,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>ci_coverage_rate / ci_width_avg</td>
+<td>NUMERIC</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Write frequency:</strong> Every 1 hour (PerformanceAggregator), midnight cleanup</p>
+<hr />
+<h3 id="22-continuous-aggregates-timescaledb">2.2 Continuous Aggregates (TimescaleDB)</h3>
+<p>These are TimescaleDB continuous aggregates materialized from <code>influx_hist</code>. They are read-only views populated automatically by TimescaleDB background workers.</p>
+<table>
+<thead>
+<tr>
+<th>Aggregate View</th>
+<th>Bucket Size</th>
+<th>Refresh Policy</th>
+<th>Lookback for Refresh</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>influx_agg_1m</code></td>
+<td>1 minute</td>
+<td>every 1 min</td>
+<td>last 2 hours</td>
+</tr>
+<tr>
+<td><code>influx_agg_10m</code></td>
+<td>10 minutes</td>
+<td>every 10 min</td>
+<td>last 2 hours</td>
+</tr>
+<tr>
+<td><code>influx_agg_1h</code></td>
+<td>1 hour</td>
+<td>every 1 hour</td>
+<td>last 7 days</td>
+</tr>
+<tr>
+<td><code>influx_agg_1d</code></td>
+<td>1 day</td>
+<td>every 1 day</td>
+<td>last 30 days</td>
+</tr>
+<tr>
+<td><code>predictions_hourly</code></td>
+<td>1 hour</td>
+<td>every 1 hour</td>
+<td>last 7 days</td>
+</tr>
+</tbody>
+</table>
+<p><strong>All aggregates expose:</strong> <code>bucket, tag_name, n, avg, sum, min, max, last, first, diff</code><br />
+<strong>Source SQL:</strong> <code>migrations/09_setup_continuous_aggregate_refresh.sql</code></p>
+<hr />
+<h3 id="23-metadata-config-tables">2.3 Metadata / Config Tables</h3>
+<h4 id="influx_tag-sensor-tag-registry"><code>influx_tag</code> — Sensor tag registry</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>key</td>
+<td>VARCHAR (PK)</td>
+<td>Unique row key</td>
+</tr>
+<tr>
+<td>tag_id</td>
+<td>VARCHAR</td>
+<td>Tag identifier</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR (UNIQUE)</td>
+<td>Human-readable name</td>
+</tr>
+<tr>
+<td>tag_type</td>
+<td>VARCHAR</td>
+<td>'sensor' or 'virtual'</td>
+</tr>
+<tr>
+<td>meta</td>
+<td>JSONB</td>
+<td>Extra metadata</td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ORM class:</strong> <code>SensorTag</code> (<code>sensor_orm.py</code>)<br />
+<strong>Also:</strong> Virtual tags are registered here by <code>VirtualTagScheduler</code></p>
+<hr />
+<h4 id="influx_latest-latest-sensor-reading-per-tag-view-in-migration-010"><code>influx_latest</code> — Latest sensor reading per tag (VIEW in migration 010)</h4>
+<p>After migration <code>010_viewer_tag.sql</code>, this is a <strong>view</strong> (not a plain table):</p>
+<pre><code class="language-sql">SELECT DISTINCT ON (h.tag_name) h.tag_name, h.ts, h.value, h.quality
+FROM influx_hist h
+INNER JOIN viewer_tag v ON h.tag_name = v.tag_name AND v.show_dashboard = true
+WHERE h.ts &gt; (now() - '1 day'::interval)
+ORDER BY h.tag_name, h.ts DESC
+</code></pre>
+<p><strong>ORM class:</strong> <code>SensorLatest</code> (maps to this view as if it were a table)</p>
+<hr />
+<h4 id="influx_qc_rule-qcalarm-threshold-rules"><code>influx_qc_rule</code> — QC/alarm threshold rules</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50) PK</td>
+<td></td>
+</tr>
+<tr>
+<td>min_val / max_val</td>
+<td>FLOAT</td>
+<td>Normal operation range</td>
+</tr>
+<tr>
+<td>warning_low / warning_high</td>
+<td>FLOAT</td>
+<td>Level 3 WARNING thresholds</td>
+</tr>
+<tr>
+<td>critical_low / critical_high</td>
+<td>FLOAT</td>
+<td>Level 5 CRITICAL thresholds</td>
+</tr>
+</tbody>
+</table>
+<p><strong>ORM class:</strong> <code>SensorQCRule</code><br />
+<strong>Read by:</strong> AlarmMonitor every 10 seconds (loads rules on init)</p>
+<hr />
+<h4 id="virtual_tags-virtual-tag-definition-config"><code>virtual_tags</code> — Virtual tag definition / config</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>SERIAL PK</td>
+<td></td>
+</tr>
+<tr>
+<td>virtual_tag_id</td>
+<td>VARCHAR(100) UNIQUE</td>
+<td></td>
+</tr>
+<tr>
+<td>name / description</td>
+<td>VARCHAR/TEXT</td>
+<td></td>
+</tr>
+<tr>
+<td>unit</td>
+<td>VARCHAR(20)</td>
+<td></td>
+</tr>
+<tr>
+<td>calculation_type</td>
+<td>VARCHAR(50)</td>
+<td>'expression' / 'statistical' / 'conditional'</td>
+</tr>
+<tr>
+<td>config</td>
+<td>JSONB</td>
+<td>Formula, variables, thresholds</td>
+</tr>
+<tr>
+<td>update_frequency</td>
+<td>INTERVAL</td>
+<td>Default 10 seconds</td>
+</tr>
+<tr>
+<td>enabled</td>
+<td>BOOLEAN</td>
+<td></td>
+</tr>
+<tr>
+<td>created_at / updated_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Indexes:</strong> <code>idx_virtual_tags_enabled</code>, <code>idx_virtual_tags_type</code>, GIN on <code>config</code><br />
+<strong>Trigger:</strong> <code>trigger_virtual_tag_update</code> → updates <code>updated_at</code> on UPDATE</p>
+<hr />
+<h4 id="virtual_tag_definitions-alternative-virtual-tag-config-table-pg_cron-version"><code>virtual_tag_definitions</code> — Alternative virtual tag config table (pg_cron version)</h4>
+<p>Used by the pg_cron-based <code>calculate_virtual_tags()</code> function (migration 07/08). Slightly different schema from <code>virtual_tags</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tag_name</td>
+<td>PK</td>
+</tr>
+<tr>
+<td>formula_type</td>
+<td>'arithmetic' / 'conditional' / 'aggregation'</td>
+</tr>
+<tr>
+<td>formula</td>
+<td>Expression string</td>
+</tr>
+<tr>
+<td>source_tags</td>
+<td>TEXT[]</td>
+</tr>
+<tr>
+<td>aggregation_function / aggregation_window</td>
+<td>For aggregation type</td>
+</tr>
+<tr>
+<td>condition / true_value / false_value</td>
+<td>For conditional type</td>
+</tr>
+<tr>
+<td>is_active</td>
+<td>BOOLEAN</td>
+</tr>
+<tr>
+<td>unit</td>
+<td>VARCHAR</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hardcoded virtual tags in migration 08:</strong> <code>PRESSURE_DIFF</code>, <code>RECOVERY_RATE</code>, <code>OPERATING_TIME</code>, <code>TOTAL_PRODUCT_VOLUME_1H</code></p>
+<hr />
+<h4 id="virtual_tag_dependencies-virtual-tag-source-sensor-mapping"><code>virtual_tag_dependencies</code> — Virtual tag → source sensor mapping</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>SERIAL PK</td>
+</tr>
+<tr>
+<td>virtual_tag_id</td>
+<td>VARCHAR(100) FK → virtual_tags</td>
+</tr>
+<tr>
+<td>source_tag_name</td>
+<td>VARCHAR(100)</td>
+</tr>
+<tr>
+<td>dependency_type</td>
+<td>'expression' / 'statistical' / 'conditional'</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unique constraint:</strong> <code>(virtual_tag_id, source_tag_name)</code></p>
+<hr />
+<h4 id="viewer_tag-per-tag-screen-visibility-control-migration-010"><code>viewer_tag</code> — Per-tag screen visibility control (migration 010)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tag_name</td>
+<td>TEXT PK</td>
+<td></td>
+</tr>
+<tr>
+<td>display_order</td>
+<td>INT</td>
+<td>Sort order in UI</td>
+</tr>
+<tr>
+<td>show_dashboard</td>
+<td>BOOLEAN</td>
+<td>Controls <code>influx_latest</code> view</td>
+</tr>
+<tr>
+<td>show_alarm</td>
+<td>BOOLEAN</td>
+<td>Controls <code>influx_latest_alarm</code></td>
+</tr>
+<tr>
+<td>show_trend</td>
+<td>BOOLEAN</td>
+<td>Controls <code>influx_latest_trend</code></td>
+</tr>
+<tr>
+<td>show_model</td>
+<td>BOOLEAN</td>
+<td>Controls <code>influx_latest_model</code></td>
+</tr>
+<tr>
+<td>created_at / updated_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Trigger:</strong> <code>viewer_tag_updated_at</code> → updates <code>updated_at</code></p>
+<hr />
+<h4 id="model_registry-ml-model-metadata-pickle-storage"><code>model_registry</code> — ML model metadata + pickle storage</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>model_id</td>
+<td>INTEGER PK</td>
+<td></td>
+</tr>
+<tr>
+<td>model_name / model_type / version</td>
+<td>VARCHAR</td>
+<td>e.g., 'AUTO_ARIMA', 'PROPHET', 'XGBOOST'</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50)</td>
+<td>Sensor this model predicts</td>
+</tr>
+<tr>
+<td>hyperparameters / feature_config / pipeline_config</td>
+<td>JSONB</td>
+<td>Training config</td>
+</tr>
+<tr>
+<td>model_pickle</td>
+<td>BYTEA</td>
+<td>Serialized model object (primary)</td>
+</tr>
+<tr>
+<td>model_path</td>
+<td>TEXT</td>
+<td>Legacy file path (fallback)</td>
+</tr>
+<tr>
+<td>model_size_bytes</td>
+<td>BIGINT</td>
+<td></td>
+</tr>
+<tr>
+<td>training_data_start / end / samples / duration_seconds</td>
+<td>Various</td>
+<td></td>
+</tr>
+<tr>
+<td>train_mape / train_rmse / train_mae</td>
+<td>NUMERIC(10,4)</td>
+<td>Training metrics</td>
+</tr>
+<tr>
+<td>validation_mape / validation_rmse / validation_mae</td>
+<td>NUMERIC(10,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>is_active / is_deployed</td>
+<td>BOOLEAN</td>
+<td><code>is_deployed=TRUE</code> → triggers forecast</td>
+</tr>
+<tr>
+<td>deployed_at / deployed_by</td>
+<td>TIMESTAMPTZ / VARCHAR</td>
+<td></td>
+</tr>
+<tr>
+<td>created_at / created_by</td>
+<td>TIMESTAMPTZ / VARCHAR</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unique:</strong> <code>(tag_name, model_type, version)</code><br />
+<strong>Indexes:</strong> <code>idx_model_registry_tag_name</code>, <code>idx_model_registry_model_type</code>, <code>idx_model_registry_active</code><br />
+<strong>ORM class:</strong> <code>ModelRegistry</code> (<code>forecasting_orm.py</code>)</p>
+<hr />
+<h4 id="training_evaluation-offline-backtest-results"><code>training_evaluation</code> — Offline backtest results</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>evaluation_id</td>
+<td>BIGSERIAL PK</td>
+<td></td>
+</tr>
+<tr>
+<td>model_id</td>
+<td>INTEGER FK → model_registry</td>
+<td></td>
+</tr>
+<tr>
+<td>evaluation_time</td>
+<td>TIMESTAMPTZ</td>
+<td>When model was trained</td>
+</tr>
+<tr>
+<td>target_time</td>
+<td>TIMESTAMPTZ</td>
+<td>Test set timestamp (PAST)</td>
+</tr>
+<tr>
+<td>predicted_value / actual_value</td>
+<td>NUMERIC(15,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>prediction_error / absolute_percentage_error</td>
+<td>NUMERIC</td>
+<td></td>
+</tr>
+<tr>
+<td>horizon_minutes</td>
+<td>INTEGER</td>
+<td>60/120/360/720/1440</td>
+</tr>
+<tr>
+<td>model_type / sensor_tag</td>
+<td>VARCHAR</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unique:</strong> <code>(model_id, target_time, horizon_minutes)</code><br />
+<strong>Written by:</strong> Training Wizard + ActualValueUpdater (backfills <code>actual_value</code>)</p>
+<hr />
+<h4 id="forecast_player_cache-pre-computed-ui-cache"><code>forecast_player_cache</code> — Pre-computed UI cache</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cache_id</td>
+<td>SERIAL PK</td>
+<td></td>
+</tr>
+<tr>
+<td>model_id / tag_name</td>
+<td>INT / VARCHAR</td>
+<td></td>
+</tr>
+<tr>
+<td>forecast_time / reference_time / created_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+<tr>
+<td>rolling_window</td>
+<td>JSONB</td>
+<td>Array: Past 30 + Present 1 + Future N</td>
+</tr>
+<tr>
+<td>predictions_data</td>
+<td>JSONB</td>
+<td>7-row table display data</td>
+</tr>
+<tr>
+<td>mape / rmse / mae / accuracy</td>
+<td>NUMERIC(10,2)</td>
+<td></td>
+</tr>
+<tr>
+<td>next_forecast_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+<tr>
+<td>latest_value</td>
+<td>NUMERIC(10,2)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Unique:</strong> <code>(model_id, forecast_time)</code><br />
+<strong>Write frequency:</strong> Every 10 min (ForecastScheduler after save_predictions)<br />
+<strong>Read by:</strong> Forecast Player UI page (single SELECT, target &lt;50ms)</p>
+<hr />
+<h4 id="feature_store-engineered-ml-features-hypertable-candidate"><code>feature_store</code> — Engineered ML features (HYPERTABLE candidate)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>feature_time</td>
+<td>TIMESTAMPTZ PK</td>
+<td></td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50) PK</td>
+<td></td>
+</tr>
+<tr>
+<td>feature_id</td>
+<td>BIGSERIAL</td>
+<td></td>
+</tr>
+<tr>
+<td>lag_1h / lag_3h / lag_6h / lag_12h / lag_24h</td>
+<td>NUMERIC(15,4)</td>
+<td></td>
+</tr>
+<tr>
+<td>rolling_mean/std/min/max_6h</td>
+<td>NUMERIC</td>
+<td>6-hour window stats</td>
+</tr>
+<tr>
+<td>rolling_mean/std/min/max_24h</td>
+<td>NUMERIC</td>
+<td>24-hour window stats</td>
+</tr>
+<tr>
+<td>rolling_mean/std_1w</td>
+<td>NUMERIC</td>
+<td>1-week stats</td>
+</tr>
+<tr>
+<td>hour_of_day / day_of_week / month / quarter / is_weekend / is_business_hour</td>
+<td>INT/BOOL</td>
+<td>Calendar features</td>
+</tr>
+<tr>
+<td>trend/seasonal/residual_component</td>
+<td>NUMERIC</td>
+<td>STL decomposition</td>
+</tr>
+<tr>
+<td>rate_of_change / acceleration</td>
+<td>NUMERIC</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ORM class:</strong> <code>FeatureStore</code></p>
+<hr />
+<h4 id="drift_monitoring-modeldata-drift-records-hypertable-candidate"><code>drift_monitoring</code> — Model/data drift records (HYPERTABLE candidate)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>monitoring_time</td>
+<td>TIMESTAMPTZ PK</td>
+<td></td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(50) PK</td>
+<td></td>
+</tr>
+<tr>
+<td>drift_type</td>
+<td>VARCHAR(50) PK</td>
+<td></td>
+</tr>
+<tr>
+<td>model_id</td>
+<td>INTEGER optional FK</td>
+<td></td>
+</tr>
+<tr>
+<td>psi_score / ks_statistic / ks_pvalue / js_divergence</td>
+<td>NUMERIC</td>
+<td>Statistical tests</td>
+</tr>
+<tr>
+<td>current_mean/std/min/max</td>
+<td>NUMERIC</td>
+<td>Current window stats</td>
+</tr>
+<tr>
+<td>reference_mean/std/min/max</td>
+<td>NUMERIC</td>
+<td>Reference window stats</td>
+</tr>
+<tr>
+<td>is_drift_detected</td>
+<td>BOOLEAN</td>
+<td></td>
+</tr>
+<tr>
+<td>drift_severity</td>
+<td>VARCHAR(20)</td>
+<td>low/medium/high/critical</td>
+</tr>
+<tr>
+<td>current/reference window start/end</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+<tr>
+<td>action_taken / alert_sent</td>
+<td>VARCHAR / BOOLEAN</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>ORM class:</strong> <code>DriftMonitoring</code></p>
+<hr />
+<h4 id="alarm_history-alarm-event-log"><code>alarm_history</code> — Alarm event log</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>event_id</td>
+<td>VARCHAR(50) PK</td>
+<td>e.g., <code>ALM-20251002120000-TMP</code></td>
+</tr>
+<tr>
+<td>scenario_id</td>
+<td>VARCHAR(20)</td>
+<td>e.g., <code>TMP__CRIT</code></td>
+</tr>
+<tr>
+<td>level</td>
+<td>INTEGER</td>
+<td>1=INFO, 2=NOTICE, 3=WARN, 4=CRIT, 5=EMRG</td>
+</tr>
+<tr>
+<td>triggered_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+<tr>
+<td>message</td>
+<td>TEXT</td>
+<td>Human-readable alarm text</td>
+</tr>
+<tr>
+<td>sensor_data</td>
+<td>JSONB</td>
+<td><code>{tag_name, value, timestamp}</code></td>
+</tr>
+<tr>
+<td>actions_taken</td>
+<td>TEXT[]</td>
+<td>e.g., <code>["알람 생성", "모니터링"]</code></td>
+</tr>
+<tr>
+<td>acknowledged</td>
+<td>BOOLEAN</td>
+<td>Default false</td>
+</tr>
+<tr>
+<td>acknowledged_by / acknowledged_at</td>
+<td>VARCHAR / TIMESTAMPTZ</td>
+<td></td>
+</tr>
+<tr>
+<td>resolved</td>
+<td>BOOLEAN</td>
+<td>Default false</td>
+</tr>
+<tr>
+<td>resolved_at</td>
+<td>TIMESTAMPTZ</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Indexes (migration 001):</strong>
+- <code>idx_alarm_triggered_at (triggered_at DESC)</code>
+- <code>idx_alarm_level_acknowledged (level DESC, acknowledged) WHERE resolved=false</code>
+- <code>idx_alarm_sensor_tag ((sensor_data-&gt;&gt;'tag_name'))</code>
+- <code>idx_alarm_scenario_triggered (scenario_id, triggered_at DESC) WHERE resolved=false</code>
+- <code>idx_alarm_unacknowledged (acknowledged, triggered_at DESC) WHERE acknowledged=false AND resolved=false</code></p>
+<p><strong>Write frequency:</strong> On threshold violation during AlarmMonitor 10-second check cycle</p>
+<hr />
+<h4 id="tag_value_history-tag-value-change-log-created-by-datalogger"><code>tag_value_history</code> — Tag value change log (created by DataLogger)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>BIGSERIAL PK</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(100)</td>
+</tr>
+<tr>
+<td>old_value / new_value</td>
+<td>DOUBLE PRECISION</td>
+</tr>
+<tr>
+<td>delta_value</td>
+<td>DOUBLE PRECISION</td>
+</tr>
+<tr>
+<td>timestamp / created_at</td>
+<td>TIMESTAMPTZ</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="kpi_state_history-kpi-status-transition-log-created-by-datalogger"><code>kpi_state_history</code> — KPI status transition log (created by DataLogger)</h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>BIGSERIAL PK</td>
+</tr>
+<tr>
+<td>tag_name</td>
+<td>VARCHAR(100)</td>
+</tr>
+<tr>
+<td>old_status / new_status</td>
+<td>VARCHAR(20)</td>
+</tr>
+<tr>
+<td>gauge_percent / qc_min / qc_max / current_value</td>
+<td>DOUBLE PRECISION</td>
+</tr>
+<tr>
+<td>timestamp / created_at / reason</td>
+<td>TIMESTAMPTZ / VARCHAR</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="24-views-created-by-migrations">2.4 Views Created by Migrations</h3>
+<table>
+<thead>
+<tr>
+<th>View Name</th>
+<th>Purpose</th>
+<th>Filter</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>influx_latest</code></td>
+<td>Latest value per tag</td>
+<td><code>show_dashboard=true</code>, last 1 day</td>
+</tr>
+<tr>
+<td><code>influx_latest_dashboard</code></td>
+<td>Dashboard screen</td>
+<td><code>show_dashboard=true</code></td>
+</tr>
+<tr>
+<td><code>influx_latest_alarm</code></td>
+<td>Alarm screen</td>
+<td><code>show_alarm=true</code></td>
+</tr>
+<tr>
+<td><code>influx_latest_trend</code></td>
+<td>Trend screen</td>
+<td><code>show_trend=true</code></td>
+</tr>
+<tr>
+<td><code>influx_latest_model</code></td>
+<td>Model training candidates</td>
+<td><code>show_model=true</code></td>
+</tr>
+<tr>
+<td><code>virtual_tags_as_influx</code></td>
+<td>Virtual tags in influx format</td>
+<td><code>value IS NOT NULL</code></td>
+</tr>
+<tr>
+<td><code>influx_latest_with_virtual</code></td>
+<td>Sensors + virtual tags combined</td>
+<td></td>
+</tr>
+<tr>
+<td><code>all_tags_info</code></td>
+<td>influx_tag + virtual_tags union</td>
+<td></td>
+</tr>
+<tr>
+<td><code>influx_hist_with_virtual</code></td>
+<td>influx_hist + virtual_tag_values union</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Materialized view:</strong> <code>virtual_tag_latest</code> — latest value per virtual_tag_id (refreshed by <code>batch_update_virtual_tags()</code>)</p>
+<hr />
+<h2 id="3-db-connection-architecture">3. DB Connection Architecture</h2>
+<h3 id="31-dbpy-asyncpg-direct-pool-primary">3.1 <code>db.py</code> — asyncpg direct pool (primary)</h3>
+<pre><code>_GLOBAL_POOL (asyncpg.Pool)
+  min_size = 1
+  max_size = 10
+  timeout = 60s
+  command_timeout = 60s
+</code></pre>
+<p><strong>Usage pattern:</strong> <code>q(sql, params)</code> → <code>pool.acquire()</code> → <code>conn.fetch()</code> → returns <code>list[dict]</code><br />
+<strong>Fallback:</strong> On timeout, opens a direct <code>asyncpg.connect()</code> without pool<br />
+<strong>Used by:</strong> <code>DashboardModel</code>, <code>AlarmMonitor</code>, <code>DataLogger</code>, <code>DatabaseEventListener</code> (db_events.py)</p>
+<h3 id="32-db_ormpy-sqlalchemy-async-asyncpg-secondary">3.2 <code>db_orm.py</code> — SQLAlchemy async + asyncpg (secondary)</h3>
+<pre><code>EngineManager (lazy singleton)
+  USE_DB_POOLING env (default: false → NullPool)
+  NullPool: Fresh connection per get_async_session() call (Reflex BG event compatible)
+  AsyncAdaptedQueuePool (opt-in): pool_size=10, max_overflow=10, pool_timeout=30, pool_recycle=1800
+  command_timeout = 30s (env: DB_COMMAND_TIMEOUT)
+  statement_timeout = 30000ms server-side (env: DB_STATEMENT_TIMEOUT_MS)
+  connect_timeout = 10s
+  application_name = &quot;reflex_app&quot;
+  jit = off
+</code></pre>
+<p><strong>Usage pattern:</strong> <code>async with get_async_session() as session:</code> → SQLAlchemy <code>session.execute(text(...))</code> or ORM select<br />
+<strong>Used by:</strong> All forecasting schedulers (ForecastScheduler, ActualValueUpdater, PerformanceAggregator), VirtualTagScheduler</p>
+<hr />
+<h2 id="4-migration-execution-order">4. Migration Execution Order</h2>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>File</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>01_init_virtual_tags.sql</code></td>
+<td>Creates virtual_tags, virtual_tag_values (hypertable), virtual_tag_dependencies, virtual_tag_latest</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>02_functions_virtual_tags.sql</code></td>
+<td>DB functions: parse_expression, calculate_statistical_tag, calculate_virtual_tag, batch_update_virtual_tags</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>03_sample_virtual_tags.sql</code></td>
+<td>8 sample virtual tag INSERT rows</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>04_add_virtual_tag.sql</code></td>
+<td>COOLING_EFFICIENCY, SYSTEM_LOAD_PCT INSERTs</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>05_modify_virtual_tag.sql</code></td>
+<td>UPDATE examples for existing virtual tags</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>06_integrate_with_influx.sql</code></td>
+<td>Trigger: sync virtual tags → influx_hist; views: influx_latest_with_virtual etc.</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>07_pg_cron_migration.sql</code></td>
+<td>Installs pg_cron; <code>calculate_virtual_tags()</code> function v1 (reads virtual_tag_definitions)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>08_pg_cron_virtual_tags.sql</code></td>
+<td><code>calculate_virtual_tags()</code> function v2 (simplified, hardcoded 4 VTags); pg_cron schedule every 1 min</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>09_setup_continuous_aggregate_refresh.sql</code></td>
+<td>Continuous aggregate policies for influx_agg_1m/10m/1h/1d + predictions_hourly</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>010_viewer_tag.sql</code></td>
+<td>viewer_tag table; influx_latest redefined as view; 4 screen-specific views</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>001_alarm_indexes.sql</code></td>
+<td>5 partial indexes on alarm_history</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>20251014_create_training_evaluation.sql</code></td>
+<td>training_evaluation table; v_latest_evaluation_metrics view; v_evaluation_timeseries view</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>20251017_create_forecast_player_cache.sql</code></td>
+<td>forecast_player_cache table; cleanup function</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Latest migration:</strong> <code>20251017_create_forecast_player_cache.sql</code> (dated 2025-10-17)<br />
+<strong>Note:</strong> <code>001_alarm_indexes.sql</code> uses lexicographic sort order before <code>01_init_virtual_tags.sql</code> — this is a file naming issue but all assume alarm_history already exists (created elsewhere, likely in a base init script not in the migrations folder).</p>
+<hr />
+<h2 id="5-scheduler-inventory">5. Scheduler Inventory</h2>
+<h3 id="51-forecastscheduler-online-predictions">5.1 <code>ForecastScheduler</code> — Online predictions</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/schedulers/forecast_scheduler.py</code> (~700+ LoC)</td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Every 10 minutes (x:00, x:10, x:20, ...)</td>
+</tr>
+<tr>
+<td>Trigger type</td>
+<td><code>asyncio.sleep(600)</code> loop with initial alignment delay</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Generate predictions for all <code>is_deployed=TRUE</code> models</td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>model_registry</code> (deployed models), <code>influx_agg_10m</code> (latest sensor value at T0)</td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>predictions</code> (N_models × N_horizons rows), <code>forecast_player_cache</code></td>
+</tr>
+<tr>
+<td>Horizons</td>
+<td>Default [60, 120, 360, 720, 1440] min OR overrides from <code>pipeline_config.forecast_config.horizons</code></td>
+</tr>
+<tr>
+<td>Per-model timeout</td>
+<td><code>FORECAST_MODEL_PREDICT_TIMEOUT</code> env (default 45s)</td>
+</tr>
+<tr>
+<td>Pickle load timeout</td>
+<td><code>FORECAST_PICKLE_LOAD_TIMEOUT</code> env (default 15s)</td>
+</tr>
+<tr>
+<td>ML execution</td>
+<td>Runs in ThreadPoolExecutor + new event loop per model (async models)</td>
+</tr>
+<tr>
+<td>Supported model types</td>
+<td>AUTO_ARIMA (statsforecast), PROPHET, XGBOOST</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Sensor selection logic:</strong> Queries <code>model_registry WHERE is_deployed=TRUE AND is_active=TRUE</code>. No additional sensor filtering — one model = one tag.</p>
+<p><strong>Forecast loop within <code>_process_model()</code>:</strong>
+1. Get horizons from <code>pipeline_config</code> (or use defaults)
+2. <code>get_latest_sensor_value(tag_name, reference_time)</code> → queries <code>influx_agg_10m</code>, rounds to 10-min boundary
+3. <code>load_model_from_bytea(model_pickle)</code> → <code>pickle.loads()</code> in executor thread with timeout
+4. <code>generate_predictions(model, model_type, last_value, horizons)</code> → calls <code>model.predict(len(horizons))</code>
+5. <code>save_predictions()</code> → INSERT N rows into <code>predictions</code>
+6. <code>generate_forecast_player_cache()</code> → INSERT 1 row into <code>forecast_player_cache</code></p>
+<hr />
+<h3 id="52-actualvalueupdater-backfill-actuals">5.2 <code>ActualValueUpdater</code> — Backfill actuals</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/schedulers/actual_value_updater.py</code></td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Every 10 minutes (x:01, x:11, x:21, ...) — 1 min after ForecastScheduler</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Fill <code>actual_value</code> in predictions + training_evaluation when target_time has passed</td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>predictions</code> (WHERE target_time &lt;= NOW() AND actual_value IS NULL), <code>influx_hist</code></td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>predictions.actual_value / prediction_error / absolute_percentage_error</code>, same fields in <code>training_evaluation</code></td>
+</tr>
+<tr>
+<td>Batch size</td>
+<td>100 records per iteration, up to 20 batches per run</td>
+</tr>
+<tr>
+<td>Time range</td>
+<td>Only looks back 7 days for predictions</td>
+</tr>
+<tr>
+<td>Match tolerance</td>
+<td>Joins influx_hist BETWEEN target_time ± 5 minutes</td>
+</tr>
+<tr>
+<td>Statement timeout</td>
+<td>15s per batch</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="53-performanceaggregator-hourly-accuracy-metrics">5.3 <code>PerformanceAggregator</code> — Hourly accuracy metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/schedulers/performance_aggregator.py</code></td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Every 1 hour (x:03, x:13, x:23, ...) — aligns 3 min after ForecastScheduler</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Aggregate completed predictions into <code>prediction_performance</code></td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>predictions WHERE actual_value IS NOT NULL AND forecast_time &gt;= NOW()-1h</code></td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>prediction_performance</code> (UPSERT), daily cleanup (midnight only)</td>
+</tr>
+<tr>
+<td>Minimum data</td>
+<td>Requires COUNT &gt;= 3 for any aggregation</td>
+</tr>
+<tr>
+<td>Retention</td>
+<td>Keeps 90 days; deletes older records at hour=0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="54-virtualtagscheduler-calculate-virtual-tags">5.4 <code>VirtualTagScheduler</code> — Calculate virtual tags</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/schedulers/virtual_tag_scheduler.py</code></td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Every 1 minute (<code>asyncio.sleep(60)</code>)</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Calculate all active virtual tags via <code>VirtualTagService</code>; register them in <code>influx_tag</code></td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>virtual_tag_definitions</code> (active tags), <code>influx_latest</code> (source sensor values)</td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>influx_hist</code> (via trigger on virtual_tag_values), <code>influx_tag</code> (upsert on first run)</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>Partially superseded by pg_cron <code>calculate_virtual_tags()</code> — both may run</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="55-alarmscheduler-psycopg2-based-legacy">5.5 <code>AlarmScheduler</code> (psycopg2-based, legacy)</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/monitoring/alarm_scheduler.py</code></td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Every 60 seconds (threading.Thread loop)</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Calls DB function <code>manual_alarm_schedule()</code>; reads <code>alarm_schedule_log</code> for stats</td>
+</tr>
+<tr>
+<td>Uses</td>
+<td><code>psycopg2</code> (synchronous, runs in a background thread)</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>Legacy sync scheduler, separate from the async AlarmMonitor</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="56-dailytrainingscheduler-retrain-ml-models">5.6 <code>DailyTrainingScheduler</code> — Retrain ML models</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/schedulers/daily_training.py</code></td>
+</tr>
+<tr>
+<td>Interval</td>
+<td>Daily at 2 AM (not yet activated in scheduler_manager)</td>
+</tr>
+<tr>
+<td>Task</td>
+<td>Collect 30 days data → train models → evaluate → deploy if better → drift check</td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>influx_hist</code> (30 days), <code>model_registry</code></td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>model_registry</code> (new model rows + pickle), drift alerts</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Code exists; not wired into <code>scheduler_manager.py</code> start_all()</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="57-pg_cron-job-calculate_virtual_tags_every_minute">5.7 pg_cron Job — <code>calculate_virtual_tags_every_minute</code></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Host</td>
+<td>Inside PostgreSQL container (pgai-db)</td>
+</tr>
+<tr>
+<td>Schedule</td>
+<td><code>* * * * *</code> — every 1 minute</td>
+</tr>
+<tr>
+<td>Command</td>
+<td><code>SELECT calculate_virtual_tags()</code></td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>influx_latest</code> (for source sensor values)</td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>influx_hist</code> (UPSERT ON CONFLICT (ts, tag_name))</td>
+</tr>
+<tr>
+<td>Virtual tags</td>
+<td>PRESSURE_DIFF, RECOVERY_RATE, OPERATING_TIME, TOTAL_PRODUCT_VOLUME_1H</td>
+</tr>
+<tr>
+<td>Container</td>
+<td><code>rpi-finished-pgai-db</code> — built from <code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron</code></td>
+</tr>
+<tr>
+<td>Base image</td>
+<td><code>timescale/timescaledb:latest-pg17</code> (Alpine)</td>
+</tr>
+<tr>
+<td>Extensions</td>
+<td>TimescaleDB + pg_cron (shared_preload_libraries=timescaledb,pg_cron)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-monitoring-inventory">6. Monitoring Inventory</h2>
+<h3 id="61-alarmmonitor-alarmmonitorfixed">6.1 <code>AlarmMonitor</code> / <code>AlarmMonitorFixed</code></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>monitoring/alarm_monitor.py</code> (original), <code>monitoring/alarm_monitor_fixed.py</code> (ISA-18.2 compliant)</td>
+</tr>
+<tr>
+<td>Poll interval</td>
+<td>Every <strong>10 seconds</strong> (<code>check_interval = 10</code>)</td>
+</tr>
+<tr>
+<td>Reads</td>
+<td><code>influx_hist WHERE ts &gt;= NOW()-1min</code> (latest values)</td>
+</tr>
+<tr>
+<td>Alarm rules</td>
+<td><code>influx_qc_rule</code> — loaded on init; 3 levels: normal / warning / critical</td>
+</tr>
+<tr>
+<td>Dedup window</td>
+<td>5 minutes — if same (tag_name, level) alarm exists in last 5 min, skip</td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>alarm_history</code> INSERT</td>
+</tr>
+<tr>
+<td>NOTIFY</td>
+<td><code>pg_notify('alarm_event', event_id)</code> after INSERT</td>
+</tr>
+<tr>
+<td>Level mapping</td>
+<td>2=NOTICE, 3=WARN, 4=CRIT</td>
+</tr>
+<tr>
+<td>Scenario ID</td>
+<td><code>{tag_prefix}_{INFO/NOTICE/WARN/CRIT/EMRG}</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Fixed vs original:</strong> <code>alarm_monitor_fixed.py</code> reads <code>warning_low/warning_high/critical_low/critical_high</code> columns and adds ISA-18.2 compliance label; original uses <code>warn_min/warn_max/alarm_min/alarm_max</code> columns.</p>
+<hr />
+<h3 id="62-databaseeventlistener-db_eventspy">6.2 <code>DatabaseEventListener</code> (db_events.py)</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>ksys_app/utils/db_events.py</code></td>
+</tr>
+<tr>
+<td>Protocol</td>
+<td>PostgreSQL LISTEN/NOTIFY (psycopg 3 async)</td>
+</tr>
+<tr>
+<td>Default channel</td>
+<td><code>"data_update"</code> (configurable)</td>
+</tr>
+<tr>
+<td>Connection</td>
+<td>Dedicated connection (not from pool) with <code>autocommit=True</code></td>
+</tr>
+<tr>
+<td>Listen timeout</td>
+<td>5 seconds per <code>notifies()</code> cycle</td>
+</tr>
+<tr>
+<td>Callback</td>
+<td>Parses JSON payload → calls registered async callback</td>
+</tr>
+<tr>
+<td>Producer</td>
+<td><code>alarm_monitor.py</code> sends <code>NOTIFY alarm_event, '&lt;event_id&gt;'</code></td>
+</tr>
+<tr>
+<td>Also supports</td>
+<td><code>notify(payload)</code> method — sends NOTIFY from a fresh connection</td>
+</tr>
+</tbody>
+</table>
+<p><strong>NOTIFY/LISTEN event flow:</strong></p>
+<pre><code>AlarmMonitor.create_alarm_event()
+  → INSERT INTO alarm_history
+  → SELECT pg_notify('alarm_event', event_id)
+  → [DB sends NOTIFY]
+  → DatabaseEventListener._listen_loop()
+  → JSON parse
+  → callback(payload)
+  → [Frontend state update]
+</code></pre>
+<hr />
+<h3 id="63-datalogger">6.3 <code>DataLogger</code></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>monitoring/data_logger.py</code></td>
+</tr>
+<tr>
+<td>Purpose</td>
+<td>Log value changes and KPI state transitions</td>
+</tr>
+<tr>
+<td>Pool</td>
+<td>Own asyncpg pool: min=2, max=10, command_timeout=10</td>
+</tr>
+<tr>
+<td>Writes</td>
+<td><code>tag_value_history</code>, <code>kpi_state_history</code>, <code>alarm_history</code></td>
+</tr>
+<tr>
+<td>Tables created on init</td>
+<td>If not exist: <code>tag_value_history</code>, <code>kpi_state_history</code>, <code>alarm_history</code></td>
+</tr>
+<tr>
+<td>Trigger</td>
+<td>Significant delta change or KPI state transition</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="64-rangemonitor">6.4 <code>RangeMonitor</code></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File</td>
+<td><code>monitoring/range_monitor.py</code></td>
+</tr>
+<tr>
+<td>Purpose</td>
+<td>Desalination plant operational range monitoring</td>
+</tr>
+<tr>
+<td>Thresholds</td>
+<td>Hardcoded in <code>_initialize_thresholds()</code> for TMP (막간차압), DP (차압), and others</td>
+</tr>
+<tr>
+<td>Alert levels</td>
+<td>NORMAL / WARNING / CRITICAL / EMERGENCY (enum)</td>
+</tr>
+<tr>
+<td>Features</td>
+<td>Predicts time-to-critical based on trend data</td>
+</tr>
+<tr>
+<td>Integration</td>
+<td>Uses psycopg3 directly</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7-orm-class-table-mapping">7. ORM Class ↔ Table Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>ORM Class</th>
+<th>File</th>
+<th>Table</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SensorTag</code></td>
+<td>sensor_orm.py</td>
+<td><code>influx_tag</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SensorLatest</code></td>
+<td>sensor_orm.py</td>
+<td><code>influx_latest</code> (view after 010)</td>
+<td>PK = tag_name</td>
+</tr>
+<tr>
+<td><code>SensorQCRule</code></td>
+<td>sensor_orm.py</td>
+<td><code>influx_qc_rule</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SensorHistory</code></td>
+<td>sensor_orm.py</td>
+<td><code>influx_hist</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>SensorAggregation</code></td>
+<td>sensor_orm.py</td>
+<td><code>influx_agg_1h</code> (view)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>ModelRegistry</code></td>
+<td>forecasting_orm.py</td>
+<td><code>model_registry</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>Prediction</code></td>
+<td>forecasting_orm.py</td>
+<td><code>predictions</code></td>
+<td>Hypertable</td>
+</tr>
+<tr>
+<td><code>PredictionPerformance</code></td>
+<td>forecasting_orm.py</td>
+<td><code>prediction_performance</code></td>
+<td>Hypertable</td>
+</tr>
+<tr>
+<td><code>FeatureStore</code></td>
+<td>forecasting_orm.py</td>
+<td><code>feature_store</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>DriftMonitoring</code></td>
+<td>forecasting_orm.py</td>
+<td><code>drift_monitoring</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>TimeseriesRow</code></td>
+<td>models.py</td>
+<td><code>influx_agg_*</code> views (Pydantic DTO)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Feature5mRow</code></td>
+<td>models.py</td>
+<td>— (Pydantic DTO for 5m feature query)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>LatestRow</code></td>
+<td>models.py</td>
+<td><code>influx_latest</code> (Pydantic DTO)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Indicator1mRow</code></td>
+<td>models.py</td>
+<td>— (Pydantic DTO, technical indicators)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>DashboardModel</code></td>
+<td>dashboard.py</td>
+<td>Queries <code>influx_latest</code>, <code>influx_qc_rule</code>, <code>influx_agg_1h</code></td>
+<td>Pure SQL, not ORM</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-critical-data-flow-diagrams">8. Critical Data Flow Diagrams</h2>
+<h3 id="81-sensor-data-ingestion-flow">8.1 Sensor Data Ingestion Flow</h3>
+<pre><code>[Upstream IoT / Cloud DB]
+        |
+        | (periodic sync — sync_monitor_state or data-injector container)
+        v
+[data-injector container OR pg_cron job]
+        |
+        | INSERT INTO influx_hist (ts, tag_name, value, quality)
+        v
++------------------+
+|   influx_hist    |  &lt;-- PRIMARY data store (TimescaleDB hypertable)
+|   (hypertable)   |
++------------------+
+        |
+        |---&gt; TimescaleDB background: influx_agg_1m/10m/1h/1d (continuous aggregates refresh)
+        |
+        |---&gt; trigger_sync_virtual_to_influx: when virtual_tag_values INSERT
+        |       → virtual_tag_values ALSO writes back to influx_hist
+        |
+        |---&gt; influx_latest (VIEW, derived from influx_hist + viewer_tag)
+        |
+        v
+[All pages query influx_hist / influx_latest / influx_agg_* ]
+</code></pre>
+<hr />
+<h3 id="82-forecast-loop-10-minute-cycle">8.2 Forecast Loop (10-minute cycle)</h3>
+<pre><code>x:00 — ForecastScheduler.run_once()
+  |
+  |-- SELECT model_registry WHERE is_deployed=TRUE
+  |       ↓
+  |-- For each model (concurrent with per-model timeout 45s):
+  |       ↓
+  |   GET influx_agg_10m[tag_name, T0=round(now,10m)]  → last_value
+  |       ↓
+  |   pickle.loads(model_registry.model_pickle)  → model object
+  |       ↓ (run in ThreadPoolExecutor)
+  |   model.predict(N_horizons)  → forecast_df [pandas DataFrame]
+  |       ↓
+  |   INSERT N rows → predictions (target_time = T0 + horizon_i)
+  |       ↓
+  |   INSERT 1 row → forecast_player_cache (rolling_window JSON, metrics)
+  |
+x:01 — ActualValueUpdater.run_once()
+  |
+  |-- SELECT predictions WHERE target_time &lt;= NOW() AND actual_value IS NULL
+  |-- JOIN influx_hist ON tag_name WHERE ts BETWEEN target ± 5min
+  |-- UPDATE predictions SET actual_value, prediction_error, APE
+  |-- UPDATE training_evaluation SET actual_value (same logic)
+  |
+x:03 — PerformanceAggregator.run_once() (actually runs hourly at x:03)
+  |
+  |-- INSERT INTO prediction_performance
+  |       SELECT model_id, horizon_minutes, MAE/MAPE/RMSE
+  |       FROM predictions WHERE actual_value IS NOT NULL AND last 1 hour
+  |-- midnight: DELETE prediction_performance WHERE older than 90 days
+</code></pre>
+<hr />
+<h3 id="83-alarm-loop-10-second-cycle">8.3 Alarm Loop (10-second cycle)</h3>
+<pre><code>AlarmMonitor (continuous loop, sleep=10s)
+  |
+  |-- SELECT DISTINCT ON (tag_name) FROM influx_hist WHERE ts &gt;= NOW()-1min
+  |       ↓
+  |-- For each row: evaluate against influx_qc_rule thresholds
+  |       ↓
+  |   [Normal / Warning / Critical check]
+  |       ↓ (if threshold exceeded AND no duplicate alarm in last 5 min)
+  |   INSERT INTO alarm_history (event_id, scenario_id, level, sensor_data…)
+  |       ↓
+  |   SELECT pg_notify('alarm_event', event_id)
+  |       ↓
+  |
+DatabaseEventListener (dedicated psycopg3 LISTEN connection)
+  |
+  |-- LISTEN alarm_event
+  |-- On NOTIFY: parse JSON → callback(payload)
+  |-- callback → Reflex state update → WebSocket push → frontend UI refresh
+</code></pre>
+<hr />
+<h2 id="9-db-readwrite-hotspot-analysis">9. DB Read/Write Hotspot Analysis</h2>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Write Frequency</th>
+<th>Primary Writers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>influx_hist</code></td>
+<td>Continuous (every ~10s from data-injector)</td>
+<td>data-injector, virtual_tag trigger, pg_cron</td>
+</tr>
+<tr>
+<td><code>predictions</code></td>
+<td>Every 10 min × N_models × N_horizons</td>
+<td>ForecastScheduler</td>
+</tr>
+<tr>
+<td><code>forecast_player_cache</code></td>
+<td>Every 10 min × N_models</td>
+<td>ForecastScheduler</td>
+</tr>
+<tr>
+<td><code>predictions.actual_value</code></td>
+<td>Every 10 min (batch 100)</td>
+<td>ActualValueUpdater</td>
+</tr>
+<tr>
+<td><code>alarm_history</code></td>
+<td>On threshold violation (every 10s check)</td>
+<td>AlarmMonitor</td>
+</tr>
+<tr>
+<td><code>virtual_tag_values</code></td>
+<td>Every 1 min</td>
+<td>VirtualTagScheduler</td>
+</tr>
+<tr>
+<td><code>prediction_performance</code></td>
+<td>Every 1 hour</td>
+<td>PerformanceAggregator</td>
+</tr>
+<tr>
+<td><code>model_registry.model_pickle</code></td>
+<td>On training completion (daily or on-demand)</td>
+<td>DailyTrainingScheduler</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Top read tables:</strong>
+1. <code>influx_hist</code> — polled by AlarmMonitor (10s), ActualValueUpdater (10m), query pages
+2. <code>influx_latest</code> (view) — polled by Dashboard page, DashboardModel
+3. <code>influx_agg_10m</code> — polled by ForecastScheduler every 10 min
+4. <code>influx_agg_1h</code> / <code>influx_agg_1d</code> — polled by Trend page
+5. <code>forecast_player_cache</code> — read by Forecast Player UI (single SELECT per render)</p>
+<hr />
+<h2 id="10-scheduler-coordination-summary">10. Scheduler Coordination Summary</h2>
+<pre><code>SchedulerManager.start_all()  [called once on app startup via asyncio.create_task]
+  |
+  |-- ForecastScheduler.start(600s) ──────── starts at x:00 boundary
+  |-- ActualValueUpdater.start(600s) ──────── starts at x:01 boundary
+  |-- PerformanceAggregator.start(3600s) ─── starts at x:03 boundary
+  |
+  |-- [DailyTrainingScheduler NOT wired here — separate activation needed]
+  |-- [VirtualTagScheduler NOT in SchedulerManager — separate asyncio task]
+  |-- [AlarmScheduler runs as threading.Thread — separate lifecycle]
+  |-- [pg_cron runs inside PostgreSQL — independent of Python process]
+</code></pre>
+<p><strong>Container architecture note:</strong> The pg_cron DB container (<code>rpi-finished-pgai-db</code>) is built from <code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron</code> which installs pg_cron on top of <code>timescale/timescaledb:latest-pg17</code> (Alpine). The Python schedulers run inside the app container (<code>rpi-finished-reflex-app</code>). They share the same PostgreSQL database.</p>
+<hr />
+<p><em>End of spec_03_database_schedulers.md</em></p>
+</body></html>

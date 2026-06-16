@@ -129,10 +129,9 @@ class AlarmRTState(rx.State):
                 self.warning_sensors_count = 0
                 self.critical_sensors_count = 0
 
-    @rx.event
-    def toggle_auto_refresh(self):
-        """자동 갱신 토글"""
-        self.auto_refresh = not self.auto_refresh
+    # NOTE: toggle_auto_refresh moved below to a single definition
+    # (was duplicated at L133 + L272 with silent override; the L272 version
+    # is the winner because it triggers start_auto_refresh on enable).
 
     @rx.event(background=True)
     async def refresh_realtime(self):

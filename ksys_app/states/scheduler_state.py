@@ -1,13 +1,20 @@
 """
 Scheduler State - Manages forecasting schedulers lifecycle within Reflex app.
 
-This state automatically starts all schedulers when the app initializes.
-No separate process needed - schedulers run as background tasks within Reflex.
+By default the schedulers run as background tasks within Reflex. Set
+DISABLE_INAPP_SCHEDULER=true when a separate scheduler container handles
+forecasting so the in-app loop doesn't double-fire (e.g. local docker
+fullstack with the dedicated forecast-scheduler service).
 """
 
+import os
 import reflex as rx
 from reflex.utils import console
 from ..schedulers import start_all_schedulers, stop_all_schedulers
+
+
+def _inapp_scheduler_disabled() -> bool:
+    return os.environ.get("DISABLE_INAPP_SCHEDULER", "false").lower() == "true"
 
 
 class SchedulerState(rx.State):
@@ -19,6 +26,12 @@ class SchedulerState(rx.State):
     @rx.event(background=True)
     async def start_schedulers(self):
         """Start all forecasting schedulers in background"""
+        if _inapp_scheduler_disabled():
+            console.log("In-app scheduler disabled via DISABLE_INAPP_SCHEDULER=true")
+            async with self:
+                self.schedulers_running = False
+                self.scheduler_error = ""
+            return
         try:
             console.log("=" * 80)
             console.log("🚀 Starting Forecasting Schedulers from State...")

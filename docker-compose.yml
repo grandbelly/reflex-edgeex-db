@@ -6,13 +6,13 @@ services:
       dockerfile: Dockerfile.rpi-pgcron
     container_name: rpi-finished-pgai-db
     environment:
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=postgres
-    - POSTGRES_DB=postgres
+    - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    - POSTGRES_DB=${POSTGRES_DB:-postgres}
     - TIMESCALEDB_TELEMETRY=off
-    - TZ=Asia/Seoul
+    - TZ=${TZ:-Asia/Seoul}
     ports:
-    - 5432:5432
+    - "${DB_PORT_HOST:-5432}:5432"
     volumes:
     - pgai_data:/var/lib/postgresql/data
     - ./backup:/backup
@@ -22,7 +22,7 @@ services:
     healthcheck:
       test:
       - CMD-SHELL
-      - pg_isready -U postgres
+      - pg_isready -U ${POSTGRES_USER:-postgres}
       interval: 30s
       timeout: 10s
       retries: 5
@@ -32,17 +32,18 @@ services:
     build: .
     container_name: rpi-finished-reflex-app
     ports:
-    - 14000:14000
-    - 14001:14001
+    - "${FRONTEND_PORT:-14000}:14000"
+    - "${BACKEND_PORT:-14001}:14001"
     environment:
     - DOCKER_ENV=true
     - DB_TARGET=pgai
-    - TS_DSN=postgresql://postgres:postgres@rpi-finished-pgai-db:5432/ecoanp?sslmode=disable
-    - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@rpi-finished-pgai-db:5432/ecoanp?sslmode=disable
-    - APP_ENV=development
-    - TZ=Asia/Seoul
-    - VERSION_TYPE=FULL
-    - ENABLE_AI_FEATURES=true
+    - TS_DSN=${TS_DSN:?TS_DSN is required}
+    - POSTGRES_CONNECTION_STRING=${POSTGRES_CONNECTION_STRING:?POSTGRES_CONNECTION_STRING is required}
+    - APP_ENV=${APP_ENV:-production}
+    - TZ=${TZ:-Asia/Seoul}
+    - VERSION_TYPE=${VERSION_TYPE:-FULL}
+    - ENABLE_AI_FEATURES=${ENABLE_AI_FEATURES:-true}
+    - RPI_NODE_ID=${RPI_NODE_ID:-unknown}
     volumes:
     - ./ksys_app:/app/ksys_app
     - ./rxconfig.py:/app/rxconfig.py
@@ -65,7 +66,7 @@ services:
     - --backend-port
     - '14001'
     - --loglevel
-    - debug
+    - info
 
   rpi-finished-forecast-scheduler:
     build:
@@ -75,9 +76,10 @@ services:
     environment:
     - DOCKER_ENV=true
     - DB_TARGET=pgai
-    - TS_DSN=postgresql://postgres:postgres@rpi-finished-pgai-db:5432/ecoanp?sslmode=disable
-    - POSTGRES_CONNECTION_STRING=postgresql://postgres:postgres@rpi-finished-pgai-db:5432/ecoanp?sslmode=disable
-    - TZ=Asia/Seoul
+    - TS_DSN=${TS_DSN:?TS_DSN is required}
+    - POSTGRES_CONNECTION_STRING=${POSTGRES_CONNECTION_STRING:?POSTGRES_CONNECTION_STRING is required}
+    - TZ=${TZ:-Asia/Seoul}
+    - RPI_NODE_ID=${RPI_NODE_ID:-unknown}
     volumes:
     - ./ksys_app:/app/ksys_app
     - ./saved_models:/app/saved_models
@@ -97,7 +99,25 @@ services:
     environment:
     - DB_HOST=rpi-finished-pgai-db
     - DB_PORT=5432
-    - TZ=Asia/Seoul
+    - TZ=${TZ:-Asia/Seoul}
+    networks:
+    - ksys-network
+    depends_on:
+      rpi-finished-pgai-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  timeseries-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    container_name: rpi-finished-timeseries-pipeline
+    environment:
+    - TS_DSN=${TS_DSN:?TS_DSN is required}
+    - CSV_PATH=/app/all_sensors.csv
+    - TZ=${TZ:-Asia/Seoul}
+    volumes:
+    - ./all_sensors.csv:/app/all_sensors.csv
     networks:
     - ksys-network
     depends_on:
@@ -109,7 +129,7 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-tunnel
-    command: tunnel --no-autoupdate run --token eyJhIjoiMDQwMzY4ZDNlZjZjOThjYzY1OTllMTljNGVmZDkyNDEiLCJ0IjoiMDk2NjcxNDQtZDI3NC00NzYzLTg4OWUtZjkzZmNlM2NiZDYzIiwicyI6Ik1USTBNMkkxTm1FdFpEWXhOaTAwT1RZNExXSXdOREV0T1RBMU9ERXlPRFpqWW1RNCJ9
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required - get from Cloudflare Zero Trust dashboard}
     networks:
     - ksys-network
     restart: unless-stopped

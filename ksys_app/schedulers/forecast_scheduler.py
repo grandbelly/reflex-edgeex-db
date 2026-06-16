@@ -1,5 +1,5 @@
 """
-ForecastScheduler - Generate online predictions every 5 minutes.
+ForecastScheduler - Generate online predictions every 10 minutes.
 
 This scheduler:
 1. Queries deployed models (is_deployed = TRUE)
@@ -12,8 +12,11 @@ Architecture Reference: docs/forecast_result/ONLINE_FORECAST_REDESIGN_20251014.m
 """
 
 import asyncio
+import inspect
 import json
+import os
 import pickle
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -24,9 +27,22 @@ from sqlalchemy import text
 from ..db_orm import get_async_session
 
 
+# Plugin predict() methods are declared `async def` but their bodies are 100%
+# synchronous (statsforecast / Prophet). Bound them with asyncio.wait_for so
+# a stuck model surfaces as TimeoutError instead of an unbounded hang.
+PICKLE_LOAD_TIMEOUT_SECONDS = float(os.environ.get("FORECAST_PICKLE_LOAD_TIMEOUT", "15.0"))
+MODEL_PREDICT_TIMEOUT_SECONDS = float(os.environ.get("FORECAST_MODEL_PREDICT_TIMEOUT", "45.0"))
+
+
+class _ModelSkipped(Exception):
+    """Controlled per-model skip (no sensor data, model load failed).
+    Mapped to outcome=skipped instead of poisoning the cycle."""
+    pass
+
+
 class ForecastScheduler:
     """
-    Generates online predictions for deployed models every 5 minutes.
+    Generates online predictions for deployed models every 10 minutes.
 
     Key Principles:
     - ONLY generates predictions for deployed models (is_deployed = TRUE)
@@ -85,11 +101,27 @@ class ForecastScheduler:
             # Try BYTEA first (preferred)
             if model_pickle:
                 loop = asyncio.get_event_loop()
-                model = await loop.run_in_executor(
-                    None,
-                    lambda: pickle.loads(model_pickle)
+                t0 = time.perf_counter()
+                try:
+                    model = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            lambda: pickle.loads(model_pickle)
+                        ),
+                        timeout=PICKLE_LOAD_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ pickle.loads timed out after "
+                        f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
+                        f"({len(model_pickle)} bytes)"
+                    )
+                    return None
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"✅ Loaded model from PostgreSQL BYTEA "
+                    f"({len(model_pickle)} bytes, {elapsed*1000:.1f}ms)"
                 )
-                logger.info(f"✅ Loaded model from PostgreSQL BYTEA ({len(model_pickle)} bytes)")
                 return model
 
             # Fallback to file path (legacy)
@@ -100,11 +132,27 @@ class ForecastScheduler:
                     return None
 
                 loop = asyncio.get_event_loop()
-                model = await loop.run_in_executor(
-                    None,
-                    lambda: pickle.load(open(model_file, 'rb'))
+                t0 = time.perf_counter()
+                try:
+                    model = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None,
+                            lambda: pickle.load(open(model_file, 'rb'))
+                        ),
+                        timeout=PICKLE_LOAD_TIMEOUT_SECONDS,
+                    )
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ pickle.load(file) timed out after "
+                        f"{PICKLE_LOAD_TIMEOUT_SECONDS:.1f}s "
+                        f"({model_path})"
+                    )
+                    return None
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"✅ Loaded model from file (legacy): {model_path} "
+                    f"({elapsed*1000:.1f}ms)"
                 )
-                logger.info(f"✅ Loaded model from file (legacy): {model_path}")
                 return model
 
             else:
@@ -114,6 +162,50 @@ class ForecastScheduler:
         except Exception as e:
             logger.error(f"❌ Failed to load model: {e}")
             return None
+
+    async def _invoke_predict(self, model, horizon: int):
+        """
+        Invoke a plugin's predict(horizon) with an event-loop-safe wrapper.
+
+        Plugins declare predict() as `async def` but their bodies are 100%
+        synchronous (statsforecast / Prophet). Awaiting the returned
+        coroutine on the main loop therefore blocks the loop for the full
+        runtime of the model. To prevent that we run predict in the
+        default ThreadPoolExecutor and bound it with asyncio.wait_for.
+
+        Strategy:
+        - If `model.predict` is `async def`, we wrap it in a tiny sync
+          helper that drives the coroutine to completion on a brand-new
+          event loop inside the worker thread. That way the heavy body
+          executes off the main loop entirely.
+        - If `model.predict` is sync, we just dispatch it directly.
+        """
+        loop = asyncio.get_event_loop()
+        predict_attr = getattr(model, "predict", None)
+        if predict_attr is None:
+            raise AttributeError(
+                f"Model {type(model).__name__} has no predict() method"
+            )
+
+        if inspect.iscoroutinefunction(predict_attr):
+            def _run_in_new_loop():
+                worker_loop = asyncio.new_event_loop()
+                try:
+                    return worker_loop.run_until_complete(
+                        predict_attr(horizon)
+                    )
+                finally:
+                    worker_loop.close()
+            return await asyncio.wait_for(
+                loop.run_in_executor(None, _run_in_new_loop),
+                timeout=MODEL_PREDICT_TIMEOUT_SECONDS,
+            )
+
+        # Pure sync predict()
+        return await asyncio.wait_for(
+            loop.run_in_executor(None, lambda: predict_attr(horizon)),
+            timeout=MODEL_PREDICT_TIMEOUT_SECONDS,
+        )
 
     async def generate_predictions(
         self,
@@ -145,8 +237,26 @@ class ForecastScheduler:
 
             # statsforecast models (AutoARIMA, AutoETS)
             if model_type in ['AUTO_ARIMA', 'PROPHET']:
-                # Model plugins have async predict() wrapper - await directly
-                forecast_df = await model.predict(len(horizons))
+                t0 = time.perf_counter()
+                try:
+                    forecast_df = await self._invoke_predict(model, len(horizons))
+                except asyncio.TimeoutError:
+                    logger.error(
+                        f"❌ model.predict() timed out after "
+                        f"{MODEL_PREDICT_TIMEOUT_SECONDS:.1f}s "
+                        f"(model_type={model_type}, horizons={len(horizons)}) "
+                        f"- falling back to persistence model"
+                    )
+                    return {
+                        'predictions': [last_value] * len(horizons),
+                        'ci_lower': [last_value * 0.95] * len(horizons),
+                        'ci_upper': [last_value * 1.05] * len(horizons),
+                    }
+                elapsed = time.perf_counter() - t0
+                logger.info(
+                    f"⏱  model.predict({len(horizons)}) for {model_type} "
+                    f"took {elapsed*1000:.1f}ms"
+                )
 
                 # Extract predictions and confidence intervals
                 # Column names vary by model type:
@@ -471,121 +581,218 @@ class ForecastScheduler:
             import traceback
             logger.error(traceback.format_exc())
 
-    async def run_once(self):
+    async def _process_model(self, model_info: Dict, forecast_time: datetime) -> None:
+        """
+        Process a single deployed model end-to-end for one forecast cycle.
+
+        Extracted from run_once() so the per-model unit can be timed,
+        isolated with asyncio.wait_for, and gathered concurrently. Any
+        exception raised here is captured by the caller and recorded as
+        outcome=error for that specific model (cycle keeps going).
+        """
+        model_id = model_info["model_id"]
+        tag_name = model_info["tag_name"]
+        model_type = model_info["model_type"]
+        model_path = model_info["model_path"]
+        pipeline_config_json = model_info.get("pipeline_config")
+
+        logger.info(f"🔧 Processing model {model_id} ({model_type}) for {tag_name}")
+
+        # Extract horizons from pipeline_config (offline/online sync)
+        horizons = self.horizons  # Default fallback
+
+        if pipeline_config_json:
+            try:
+                # asyncpg returns jsonb columns as dict already; psycopg + some
+                # SQLAlchemy paths return raw JSON strings. Accept both.
+                if isinstance(pipeline_config_json, (bytes, bytearray)):
+                    pipeline_config = json.loads(pipeline_config_json.decode("utf-8"))
+                elif isinstance(pipeline_config_json, str):
+                    pipeline_config = json.loads(pipeline_config_json)
+                else:
+                    pipeline_config = pipeline_config_json  # already a dict
+                forecast_config = pipeline_config.get("forecast_config", {})
+
+                if forecast_config.get("horizons"):
+                    horizons = forecast_config["horizons"]
+                    interval_min = forecast_config.get("forecast_interval_minutes", 10)
+                    horizon_hours = forecast_config.get("forecast_horizon_hours", 1)
+                    logger.info(
+                        f"📊 Using horizons from pipeline_config: {interval_min}분 단위 "
+                        f"{horizon_hours}시간 예측 ({len(horizons)}개 스텝)"
+                    )
+                    logger.info(f"   First 5 steps: {horizons[:5]}")
+                else:
+                    logger.warning(
+                        f"⚠️ No horizons in pipeline_config for model {model_id}, using default: {horizons}"
+                    )
+            except Exception as e:
+                logger.error(f"❌ Failed to parse pipeline_config for model {model_id}: {e}")
+                logger.warning(f"   Using default horizons: {horizons}")
+
+        # Get latest sensor value (aligned to forecast_time for stable T0)
+        last_value = await self.get_latest_sensor_value(tag_name, reference_time=forecast_time)
+
+        if last_value is None:
+            # Treat missing data as a controlled skip (not an error) so the
+            # outer loop logs outcome=skipped via the ValueError sentinel.
+            raise _ModelSkipped(f"no sensor data for {tag_name}")
+
+        logger.info(f"📈 Latest value for {tag_name}: {last_value:.2f}")
+
+        # Load actual model from PostgreSQL BYTEA
+        model_pickle = model_info.get("model_pickle")
+        model = await self.load_model_from_bytea(model_pickle, model_path)
+
+        if model is None:
+            raise _ModelSkipped(f"failed to load model {model_id}")
+
+        # Generate predictions with confidence intervals
+        prediction_data = await self.generate_predictions(
+            model=model,
+            model_type=model_type,
+            last_value=last_value,
+            horizons=horizons,
+        )
+
+        # Save predictions with CI
+        await self.save_predictions(
+            model_id=model_id,
+            tag_name=tag_name,
+            prediction_data=prediction_data,
+            horizons=horizons,
+            forecast_time=forecast_time,
+        )
+
+        # Generate and save Forecast Player cache
+        await self.generate_forecast_player_cache(
+            model_id=model_id,
+            tag_name=tag_name,
+            forecast_time=forecast_time,
+            horizons=horizons,
+        )
+
+    async def _process_with_budget(
+        self,
+        model_info: Dict,
+        forecast_time: datetime,
+        budget_s: float,
+    ) -> Dict:
+        """
+        Wrap _process_model with a per-model timeout. Returns a result dict
+        so the cycle can summarize without re-raising. One slow / hanging
+        model can no longer poison the whole cycle.
+
+        outcome ∈ {ok, timeout, error, skipped}
+        """
+        start = time.monotonic()
+        model_id = model_info.get("model_id")
+        tag_name = model_info.get("tag_name")
+
+        try:
+            await asyncio.wait_for(
+                self._process_model(model_info, forecast_time),
+                timeout=budget_s,
+            )
+            outcome = "ok"
+            err = None
+        except asyncio.TimeoutError:
+            outcome = "timeout"
+            err = f"exceeded {budget_s:.1f}s"
+        except _ModelSkipped as e:
+            outcome = "skipped"
+            err = str(e)
+        except Exception as e:
+            outcome = "error"
+            err = f"{type(e).__name__}: {e}"
+
+        duration_ms = int((time.monotonic() - start) * 1000)
+        # Structured log line — one per model, machine-parseable.
+        logger.info(
+            f"📝 model_result model_id={model_id} tag={tag_name} "
+            f"duration_ms={duration_ms} outcome={outcome}"
+            + (f" error={err!r}" if err else "")
+        )
+        return {
+            "model_id": model_id,
+            "tag_name": tag_name,
+            "duration_ms": duration_ms,
+            "outcome": outcome,
+            "error": err,
+        }
+
+    async def run_once(self, interval_seconds: int = 600):
         """
         Run one iteration of forecast generation.
 
-        This method:
-        1. Gets all deployed models
-        2. For each model:
-           - Loads model from pickle
-           - Gets latest sensor value
-           - Generates predictions
-           - Saves to predictions table
+        Each deployed model is processed via _process_with_budget so that:
+          - any one model's TimeoutError / exception is isolated to that model,
+          - the remaining models still execute in this cycle,
+          - a structured per-model log line is emitted for triage.
 
-        IMPORTANT: forecast_time is rounded to nearest 10-minute boundary (x:00:00, x:10:00, etc.)
-        to ensure stable T0 reference time in Forecast Player UI.
+        IMPORTANT: forecast_time is rounded to the nearest 10-minute boundary
+        (x:00:00, x:10:00, etc.) to ensure stable T0 reference time in the
+        Forecast Player UI.
+
+        Args:
+            interval_seconds: the cycle budget (used to derive per-model timeout).
         """
         try:
-            # Round forecast_time to nearest 10-minute boundary (x:00:00, x:10:00, x:20:00, etc.)
+            # Round forecast_time to nearest 10-minute boundary
             now = datetime.now()
             rounded_minute = (now.minute // 10) * 10
             forecast_time = now.replace(minute=rounded_minute, second=0, microsecond=0)
             logger.info(f"🔄 ForecastScheduler starting at {forecast_time}")
 
-            # Get deployed models
             deployed_models = await self.get_deployed_models()
 
             if not deployed_models:
                 logger.info("⚠️ No deployed models found")
                 return
 
-            logger.info(f"📊 Found {len(deployed_models)} deployed model(s)")
+            n = len(deployed_models)
+            logger.info(f"📊 Found {n} deployed model(s)")
 
-            # Process each model
-            for model_info in deployed_models:
-                model_id = model_info["model_id"]
-                tag_name = model_info["tag_name"]
-                model_type = model_info["model_type"]
-                model_path = model_info["model_path"]
-                pipeline_config_json = model_info.get("pipeline_config")
+            # Per-model budget: 80% of the cycle interval, divided across models,
+            # but never less than 30s so tiny N stays sane and huge N still gets
+            # a non-zero slice. Hard cap at interval to avoid pathological cases.
+            per_model_budget_s = max(30.0, (interval_seconds * 0.8) / max(n, 1))
+            per_model_budget_s = min(per_model_budget_s, float(interval_seconds))
+            logger.info(
+                f"⏱️  per-model timeout budget: {per_model_budget_s:.1f}s (cycle={interval_seconds}s, N={n})"
+            )
 
-                logger.info(f"🔧 Processing model {model_id} ({model_type}) for {tag_name}")
+            coros = [
+                self._process_with_budget(m, forecast_time, per_model_budget_s)
+                for m in deployed_models
+            ]
+            results = await asyncio.gather(*coros, return_exceptions=True)
 
-                # Extract horizons from pipeline_config (NEW - offline/online sync)
-                horizons = self.horizons  # Default fallback
-                forecast_interval = 10
-                forecast_horizon_hours = 1
+            # Summarize. results items are dicts (or, defensively, Exceptions).
+            counts = {"ok": 0, "timeout": 0, "error": 0, "skipped": 0}
+            for r in results:
+                if isinstance(r, dict):
+                    counts[r.get("outcome", "error")] = counts.get(r.get("outcome", "error"), 0) + 1
+                else:
+                    counts["error"] += 1
+                    logger.error(f"❌ gather returned exception: {r!r}")
 
-                if pipeline_config_json:
-                    try:
-                        pipeline_config = json.loads(pipeline_config_json)
-                        forecast_config = pipeline_config.get("forecast_config", {})
-
-                        if forecast_config.get("horizons"):
-                            horizons = forecast_config["horizons"]
-                            forecast_interval = forecast_config.get("forecast_interval_minutes", 10)
-                            forecast_horizon_hours = forecast_config.get("forecast_horizon_hours", 1)
-                            logger.info(f"📊 Using horizons from pipeline_config: {forecast_interval}분 단위 {forecast_horizon_hours}시간 예측 ({len(horizons)}개 스텝)")
-                            logger.info(f"   First 5 steps: {horizons[:5]}")
-                        else:
-                            logger.warning(f"⚠️ No horizons in pipeline_config for model {model_id}, using default: {horizons}")
-                    except Exception as e:
-                        logger.error(f"❌ Failed to parse pipeline_config for model {model_id}: {e}")
-                        logger.warning(f"   Using default horizons: {horizons}")
-
-                # Get latest sensor value (aligned to forecast_time for stable T0)
-                last_value = await self.get_latest_sensor_value(tag_name, reference_time=forecast_time)
-
-                if last_value is None:
-                    logger.error(f"❌ No sensor data for {tag_name}, skipping")
-                    continue
-
-                logger.info(f"📈 Latest value for {tag_name}: {last_value:.2f}")
-
-                # Load actual model from PostgreSQL BYTEA
-                model_pickle = model_info.get("model_pickle")
-                model = await self.load_model_from_bytea(model_pickle, model_path)
-
-                if model is None:
-                    logger.error(f"❌ Failed to load model {model_id}, skipping")
-                    continue
-
-                # Generate predictions with confidence intervals using actual model
-                prediction_data = await self.generate_predictions(
-                    model=model,
-                    model_type=model_type,
-                    last_value=last_value,
-                    horizons=horizons  # Use model-specific horizons
-                )
-
-                # Save predictions with CI
-                await self.save_predictions(
-                    model_id=model_id,
-                    tag_name=tag_name,
-                    prediction_data=prediction_data,
-                    horizons=horizons,  # Use model-specific horizons
-                    forecast_time=forecast_time
-                )
-
-                # Generate and save Forecast Player cache (NEW - ultra-fast UI queries)
-                await self.generate_forecast_player_cache(
-                    model_id=model_id,
-                    tag_name=tag_name,
-                    forecast_time=forecast_time,
-                    horizons=horizons
-                )
-
-            logger.info(f"✅ ForecastScheduler completed at {datetime.now()}")
+            logger.info(
+                f"✅ ForecastScheduler completed at {datetime.now()} "
+                f"ok={counts['ok']} timeout={counts['timeout']} "
+                f"error={counts['error']} skipped={counts['skipped']} / N={n}"
+            )
 
         except Exception as e:
-            logger.error(f"❌ ForecastScheduler error: {e}")
+            # Outer guard remains — this catches infra failures like
+            # get_deployed_models() itself blowing up, NOT per-model failures.
+            logger.error(f"❌ ForecastScheduler infra error: {e}")
             import traceback
             logger.error(traceback.format_exc())
 
-    async def start(self, interval_seconds: int = 300):
+    async def start(self, interval_seconds: int = 600):
         """
-        Start the scheduler to run every interval_seconds (default 5 minutes = 300s, 10 minutes = 600s).
+        Start the scheduler to run every interval_seconds (default 10 minutes = 600s).
 
         IMPORTANT: Aligns execution to exact clock times (00 seconds of 00, 10, 20, 30, 40, 50 minutes).
         This ensures T0 (reference time) is stable and consistent across all forecast cycles.
@@ -597,8 +804,8 @@ class ForecastScheduler:
         logger.info(f"🚀 ForecastScheduler started (interval: {interval_seconds}s, aligned to x:00:00)")
 
         while self.is_running:
-            # Execute forecast generation
-            await self.run_once()
+            # Execute forecast generation; pass cycle budget so per-model timeouts derive from it.
+            await self.run_once(interval_seconds=interval_seconds)
 
             # Calculate sleep time to align next execution to exact clock time (x:00:00, x:10:00, etc.)
             now = datetime.now()

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>audit_code-quality_2026-05-21</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="ksys-iot-code-quality-audit-states">KSys IoT — Code Quality Audit (states/)</h1>
+<p>Date: 2026-05-21
+Scope: <code>ksys_app/states/**</code>, with cross-references into <code>ksys_app/schedulers/**</code> and <code>ksys_app/services/**</code>.
+Method: structural grep + targeted reads. No code executed.</p>
+<p>Baseline metrics (states/ only):
+- 31 state files, 725 function/method definitions, 284 occurrences of <code>async with self:</code>, 117 <code>@rx.event(background=True)</code>, 46 untyped <code>dict</code>/<code>list</code> annotations, 101 generic <code>except Exception as e:</code> blocks.
+- <code>training_state/state.py</code> = 1,077 LoC (already flagged by verify-deep1).
+- 7 <code>.backup</code>/<code>.bak</code>/<code>_OLD</code>/<code>.disabled</code> files still in tree (dead code).</p>
+<hr />
+<h2 id="1-save_model-concern-separation-map-statepy-l7121022-311-loc">1. <code>save_model</code> — Concern-Separation Map (state.py L712–1022, 311 LoC)</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Lines</th>
+<th>Concern</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Setup</td>
+<td>715–717</td>
+<td>UI flag + error reset</td>
+<td>Inside <code>async with self:</code></td>
+</tr>
+<tr>
+<td>1. Pickle</td>
+<td>728–748</td>
+<td>Serialize model from module cache → BYTEA</td>
+<td><code>_get_cached_model</code> lookup, <code>pickle.dumps</code>, swallowed exception (warn only)</td>
+</tr>
+<tr>
+<td>1.5 Timestamps</td>
+<td>750–754</td>
+<td>Generate <code>current_time</code> + version string</td>
+<td><code>current_time</code> is <strong>re-computed at L887</strong> (bug-adjacent: dup)</td>
+</tr>
+<tr>
+<td>2. Datetime parsing</td>
+<td>756–778</td>
+<td><code>data_start_str</code> / <code>data_end_str</code> → datetime</td>
+<td>Two near-identical try/except blocks</td>
+</tr>
+<tr>
+<td>3. Feature config lookup</td>
+<td>780–797</td>
+<td>Service call to map name → id</td>
+<td>Uses <code>FeatureConfigService(session)</code> — needs ORM session, fine here</td>
+</tr>
+<tr>
+<td>3.5 Build <code>pipeline_config</code> dict</td>
+<td>799–831</td>
+<td>Pure data assembly</td>
+<td>32-line literal; could be a builder method on a config dataclass</td>
+</tr>
+<tr>
+<td>Logging block</td>
+<td>833–847</td>
+<td>14 <code>console.info</code> calls</td>
+<td>Pure side-effect, mixed with data prep; noisy on RPI</td>
+</tr>
+<tr>
+<td>4. ORM insert (ModelRegistry)</td>
+<td>849–879</td>
+<td>DB write (single row)</td>
+<td><code>session.add</code> + <code>flush</code></td>
+</tr>
+<tr>
+<td>5. Bulk insert evaluation rows</td>
+<td>881–928</td>
+<td>Raw SQL INSERT in a Python for-loop</td>
+<td><strong>N+1 INSERT</strong> — see §3</td>
+</tr>
+<tr>
+<td>Commit</td>
+<td>930</td>
+<td>session.commit</td>
+<td></td>
+</tr>
+<tr>
+<td>6. Verification SELECT</td>
+<td>935–960</td>
+<td>Re-read what we just wrote</td>
+<td>ORM + raw SQL mixed in same block</td>
+</tr>
+<tr>
+<td>UI signals</td>
+<td>962–1010</td>
+<td><code>async with self:</code> updates + toast</td>
+<td>Re-builds dict from <code>saved_model</code> row, list-comp from <code>saved_preds</code></td>
+</tr>
+<tr>
+<td>Error path</td>
+<td>1012–1021</td>
+<td>Generic exception + toast</td>
+<td><code>is_loading=False</code> not in a <code>finally</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Verdict:</strong> Not spaghetti — it is sequentially organized like <code>start_training</code> — but it is a <strong>God-method</strong> with 7 distinct concerns. Severity <strong>HIGH</strong> for maintainability and RPI memory (entire trained model held in memory through pickle + flush + 36 INSERTs + verification SELECT all in one session scope).</p>
+<p><strong>Specific issues (file:line · severity · fix):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Loc</th>
+<th>Issue</th>
+<th>Suggested fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HIGH</td>
+<td>L905–926</td>
+<td>Per-prediction <code>await session.execute(insert_sql, {...})</code> inside <code>for i, value in enumerate(self.forecast_values)</code>. 36 round-trips for default 6h@10min config</td>
+<td>Use <code>session.execute(insert_sql, [params1, params2, ...])</code> (executemany) or <code>INSERT ... VALUES (...), (...), ...</code> constructed once</td>
+</tr>
+<tr>
+<td>HIGH</td>
+<td>L729 + L754</td>
+<td><code>datetime.now()</code> called twice → <code>model_name</code> and <code>version</code> can disagree by ~ms</td>
+<td>Compute once into <code>current_time</code>, derive both from it</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>L744–746</td>
+<td><code>except Exception</code> swallows pickle failure with only a warn; model gets saved as metadata-only without surfacing to UI</td>
+<td>Add to <code>error_message</code> or yield a toast warning</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>L887</td>
+<td><code>current_time = datetime.now()...</code> re-assigned, shadowing L751 — silent timestamp drift between ModelRegistry row and evaluation rows</td>
+<td>Reuse L751 value</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>L884, L936</td>
+<td><code>from sqlalchemy import text</code> / <code>select</code> imported inside the method</td>
+<td>Move to module top</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>L721–726</td>
+<td>5 inner imports (<code>ModelRegistry</code>, <code>Prediction</code>, <code>datetime</code>, <code>json</code>, <code>os</code>, <code>pickle</code>, <code>Path</code>); <code>Prediction</code>, <code>os</code>, <code>Path</code> are unused</td>
+<td>Remove unused, hoist others</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td>L833–847</td>
+<td>14 <code>console.info</code> per save call → spam on RPI</td>
+<td>Collapse to 1–2 structured logs</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td>L1014 vs L719</td>
+<td><code>is_loading=False</code> only inside try-success and except. If <code>async with get_async_session()</code> raises before try-body executes there's no cleanup</td>
+<td>Use <code>try/finally</code> for <code>is_loading</code> reset</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td>L967–998</td>
+<td>80 lines of dict/list construction inside <code>async with self:</code> lock</td>
+<td>Build outside, assign inside</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-other-state-files-oversized-methods-god-classes-copy-paste">2. Other state files — oversized methods, god-classes, copy-paste</h2>
+<h3 id="oversized-methods-100-loc">Oversized methods (&gt;100 LoC)</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Method</th>
+<th>Lines</th>
+<th>LoC</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forecast_player_state/state.py</code></td>
+<td><code>_load_predictions_internal</code></td>
+<td>1077–1238</td>
+<td><strong>161</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>forecast_player_state/state.py</code></td>
+<td><code>_load_playlist_internal</code></td>
+<td>991–1076</td>
+<td>85</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>dashboard_realtime.py</code></td>
+<td><code>_fetch_data</code></td>
+<td>130–306</td>
+<td><strong>176</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>dashboard\state.py</code></td>
+<td><code>load</code></td>
+<td>231–898</td>
+<td><strong>667</strong></td>
+<td>CRITICAL</td>
+</tr>
+<tr>
+<td><code>dashboard\state.py</code></td>
+<td><code>start_realtime</code></td>
+<td>1133–1193</td>
+<td>60</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>dashboard\state.py</code></td>
+<td><code>_update_kpi_unified_from_realtime</code></td>
+<td>1331–1499</td>
+<td><strong>168</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>dashboard\state.py</code></td>
+<td><code>_update_series_with_realtime</code></td>
+<td>1500–1562</td>
+<td>62</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>dashboard_realtime_grouped.py</code></td>
+<td><code>_fetch_grouped_data</code></td>
+<td>227–292</td>
+<td>65</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>alarm_state.py</code></td>
+<td><code>load_alarm_events</code></td>
+<td>45–181</td>
+<td>136</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>alarm_state.py</code></td>
+<td><code>search_similar_alarms</code></td>
+<td>438–525</td>
+<td>87</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>model_performance_state.py</code></td>
+<td><code>load_all_saved_models</code></td>
+<td>392–500</td>
+<td><strong>108</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>model_performance_state.py</code></td>
+<td><code>algorithm_comparison_data</code> (@rx.var)</td>
+<td>682–784</td>
+<td>102</td>
+<td>HIGH (computes every render)</td>
+</tr>
+<tr>
+<td><code>model_performance_state.py</code></td>
+<td><code>training_conditions_match</code></td>
+<td>850–899</td>
+<td>49</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>alarm_hist_state.py</code></td>
+<td><code>fetch_history</code></td>
+<td>120–213</td>
+<td>93</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>communication_state.py</code></td>
+<td><code>heatmap_matrix</code> (@rx.var)</td>
+<td>104–157</td>
+<td>53</td>
+<td>HIGH (pandas pivot every render)</td>
+</tr>
+<tr>
+<td><code>communication_state.py</code></td>
+<td><code>_fetch_data</code></td>
+<td>388–442</td>
+<td>54</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>viewer_tag_state.py</code></td>
+<td>(16 background event handlers, mostly OK)</td>
+<td>—</td>
+<td>—</td>
+<td>LOW</td>
+</tr>
+</tbody>
+</table>
+<h3 id="god-classes">God classes</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Class</th>
+<th>Method count</th>
+<th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dashboard\state.py</code></td>
+<td><code>DashboardState</code></td>
+<td>68 methods, 1635+ lines</td>
+<td>Mixes loading, KPI calc, chart computation, realtime updates, navigation, dialog state. <strong>CRITICAL refactor target.</strong></td>
+</tr>
+<tr>
+<td><code>forecast_player_state\state.py</code></td>
+<td><code>ForecastPlayerState</code></td>
+<td>83 methods</td>
+<td>Mixes data loading, chart formatting, table row builders, countdown timer, scheduler triggers</td>
+</tr>
+<tr>
+<td><code>training_state\state.py</code></td>
+<td><code>TrainingState</code></td>
+<td>27 methods + start_training/save_model</td>
+<td>Already known; biggest pain points covered in §1</td>
+</tr>
+<tr>
+<td><code>model_performance_state.py</code></td>
+<td><code>ModelPerformanceState</code></td>
+<td>37 methods</td>
+<td>Loading + recommendation + deploy + delete + view-model formatters all in one class</td>
+</tr>
+<tr>
+<td><code>alarms.py</code></td>
+<td><code>AlarmsState</code></td>
+<td>37 methods</td>
+<td>Pagination, filter, view-mode, selection, ack — split into mixins</td>
+</tr>
+</tbody>
+</table>
+<h3 id="copy-paste-parallel-files-dry-violations-across-state-files">Copy-paste / parallel files (DRY violations across state files)</h3>
+<table>
+<thead>
+<tr>
+<th>Pair</th>
+<th>Evidence</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base.py</code> vs <code>base_state.py</code></td>
+<td>Two parallel <code>BaseState</code> classes (L10 vs L12). Both define <code>toggle_sidebar</code>, <code>toggle_theme</code>, refresh polling. Different children import from different ones → divergent behavior</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>trend_state.py</code> vs <code>trend_state_enhanced.py</code></td>
+<td><code>load_series_data</code> (T:96 / TE:94), <code>_parse_time_range</code>, <code>_get_aggregation_table</code>, <code>_get_time_range_options</code>, <code>export_csv_all/page</code>, <code>series_for_tag_desc_with_num_all</code>, <code>y_axis_domain</code>, all paging vars — ~90% identical. Only difference: TE uses <code>selected_tags[0]</code> + inherits <code>TagHierarchyState</code></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>dashboard_realtime.py</code> vs <code>dashboard_realtime_grouped.py</code> vs <code>dashboard_realtime_OLD.py</code></td>
+<td>Three parallel realtime dashboards; <code>_OLD</code> still on disk</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>training_wizard_state.py</code> vs <code>training_wizard_state_plotly_backup.py</code></td>
+<td>Backup file checked in (593 vs ~470 LoC, very similar)</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>alarm_state.py</code> / <code>alarm_rt_state.py</code> / <code>alarm_hist_state.py</code> / <code>alarms.py</code> / <code>alarms_enhanced.py</code> / <code>scada_alarm_state.py</code> / <code>scada_alarm_comparison_state.py</code></td>
+<td><strong>7 parallel alarm states</strong>. Each has its own filter/severity/level/page logic. No shared <code>AlarmFilterMixin</code></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>dashboard_realtime_OLD.py</code>, <code>dashboard_realtime_grouped.py:293 stop_streaming</code> duplicated, <code>alarm_rt_state.py:133 + 272 toggle_auto_refresh</code> defined twice in the same class (L133, L272)</td>
+<td>Real bug: second def overrides first silently</td>
+<td>HIGH</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dead-backup-files-in-tree-delete-candidates">Dead / backup files in tree (delete candidates)</h3>
+<pre><code>ksys_app/states/dashboard_realtime_OLD.py                            226 LoC
+ksys_app/states/training_wizard_state_plotly_backup.py               ~470 LoC
+ksys_app/pages/communication_new_backup.py
+ksys_app/pages/training_wizard_plotly_backup.py
+ksys_app/pages/trend_enhanced.py.bak
+ksys_app/pages/trend_improved.py.bak
+ksys_app/pages/trend_enhanced_v2.py.disabled
+ksys_app/ksys_app.py.backup_20250918_211659
+</code></pre>
+<p>Severity <strong>MED</strong> — confuses imports, bloats RPI image.</p>
+<hr />
+<h2 id="3-n1-query-patterns">3. N+1 query patterns</h2>
+<p>Direct N+1 found (await DB call inside a loop):</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Line</th>
+<th>Pattern</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>training_state/state.py</code></td>
+<td>905–926</td>
+<td><code>for i, value in enumerate(self.forecast_values): await session.execute(insert_sql, {...})</code> — 36+ INSERTs per save_model</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>schedulers/forecast_scheduler.py</code></td>
+<td>391</td>
+<td><code>for tag in tags: async with get_async_session()</code> (verified by re-grep with context) — opens a fresh session per tag inside scheduler tick</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>viewer_tag_state.py</code></td>
+<td>toggle_dashboard/alarm/trend/model (L109/126/143/160)</td>
+<td>Each toggle reopens <code>get_async_session()</code> instead of batching</td>
+<td>MED</td>
+</tr>
+<tr>
+<td><code>ai_state.py</code></td>
+<td>L57, L124, L136, L179, L199</td>
+<td>5 <code>async with get_async_session()</code> blocks in <code>send_message</code> flow per single user message</td>
+<td>MED</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Not</strong> N+1 but smell: <code>forecast_player_state/state.py:1093–1184</code> opens one session and runs 3 sequential <code>session.execute()</code> (rolling window, latest sensor, forecast_time, range_query) — could be a single CTE.</p>
+<p><code>async with get_async_session()</code> total: <strong>66 call sites</strong> across the codebase (file rollup above). A session-per-method discipline is fine in app code; the problem is the <strong>loops</strong> above and the <strong>lack of a <code>@with_session</code> decorator</strong> so every method re-implements the boilerplate.</p>
+<hr />
+<h2 id="4-magic-numbers-constants-module-candidates">4. Magic numbers — constants module candidates</h2>
+<p>These literals are scattered across state/scheduler/service files with no central definition. Recommend <code>ksys_app/constants/forecast.py</code> etc.</p>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Current locations</th>
+<th>Suggested name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>10</code> (forecast interval minutes)</td>
+<td><code>training_state/state.py:52</code>, <code>forecast_scheduler.py:347,743</code>, <code>forecast_service.py:251</code>, <code>pipeline_builder.py:281</code></td>
+<td><code>FORECAST_INTERVAL_MIN</code></td>
+</tr>
+<tr>
+<td><code>6</code> (forecast horizon hours), <code>360</code> (6h in min)</td>
+<td><code>training_state/state.py:53</code>, <code>training_state/state.py:99</code></td>
+<td><code>FORECAST_HORIZON_HOURS_DEFAULT</code>, <code>FORECAST_HORIZON_MIN_DEFAULT</code></td>
+</tr>
+<tr>
+<td><code>30</code> (lookback intervals / training days)</td>
+<td><code>training_state/state.py:46</code>, <code>forecast_player_state/state.py:1099</code>, <code>forecast_scheduler.py:473</code>, <code>forecast_service.py:243</code>, <code>daily_training.py:34,433</code></td>
+<td><code>TRAINING_DAYS_DEFAULT</code>, <code>ROLLING_WINDOW_LOOKBACK</code></td>
+</tr>
+<tr>
+<td><code>24</code> (default forecast horizon legacy)</td>
+<td><code>training_state/state.py:47</code>, <code>alarms.py:41,421,423</code>, <code>alarms_enhanced.py:41</code>, <code>forecast_scheduler.py:479</code>, <code>forecast_service.py:587</code>, <code>trend_service.py:161</code>, <code>feature_engineering_service.py:76,374</code></td>
+<td><code>LEGACY_FORECAST_HORIZON_HOURS</code>, <code>ALARMS_DEFAULT_HOURS</code> (split by domain)</td>
+</tr>
+<tr>
+<td><code>600</code> (seconds = 10min countdown)</td>
+<td><code>forecast_player_state/state.py:56,57,1228</code></td>
+<td><code>FORECAST_COUNTDOWN_SEC</code></td>
+</tr>
+<tr>
+<td><code>5000</code> (chart max points)</td>
+<td><code>trend_state.py:130</code>, <code>trend_state_enhanced.py:126</code></td>
+<td><code>TREND_MAX_POINTS</code></td>
+</tr>
+<tr>
+<td><code>100</code> (batch size)</td>
+<td><code>actual_value_updater.py:54</code>, <code>response_optimizer.py:258</code></td>
+<td><code>DB_BATCH_SIZE</code></td>
+</tr>
+<tr>
+<td><code>20</code>/<code>25</code> (page sizes)</td>
+<td><code>alarms.py:49</code>, <code>alarms_enhanced.py:49</code>, <code>alarm_hist_state.py:56</code>, <code>alarm_service.py:28,217</code></td>
+<td><code>ALARMS_PAGE_SIZE</code>, <code>ALARM_HIST_PAGE_SIZE</code></td>
+</tr>
+<tr>
+<td><code>15</code>/<code>30</code> (refresh intervals seconds)</td>
+<td><code>base.py:18</code>, <code>dashboard_realtime.py:44</code>, <code>dashboard_realtime_grouped.py:40</code>, <code>dashboard_realtime_OLD.py:35</code>, <code>base_state.py:17</code></td>
+<td><code>DEFAULT_REFRESH_INTERVAL</code> (and one per page)</td>
+</tr>
+<tr>
+<td><code>3.0</code> (outlier threshold)</td>
+<td><code>training_state/state.py:49</code>, <code>model_performance_state.py:480</code></td>
+<td><code>OUTLIER_THRESHOLD_DEFAULT</code></td>
+</tr>
+<tr>
+<td><code>'Asia/Seoul'</code> (timezone string)</td>
+<td>30+ call sites across states</td>
+<td><code>from ksys_app.constants import KST</code></td>
+</tr>
+</tbody>
+</table>
+<p>Severity <strong>MED</strong> — none is a bug today, but RPI multi-deploy requires per-site overrides (e.g., 5min vs 10min interval), and without constants you grep 12 files.</p>
+<hr />
+<h2 id="5-type-hint-quality">5. Type hint quality</h2>
+<p>Sampled across <code>ksys_app/states/</code> (725 def sites):</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total def/async def</td>
+<td>725</td>
+</tr>
+<tr>
+<td>Untyped <code>dict</code> / <code>list</code> / <code>-&gt; dict</code> / <code>-&gt; list</code> / <code>dict[str, Any]</code> / <code>list[dict]</code></td>
+<td>46 distinct file matches; full grep across <code>ksys_app/states/</code> produced <strong>&gt;120 individual annotations</strong> of the form <code>dict</code> / <code>list</code> without parametrization</td>
+</tr>
+<tr>
+<td><code>Dict[str, Any]</code> (any container)</td>
+<td>Pervasive — <code>ai_state.py:225,272,298,303,308,353,358,363,368,373,383,388,393</code>, <code>model_performance_state.py:125,165,193,222,251,327,672,682,952</code>, <code>forecast_player_state/state.py:93,128,167,184,261,300,502</code></td>
+</tr>
+<tr>
+<td>Untyped method params (esp. <code>set_*</code> handlers)</td>
+<td><code>dashboard\state.py:899,1003,1007,1011,1015,1020</code>: <code>def set_show_avg(self, v: object)</code> — <code>object</code> is effectively untyped; the value is always <code>bool \| str</code> from Reflex checkbox</td>
+</tr>
+<tr>
+<td>Functions with no return annotation</td>
+<td>Numerous (e.g., <code>model_recommendation.py:10,22,34,77</code> all <code>-&gt; Dict[str, Any]</code> — at least annotated; but <code>dashboard\utils.py:12 _to_float(v: Any)</code> is <code>Any</code> in/out)</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Issue</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MED</td>
+<td>Heavy use of <code>Dict[str, Any]</code> for service return types (esp. <code>model_performance_state.py</code>, <code>ai_state.py</code>)</td>
+<td>Define <code>TypedDict</code> per response shape; pydantic models in <code>services/</code></td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>forecast_player_state/state.py</code> row builders return <code>List[Dict]</code> with implicit schema (e.g., <code>chart_data_with_errors</code>, <code>table_data_rows</code>)</td>
+<td>TypedDict for each table row schema</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td><code>dashboard\state.py</code> setter params typed <code>object</code></td>
+<td>Use <code>bool</code> (and let Reflex's CheckedState coerce) or accept <code>bool \| list[str]</code> explicitly as elsewhere</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-dry-violations-beyond-progress-boilerplate">6. DRY violations beyond progress boilerplate</h2>
+<h3 id="61-progress-boilerplate-already-known-from-verify-deep1">6.1 Progress boilerplate (already known from verify-deep1)</h3>
+<p><code>async with self: self.training_progress = N; self.training_status = "..."; yield</code> appears <strong>17 times</strong> in <code>start_training</code> alone (counted via the grep: L368/374/381/387/403/414/420/432/444/472/487/503/513/526/542/557/573/582/605/620/665).</p>
+<p>Helper recipe (add to <code>TrainingState</code> or a <code>ProgressMixin</code>):</p>
+<pre><code class="language-python">async def _set_progress(self, pct: int, status: str):
+    async with self:
+        self.training_progress = pct
+        self.training_status = status
+        yield
+</code></pre>
+<h3 id="62-validation-guards-repeated-3-at-top-of-start_training-l367384">6.2 Validation guards — repeated 3× at top of <code>start_training</code> (L367–384)</h3>
+<p>Three identical <code>if not X: async with self: self.error_message = ...; yield; return</code> blocks. Replace with:</p>
+<pre><code class="language-python">errors = self._validate_inputs()
+if errors:
+    async with self: self.error_message = errors; yield
+    return
+</code></pre>
+<h3 id="63-tryexcept-shape-async-with-self-selferror_message-stre-selfloading-false">6.3 Try/except shape — <code>async with self: self.error_message = str(e); self.loading = False</code></h3>
+<p>Found <strong>101 generic <code>except Exception as e:</code> blocks</strong> across 24 state files. Almost all share the shape:</p>
+<pre><code class="language-python">except Exception as e:
+    console.error(f&quot;... failed: {e}&quot;)
+    async with self:
+        self.error_message = str(e)
+        self.loading = False  # or is_training=False, is_loading=False
+</code></pre>
+<p><strong>Fix:</strong> A decorator on event handlers:</p>
+<pre><code class="language-python">@background_event_with_error_handling(loading_field=&quot;is_loading&quot;)
+async def save_model(self): ...
+</code></pre>
+<p>This single change removes ~30 lines per state file × 24 files ≈ 700 LoC and ensures <code>loading</code> is always reset.</p>
+<h3 id="64-db-session-boilerplate">6.4 DB session boilerplate</h3>
+<pre><code class="language-python">async with get_async_session() as session:
+    service = XService(session)
+    result = await service.method(...)
+</code></pre>
+<p>Repeated <strong>~66 times</strong>. A <code>@with_service(XService)</code> decorator (or <code>async def _with(self, service_cls, fn)</code> helper) would shrink each event handler.</p>
+<h3 id="65-parallel-scheduler-vs-state-logic">6.5 Parallel scheduler vs state logic</h3>
+<table>
+<thead>
+<tr>
+<th>Scheduler</th>
+<th>State doing the same thing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forecast_scheduler.py:467 (write_prediction)</code></td>
+<td><code>training_state/state.py:881–928</code> (writes near-identical rows to <code>training_evaluation</code> instead of <code>predictions</code> — schema drift risk)</td>
+</tr>
+<tr>
+<td><code>actual_value_updater.py:53,139</code></td>
+<td><code>forecast_player_state/state.py:_load_predictions_internal:1136</code> recomputes MAE/MAPE/RMSE on the client side from rolling window, while the updater is supposed to populate them in <code>prediction_performance</code>. <strong>Two sources of truth.</strong></td>
+</tr>
+<tr>
+<td><code>daily_training.py</code></td>
+<td><code>training_state/state.py:start_training</code> — same pipeline, different call sites, no shared <code>TrainingFacade</code></td>
+</tr>
+</tbody>
+</table>
+<p>Severity <strong>HIGH</strong> for the predictions vs training_evaluation split (see §1, L881 comment "NOT predictions table"). One day a column added to predictions will not get added to training_evaluation. Recommend a single <code>evaluation_insert(session, rows, target_table)</code> helper.</p>
+<h3 id="66-json-parsing-boilerplate-high">6.6 JSON parsing boilerplate (HIGH)</h3>
+<p><code>model_performance_state.py:425–445</code> and similar pattern in <code>forecast_player_state/state.py</code> (parsing <code>hyperparameters</code>/<code>pipeline_config</code> that may be <code>str</code> or <code>dict</code>) is repeated 5+ times:</p>
+<pre><code class="language-python">if isinstance(rec.hyperparameters, str):
+    try: hyperparams = json.loads(...)
+    except: hyperparams = {}
+elif isinstance(rec.hyperparameters, dict):
+    hyperparams = rec.hyperparameters
+</code></pre>
+<p>Fix: Single <code>_safe_json(value, default={})</code> helper. Bonus: fix the ORM column to be <code>JSONB</code> so it's always <code>dict</code> — eliminates the branch entirely.</p>
+<h3 id="67-duplicate-method-definition-real-bug">6.7 Duplicate method definition (real bug)</h3>
+<p><code>alarm_rt_state.py:133</code> and <code>alarm_rt_state.py:272</code> both define <code>def toggle_auto_refresh(self)</code>. Python keeps the <strong>second</strong> silently. Verify intended behavior. Severity <strong>HIGH</strong> (correctness).</p>
+<hr />
+<h2 id="7-reflex-specific-anti-patterns">7. Reflex-specific anti-patterns</h2>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>File:Line</th>
+<th>Issue</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HIGH</td>
+<td><code>training_state/state.py:395–700</code></td>
+<td><code>start_training</code> (338 LoC) runs the <strong>entire ML pipeline</strong> (<code>await pipeline.execute()</code> at L508 — minutes of CPU on RPI) inside the outer <code>try</code> block of a background event. While it does <code>yield</code> between steps, the heavy <code>pipeline.execute()</code> itself is inside <code>try</code> not under <code>async with self:</code> — that's actually correct. But the <strong>17 <code>async with self:</code> short critical sections</strong> mean Reflex acquires the state lock 17 times per training, each time blocking other UI events. Consider <code>asyncio.Lock</code> only for the final commit.</td>
+<td>Reduce to 3 progress checkpoints (start, mid, end); collapse intermediate <code>yield</code>s</td>
+</tr>
+<tr>
+<td>HIGH</td>
+<td><code>training_state/state.py:715–1010</code> (<code>save_model</code>)</td>
+<td>Marked <code>@rx.event(background=True)</code> ✅ but <strong><code>pickle.dumps(trained_model)</code> at L741 runs while NOT inside <code>async with self:</code> ✅ good</strong> — but it's also not in an executor. On RPI, pickling a 10MB ARIMA model on the asyncio event loop blocks all other I/O for hundreds of ms</td>
+<td>Wrap <code>pickle.dumps</code> in <code>await asyncio.get_event_loop().run_in_executor(None, pickle.dumps, model)</code></td>
+</tr>
+<tr>
+<td>HIGH</td>
+<td><code>communication_state.py:104 heatmap_matrix</code> (<code>@rx.var</code>)</td>
+<td>Pandas pivot computed on every state change. <code>@rx.var</code> should be O(1) or memoized; pandas pivot is O(n)</td>
+<td>Cache result in regular field, recompute only when <code>_df_hourly</code> changes</td>
+</tr>
+<tr>
+<td>HIGH</td>
+<td><code>model_performance_state.py:682 algorithm_comparison_data</code> (<code>@rx.var</code>, 102 LoC)</td>
+<td>Same — runs on every render</td>
+<td>Move to event handler, store in field</td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>dashboard\state.py:231 load</code> (667 LoC)</td>
+<td>Almost certainly missing <code>background=True</code> on something this slow. Need to verify the decorator (could be applied above L231 — not shown). If missing, will freeze UI</td>
+<td>Inspect L230 for <code>@rx.event(background=True)</code></td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>alarms.py:25 background events</code>, with 11 large state vars per state</td>
+<td><code>AlarmsState</code> has 25 background handlers but state vars like <code>self.alarms</code> (list[Dict]), <code>chart_data</code> etc. are <strong>large lists serialized on every state change</strong>. Reflex sends full state diff over WS.</td>
+<td>Split into <code>AlarmsListState</code> + <code>AlarmsFilterState</code> + <code>AlarmsStatsState</code> (SubStates)</td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>dashboard\state.py</code> ~68 <code>@rx.var</code> computed properties + 27 setters → 95 reactive bindings on one state</td>
+<td>Each subscription triggers diff calc.</td>
+<td>Split into <code>DashboardFilterState</code>, <code>DashboardChartState</code>, <code>DashboardKPIState</code></td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>forecast_player_state/state.py:1606–1620 (countdown loop)</code></td>
+<td><code>self.countdown_seconds -= 30</code> inside what looks like a polling loop. Tight loops that mutate state every iteration should use <code>rx.var</code> + server-side time, not store the countdown in state</td>
+<td>Compute countdown from <code>latest_forecast_time</code> in an <code>@rx.var</code></td>
+</tr>
+<tr>
+<td>MED</td>
+<td><code>alarm_rt_state.py:272</code> duplicate <code>toggle_auto_refresh</code></td>
+<td>(Same as §6.7)</td>
+<td>Delete one</td>
+</tr>
+<tr>
+<td>LOW</td>
+<td><code>training_state/state.py:962–1010</code></td>
+<td>48-line dict/list construction inside <code>async with self:</code> lock — holds the state lock for hundreds of ms while building Python objects</td>
+<td>Build outside, assign inside</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="cross-cutting-recommendations">Cross-cutting recommendations</h2>
+<ol>
+<li><strong>Constants module</strong> (<code>ksys_app/constants/</code>) — pulls out 12+ scattered magics (§4). Pre-req for RPI-per-site config.</li>
+<li><strong><code>@event_with_error(loading_field=...)</code> decorator</strong> — kills ~100 try/except blocks (§6.3). Single change with massive surface area.</li>
+<li><strong><code>@with_session</code> / <code>@with_service(XService)</code></strong> — kills 66 session-open boilerplate blocks (§6.4).</li>
+<li><strong>Delete dead files</strong> (§2) — instant 1500+ LoC reduction; clarifies which <code>BaseState</code> and <code>DashboardRealtime*</code> is real.</li>
+<li><strong>Single <code>BaseState</code></strong> — pick <code>base.py</code> or <code>base_state.py</code>, delete the other, migrate imports.</li>
+<li><strong>Bulk INSERT in <code>save_model</code></strong> — single biggest perf win on save (§3 / §1).</li>
+<li><strong>Split god-classes</strong> into SubStates — esp. <code>DashboardState</code> (68 methods), <code>ForecastPlayerState</code> (83 methods).</li>
+<li><strong>DEPRECATED <code>forecast_horizon</code> field</strong> (<code>training_state/state.py:47</code>) — still used as fallback at L610. Remove fallback, then remove field, then run migrations.</li>
+</ol>
+<hr />
+<h2 id="top-5-highest-impact-fixes-impact-effort1">Top 5 highest-impact fixes (impact × effort⁻¹)</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Fix</th>
+<th>Impact</th>
+<th>Effort</th>
+<th>Files touched</th>
+<th>Why now</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Delete dead/backup files (<code>*_OLD.py</code>, <code>*_backup.py</code>, <code>.bak</code>, <code>.disabled</code>)</td>
+<td>HIGH (clarity, RPI image size, kills divergent BaseState confusion)</td>
+<td>XS (&lt; 1h)</td>
+<td>8 files</td>
+<td>Zero-risk; unblocks all subsequent refactors by removing ambiguous imports</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>@event_with_error(loading_field=...)</code> decorator for the 101 <code>except Exception as e: async with self: self.error_message = ...</code> patterns</td>
+<td>HIGH (~700 LoC removed, guarantees <code>loading</code> reset on every error path)</td>
+<td>S (1 day, 24 files)</td>
+<td>All states/</td>
+<td>Highest LoC/hour ratio. Also fixes silent <code>is_loading=True</code> lock-ups</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Bulk INSERT in <code>save_model</code> (L905–926) + move <code>pickle.dumps</code> to executor (L741)</td>
+<td>HIGH on RPI (36 round-trips → 1; un-blocks event loop during pickle)</td>
+<td>S (2h, 1 file)</td>
+<td><code>training_state/state.py</code></td>
+<td>Directly hits the user-visible "save is slow" symptom</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Extract <code>ksys_app/constants/</code> (forecast.py, alarms.py, refresh.py) and replace 12+ magic numbers</td>
+<td>MED-HIGH (enables per-RPI overrides via env, eliminates silent drift)</td>
+<td>S (3h, ~20 files)</td>
+<td>states/, schedulers/, services/</td>
+<td>Prerequisite for "deploy to multiple RPIs" plan — each site can tune intervals without code edits</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Merge <code>trend_state.py</code> ↔ <code>trend_state_enhanced.py</code> (90% duplicate) and consolidate the 7 alarm states behind an <code>AlarmFilterMixin</code></td>
+<td>HIGH (≈ 1000 LoC removed, single source for filter/pagination logic)</td>
+<td>M (1–2 days)</td>
+<td>states/</td>
+<td>Sets pattern for further god-class splits; biggest DRY win after #2</td>
+</tr>
+</tbody>
+</table>
+<h3 id="honorable-mention-dont-fit-in-top-5-but-cheap">Honorable mention (don't fit in top 5 but cheap)</h3>
+<ul>
+<li>Fix <code>alarm_rt_state.py:272</code> duplicate <code>toggle_auto_refresh</code> (5 min, correctness bug).</li>
+<li>Convert <code>hyperparameters</code>/<code>pipeline_config</code> ORM columns to <code>JSONB</code> to delete the <code>isinstance(..., str)</code> branches (§6.6).</li>
+<li>Cache <code>communication_state.heatmap_matrix</code> and <code>model_performance_state.algorithm_comparison_data</code> (<code>@rx.var</code> → field).</li>
+</ul>
+</body></html>

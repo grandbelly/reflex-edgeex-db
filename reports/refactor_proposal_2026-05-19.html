@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>RPI 최적 리팩토링 제안서 — 2026-05-19</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+    line-height: 1.6; max-width: 1280px; margin-left: auto; margin-right: auto;
+  }
+  h1 { font-size: 32px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 40px; border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #30363d; font-size: 13px; }
+  pre code { background: transparent; color: #e6edf3; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; font-weight: 600; }
+  tr:nth-child(even) { background: #0d1117; }
+  tr:nth-child(odd) { background: #131923; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128 0%, #161b22 100%); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 32px; font-weight: 700; color: #79c0ff; }
+  .kpi .l { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-right: 6px; }
+  .tag-p1 { background: #f85149; color: #fff; }
+  .tag-p2 { background: #d29922; color: #fff; }
+  .tag-p3 { background: #2ea043; color: #fff; }
+  .tag-rpi { background: #a371f7; color: #fff; }
+  .tag-low { background: #6e7681; color: #fff; }
+  .stage { background: #161b22; border: 1px solid #30363d; border-left: 5px solid #79c0ff;
+           border-radius: 8px; padding: 20px; margin: 18px 0; }
+  .stage.s1 { border-left-color: #f85149; }
+  .stage.s2 { border-left-color: #d29922; }
+  .stage.s3 { border-left-color: #a371f7; }
+  .stage.s4 { border-left-color: #2ea043; }
+  .stage.s5 { border-left-color: #79c0ff; }
+  .stage.s6 { border-left-color: #db61a2; }
+  .effort { display: inline-block; background: #21262d; padding: 2px 8px; border-radius: 4px; font-size: 12px; color: #8b949e; margin-left: 8px; }
+  .good { color: #3fb950; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .meta { color: #8b949e; font-size: 13px; }
+  ul li { margin-bottom: 6px; }
+  .callout { background: #1c2128; border-left: 4px solid #d29922; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; }
+  hr { border: none; border-top: 1px dashed #30363d; margin: 32px 0; }
+</style>
+</head>
+<body>
+
+<h1>🛠️ RPI 최적 리팩토링 제안서</h1>
+<p class="meta">생성일 2026-05-19 · baseline: <code>C:\sync\01_remote_ksys\2026-03-24\deployment\20251030-rpi-finished</code> · 대상: ksys_app (Reflex 0.8.16 + TimescaleDB + statsforecast)</p>
+
+<div class="callout">
+<strong>요약 한 줄:</strong> 코드 <strong>50% 이상이 통째 중복/데드</strong>. 먼저 잡초 제거(Stage 1-2, 3일)만 해도 LoC 136K → 약 50K. 그 뒤에야 RPI 효율/모듈화/품질 개선이 의미 있음.
+</div>
+
+<h2>📊 Survey 결과</h2>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">519</div><div class="l">.py 파일</div></div>
+  <div class="kpi"><div class="v">136,681</div><div class="l">총 LoC</div></div>
+  <div class="kpi"><div class="v">268 / 274</div><div class="l">ksys_app_clean MD5 동일</div></div>
+  <div class="kpi"><div class="v">14</div><div class="l">등록 안 된 페이지</div></div>
+  <div class="kpi"><div class="v">30+</div><div class="l">.backup/.bak/.disabled 파일</div></div>
+  <div class="kpi"><div class="v">8</div><div class="l">1,000+ LoC 비대 파일</div></div>
+</div>
+
+<h3>발견된 5대 문제 (RPI 운영 관점)</h3>
+<table>
+  <tr><th>#</th><th>문제</th><th>증거</th><th>RPI 영향</th></tr>
+  <tr>
+    <td>1</td><td><span class="tag tag-p1">P1</span>전체 통째 중복</td>
+    <td><code>ksys_app_clean/</code> 274 파일 중 268개가 <code>ksys_app/</code>와 MD5 정확히 동일</td>
+    <td>Docker 이미지 +50MB, RAM 낭비, 개발자 혼란</td>
+  </tr>
+  <tr>
+    <td>2</td><td><span class="tag tag-p1">P1</span>데드 파일 산재</td>
+    <td><code>.backup</code>, <code>.bak</code>, <code>.bak2</code>, <code>.disabled</code>, <code>_OLD</code>, <code>.backup_20250918_*</code> 등 30+</td>
+    <td>이미지 크기, 코드 검색 노이즈, AI agent 혼동</td>
+  </tr>
+  <tr>
+    <td>3</td><td><span class="tag tag-p2">P2</span>동일 기능 N-버전</td>
+    <td>alarms 5개·trend 4개·forecast_player 3개·dashboard 3개 공존, alias 패턴(<code>forecast_player_fixed as forecast_player</code>)</td>
+    <td>유지보수 누가 운영본인지 모름. 라우트 부트 느림.</td>
+  </tr>
+  <tr>
+    <td>4</td><td><span class="tag tag-p2">P2</span>모놀리식 State/App</td>
+    <td><code>ksys_app.py</code> 1,057 LoC, <code>states/dashboard.py</code> 1,717 LoC, <code>forecast_player_state.py</code> 1,440 LoC</td>
+    <td>RPI 부팅 시 모든 state 즉시 로드 → 메모리 압박</td>
+  </tr>
+  <tr>
+    <td>5</td><td><span class="tag tag-rpi">RPI</span>ARM/저메모리 비최적</td>
+    <td>asyncpg pool 무튜닝, AutoARIMA 매 실행마다 fit, eager page import, multi-process worker</td>
+    <td>RPI(4GB) OOM 위험, SD card I/O 과다, fan 풀가동</td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>🎯 리팩토링 7단계 제안 (총 약 15일)</h2>
+
+<div class="stage s1">
+  <h3>Stage 1 — 잡초 제거 (Zero-risk delete) <span class="effort">⏱ 0.5일</span> <span class="tag tag-p1">P1</span></h3>
+  <p><strong>액션:</strong></p>
+  <ul>
+    <li><code>ksys_app_clean/</code> 폴더 통째 삭제 (268/274 MD5 동일, 나머지 6개는 diff 확인 후 cherry-pick)</li>
+    <li><code>git rm</code> 으로 다음 패턴 삭제: <code>*.backup</code>, <code>*.bak</code>, <code>*.bak2</code>, <code>*.disabled</code>, <code>*_OLD.py</code>, <code>*.backup_2025*</code></li>
+    <li><code>communication_new_backup.py</code>, <code>training_wizard_plotly_backup.py</code>, <code>dashboard_realtime_OLD.py</code> 등 명시 삭제</li>
+  </ul>
+  <p><strong>예상 효과:</strong> <span class="good">LoC -50%, 파일 -260개, Docker 이미지 -30~50MB</span></p>
+  <p><strong>리스크:</strong> 거의 0 — git history 에 보존, 라우트 등록 안 된 백업본만 제거</p>
+  <pre><code># 실행 후 검증
+docker compose -f docker-compose.local.yml build reflex-app
+# 빌드 통과 + reflex run 정상 부팅이면 OK</code></pre>
+</div>
+
+<div class="stage s2">
+  <h3>Stage 2 — 죽은 페이지 정리 <span class="effort">⏱ 1일</span> <span class="tag tag-p1">P1</span></h3>
+  <p><strong>액션:</strong> ksys_app.py에 import/add_page 안 된 페이지 14개 처리</p>
+  <table>
+    <tr><th>파일</th><th>상태</th><th>처리</th></tr>
+    <tr><td><code>pages/forecast_player.py</code> 1,038 LoC</td><td>운영본은 <code>forecast_player_fixed.py</code></td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/forecast_player_state.py</code></td><td>잘못된 경로 (state는 <code>states/</code>에 있어야)</td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/dashboard_v2.py</code></td><td>등록 안 됨</td><td>🗑 삭제 또는 .archive/</td></tr>
+    <tr><td><code>pages/alarms_hist.py</code>, <code>alarms_rt.py</code>, <code>alarm_viewer.py</code></td><td>구버전, simple/new가 운영본</td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/training.py</code>, <code>training_results.py</code></td><td>wizard로 흡수</td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/test_wizard.py</code></td><td>임시 테스트</td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/model_config.py</code></td><td>아마 dashboard에서 처리</td><td>🔍 확인 후 결정</td></tr>
+    <tr><td><code>pages/tech.py</code></td><td>주석 등록 (<code># app.add_page(tech_page)</code>)</td><td>🗑 삭제</td></tr>
+    <tr><td><code>pages/trend_enhanced_hierarchical.py</code> 33KB</td><td>등록 안 됨, v2가 운영본</td><td>🗑 삭제</td></tr>
+  </table>
+  <p><strong>예상 효과:</strong> <span class="good">추가 LoC -8K, 페이지 30 → 16</span></p>
+</div>
+
+<div class="stage s3">
+  <h3>Stage 3 — 라우트 등록 통일 <span class="effort">⏱ 0.5일</span> <span class="tag tag-p2">P2</span></h3>
+  <p><strong>문제:</strong> <code>ksys_app.py</code>에 라우트 등록 3가지 방식 혼재:</p>
+  <ul>
+    <li><code>app.add_page(scada_alarm_viewer, route="/scada-alarms", title=...)</code> — 명시</li>
+    <li><code>from .pages import alarms_rt_simple  # Import to trigger @rx.page decorator</code> — 데코레이터</li>
+    <li><code># app.add_page(tech_page, route="/tech")</code> — 죽은 주석</li>
+    <li><code>from .pages import forecast_player_fixed as forecast_player</code> — alias 트릭</li>
+  </ul>
+  <p><strong>액션:</strong></p>
+  <ul>
+    <li>한 방식으로 통일 — 추천: <code>@rx.page</code> 데코레이터 + 페이지 모듈 자동 디스커버리</li>
+    <li><code>ksys_app/routes.py</code> 신규: 등록 로직만 분리</li>
+    <li>주석 라우트 전부 제거 (죽은 코드는 git history 에)</li>
+  </ul>
+  <pre><code># Before (ksys_app.py 안)
+from .pages.alarms import alarms_page
+app.add_page(alarms_page, route="/alarms", on_load=[AlarmsState.initialize, ...])
+
+# After (pages/alarms.py 안)
+@rx.page(route="/alarms", title="Alarms", on_load=[AlarmsState.initialize, ...])
+def alarms_page():
+    ...
+
+# ksys_app.py 는 그냥
+from . import pages  # auto-discover via @rx.page</code></pre>
+</div>
+
+<div class="stage s4">
+  <h3>Stage 4 — 모놀리식 분해 <span class="effort">⏱ 3일</span> <span class="tag tag-p2">P2</span></h3>
+  <p><strong>대상 파일 (8개, 1,000+ LoC):</strong></p>
+  <table>
+    <tr><th>파일</th><th>LoC</th><th>분할 제안</th></tr>
+    <tr>
+      <td><code>states/dashboard.py</code></td><td>1,717</td>
+      <td>→ <code>dashboard/state.py</code> (state vars) + <code>handlers.py</code> (event handlers) + <code>queries.py</code> (DB) + <code>view_helpers.py</code> (chart prep)</td>
+    </tr>
+    <tr>
+      <td><code>states/forecast_player_state.py</code></td><td>1,440</td>
+      <td>→ 동일 패턴 4분할</td>
+    </tr>
+    <tr>
+      <td><code>pages/forecast_player_state.py</code></td><td>1,367</td>
+      <td>🚨 잘못된 위치 — 삭제 (Stage 2)</td>
+    </tr>
+    <tr>
+      <td><code>pages/forecast_player.py</code></td><td>1,038</td>
+      <td>🚨 운영본 아님 — 삭제 (Stage 2)</td>
+    </tr>
+    <tr>
+      <td><code>ai_engine/enhanced_agent_orchestrator.py</code></td><td>1,032</td>
+      <td>→ <code>agents/</code> 디렉토리로 핸들러별 분리</td>
+    </tr>
+    <tr>
+      <td><code>ksys_app.py</code></td><td>1,057</td>
+      <td>→ <code>app.py</code> (App 인스턴스) + <code>routes.py</code> + <code>lifecycle.py</code> (startup/shutdown)</td>
+    </tr>
+    <tr>
+      <td><code>ml/pipeline_v2_hybrid.py</code></td><td>1,352</td>
+      <td>→ <code>pipeline/{features,models,fitter,predictor}.py</code></td>
+    </tr>
+    <tr>
+      <td><code>states/training_state.py</code></td><td>946</td>
+      <td>→ 동일 4분할</td>
+    </tr>
+  </table>
+  <p class="meta">분할 원칙: 1 파일 ≤ 300 LoC, 단일 책임. Reflex State 클래스는 1개 유지하되 내부 메서드를 모듈로 import.</p>
+</div>
+
+<div class="stage s5">
+  <h3>Stage 5 — RPI 효율 최적화 <span class="effort">⏱ 3일</span> <span class="tag tag-rpi">RPI</span></h3>
+  <p><strong>5-1. asyncpg 풀 튜닝</strong></p>
+  <pre><code># db_orm.py — RPI 4GB 기준
+pool = await asyncpg.create_pool(
+    dsn=DSN,
+    min_size=1,        # 기본 10 → 1
+    max_size=4,        # 기본 50 → 4
+    max_inactive_connection_lifetime=120,  # idle 정리
+    command_timeout=30,
+)</code></pre>
+
+  <p><strong>5-2. AutoARIMA 모델 디스크 캐시 + 워밍업 제거</strong></p>
+  <ul>
+    <li>현재 매 cycle 마다 <code>fit()</code> — RPI ARM에서 1.1초씩 누적</li>
+    <li>해결: <code>model.pickle</code> → DB <code>model_registry.pickle_data</code> 그대로 사용 (이미 구조는 있음). re-fit 주기를 1일/1주로 분리</li>
+    <li><code>statsforecast</code> 대신 <code>uvarima</code> 또는 <code>prophet-cpu</code> 검토? — 별도 RFC</li>
+  </ul>
+
+  <p><strong>5-3. Reflex 페이지 lazy import</strong></p>
+  <pre><code># Before: ksys_app.py 부팅 시 모든 페이지 import
+from .pages.alarms import alarms_page
+from .pages.dashboard import dashboard_page
+# ... 16개
+
+# After: 페이지 모듈을 라우트 호출 시점에만 로드
+# (Reflex 0.8+는 add_page 시점 import 가능)</code></pre>
+
+  <p><strong>5-4. TimescaleDB 청크 튜닝</strong></p>
+  <pre><code>-- 현재 chunk_time_interval 확인
+SELECT hypertable_name, chunk_time_interval FROM timescaledb_information.dimensions;
+
+-- RPI SD card I/O 최소화: 1일 청크 → 7일 청크로
+SELECT set_chunk_time_interval('influx_hist', INTERVAL '7 days');
+
+-- 압축 정책 (older than 7d compressed)
+ALTER TABLE influx_hist SET (timescaledb.compress);
+SELECT add_compression_policy('influx_hist', INTERVAL '7 days');</code></pre>
+
+  <p><strong>5-5. Docker 이미지 ARM 최적화</strong></p>
+  <ul>
+    <li><code>Dockerfile</code> base: <code>python:3.11-slim-bookworm</code> (ARM64 native)</li>
+    <li>multi-stage build: builder stage에서 wheels 컴파일, runtime stage는 wheels만</li>
+    <li><code>statsforecast</code>, <code>numpy</code>, <code>pandas</code> 가 가장 큼 — wheel 캐시 활용</li>
+    <li><code>.dockerignore</code> 강화: <code>saved_models/</code>, <code>logs/</code>, <code>.web/</code>, <code>__pycache__</code></li>
+  </ul>
+
+  <p><strong>5-6. uvicorn worker 1개 고정</strong></p>
+  <pre><code># Dockerfile CMD or compose command
+reflex run --env prod --backend-host 0.0.0.0 --loglevel info
+# 내부적으로 uvicorn 1 worker. RPI 4코어지만 worker 1개 + asyncio 가 효율적
+# (현재 multi-worker 가 inherited socket FD 좀비 원인이었음)</code></pre>
+</div>
+
+<div class="stage s6">
+  <h3>Stage 6 — 공통 패턴 추출 <span class="effort">⏱ 3일</span> <span class="tag tag-p3">P3</span></h3>
+  <ul>
+    <li><code>repositories/</code> 신규: 중복되는 asyncpg 쿼리 추상화
+      <ul>
+        <li><code>SensorRepo</code> — influx_hist 조회 패턴 (현재 dashboard/trend/alarm/forecast 4곳에 중복)</li>
+        <li><code>ModelRepo</code> — model_registry CRUD</li>
+        <li><code>ForecastRepo</code> — predictions + forecast_player_cache</li>
+      </ul>
+    </li>
+    <li><code>views/charts/</code> 공통 Plotly 헬퍼:
+      <ul>
+        <li><code>timeseries_chart(df, y, ylabel)</code> — dashboard/trend/forecast 모두 비슷한 코드</li>
+        <li><code>gauge_chart(value, min, max)</code></li>
+      </ul>
+    </li>
+    <li><code>BaseState</code> 확장: 공통 lifecycle (loading/error/refresh interval)</li>
+    <li>alarm severity / sensor unit / tag hierarchy 공통화</li>
+  </ul>
+  <p class="meta">⚠️ 이 단계는 Stage 1-5 끝나고 코드가 한 번 정돈된 다음에 해야 의미 있음. 너무 빨리 시도하면 죽은 코드까지 추상화하게 됨.</p>
+</div>
+
+<div class="stage s4">
+  <h3>Stage 7 — 코드 품질 보강 <span class="effort">⏱ 2일</span> <span class="tag tag-p3">P3</span></h3>
+  <ul>
+    <li><strong>ruff</strong> 적용 + <code>pyproject.toml</code> 룰 정의 (line-length 100, F401/E501/B 등)</li>
+    <li><strong>mypy strict</strong> — type hints 일관화 (asyncpg jsonb 같은 corner case가 dict/str 혼동 일으킨 원인)</li>
+    <li>over-broad <code>except Exception</code> 색출 → 구체 예외로</li>
+    <li><strong>vulture</strong>: 사용 안 하는 import/함수/변수 자동 검출</li>
+    <li>async 정합성: blocking call 색출 (<code>requests</code>, <code>open()</code>, <code>time.sleep</code> in async)</li>
+    <li>magic numbers → <code>config/constants.py</code></li>
+    <li><strong>pre-commit hook</strong>: ruff + mypy + 빈 except 차단</li>
+  </ul>
+</div>
+
+<hr>
+
+<h2>📈 예상 총 효과</h2>
+<table>
+  <tr><th>지표</th><th>Before</th><th>After</th><th>변화</th></tr>
+  <tr><td>총 LoC</td><td>136,681</td><td>~40,000</td><td class="good">-70%</td></tr>
+  <tr><td>.py 파일 수</td><td>519</td><td>~150</td><td class="good">-71%</td></tr>
+  <tr><td>1,000+ LoC 거대 파일</td><td>8</td><td>0</td><td class="good">-100%</td></tr>
+  <tr><td>Docker 이미지 크기</td><td>측정 필요</td><td>-30~50%</td><td class="good">↓</td></tr>
+  <tr><td>RPI 부팅 시간</td><td>측정 필요</td><td>-50% (lazy import)</td><td class="good">↓</td></tr>
+  <tr><td>RPI 메모리(idle)</td><td>측정 필요</td><td>-30% (pool, 페이지 lazy)</td><td class="good">↓</td></tr>
+  <tr><td>좀비 LISTEN 발생률</td><td>잦음</td><td>0 (이미 fix)</td><td class="good">✅</td></tr>
+</table>
+
+<h2>🚦 권장 시작점 — Stage 1 한 번에 끝낼 수 있음</h2>
+<div class="callout success">
+오늘 당장 할 수 있는 것: <strong>Stage 1 (잡초 제거 0.5일)</strong>만 끝내도 코드량 절반. 이것만 해도 다음 작업이 훨씬 쉬워집니다.
+<br><br>
+순서: <strong>Stage 1 → 2 → 3</strong> (잡초+죽은페이지+라우트 통일 = 약 2일) 끝낸 다음에 <strong>Stage 4/5</strong> (모놀리식 분해 + RPI 최적화) 시작.
+<br><br>
+Stage 6/7 (공통화 + 품질)은 마지막 단계 — 너무 일찍 시작하면 죽은 코드를 추상화하게 됨.
+</div>
+
+<h2>⚠️ 작업 전 결정 필요</h2>
+<ol>
+  <li><strong>작업 폴더</strong>: RPI 백업(<code>C:\sync\...</code>) vs 풍도 로컬 — 어디서 진행?</li>
+  <li><strong>이번 세션 11개 변경분</strong> (scheduler 좀비 fix, docker-compose.local.yml 등)을 baseline에 합칠 것</li>
+  <li><strong>진짜 RPI 최신 확인</strong>: <code>ssh tion@192.168.0.80</code> 로 2025-12-05 이후 추가 변경 있는지</li>
+  <li><strong>Git 브랜치</strong>: <code>refactor/rpi-optimization</code> 같은 브랜치 따고 단계별 commit</li>
+</ol>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+Generated 2026-05-19 · Karpathy-style HTML report · 7-stage refactor proposal
+</p>
+
+</body>
+</html>

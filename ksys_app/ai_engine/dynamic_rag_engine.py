@@ -180,8 +180,18 @@ class DynamicRAGEngine:
         if view == 'influx_latest':
             # 최신 값 조회
             if detected_tags:
-                tag_list = ','.join([f"'{t}'" for t in detected_tags])
-                tag_condition = f"WHERE tag_name IN ({tag_list})"
+                # SECURITY: tag names trace back to user chat input via LLM tag-extraction.
+                # An adversarial prompt could inject SQL via a crafted tag name.
+                # Whitelist regex: TS tag conventions allow alnum + _ . / - only.
+                # Future improvement: switch entire generate_sql() pipeline to asyncpg
+                # $N positional params with ANY($N) array binding. For now, validate.
+                _TAG_RE = __import__('re').compile(r'^[A-Za-z0-9_./\-]+$')
+                safe_tags = [t for t in detected_tags if _TAG_RE.match(t)]
+                if safe_tags:
+                    tag_list = ','.join([f"'{t}'" for t in safe_tags])
+                    tag_condition = f"WHERE tag_name IN ({tag_list})"
+                else:
+                    tag_condition = ""
             else:
                 tag_condition = ""
 
@@ -194,8 +204,17 @@ class DynamicRAGEngine:
         else:
             # 시계열 집계 조회
             if detected_tags:
-                tag_list = ','.join([f"'{t}'" for t in detected_tags])
-                tag_condition = f"AND tag_name IN ({tag_list})"
+                # SECURITY: same whitelist as the latest-value branch above.
+                # Day-6 commit (1da09aa) initially only fixed the upper branch;
+                # this branch was an incomplete-fix regression flagged by the
+                # trust audit. See verification commit for details.
+                _TAG_RE = __import__('re').compile(r'^[A-Za-z0-9_./\-]+$')
+                safe_tags = [t for t in detected_tags if _TAG_RE.match(t)]
+                if safe_tags:
+                    tag_list = ','.join([f"'{t}'" for t in safe_tags])
+                    tag_condition = f"AND tag_name IN ({tag_list})"
+                else:
+                    tag_condition = ""
             else:
                 tag_condition = ""
 

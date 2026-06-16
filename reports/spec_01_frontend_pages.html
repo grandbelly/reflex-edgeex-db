@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_01_frontend_pages</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="frontend-page-catalog-ksys-app">Frontend Page Catalog — KSYS App</h1>
+<blockquote>
+<p>Generated: 2026-05-28 | Source: ksys_app/pages/*.py + ksys_app/ksys_app.py</p>
+</blockquote>
+<hr />
+<h2 id="master-route-table">Master Route Table</h2>
+<table>
+<thead>
+<tr>
+<th>Route URL</th>
+<th>Registered?</th>
+<th>Module File</th>
+<th>Title</th>
+<th>Core Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>YES</td>
+<td><code>pages/dashboard.py</code></td>
+<td>Dashboard | KSYS</td>
+<td>Real-time sensor monitoring dashboard</td>
+</tr>
+<tr>
+<td><code>/alarms</code></td>
+<td>YES</td>
+<td><code>pages/alarms.py</code></td>
+<td>Alarms</td>
+<td>Unified alarm dashboard (active + history, ISA-18.2)</td>
+</tr>
+<tr>
+<td><code>/alarms_rt</code></td>
+<td>YES</td>
+<td><code>pages/alarms_rt_simple.py</code></td>
+<td>실시간 알람 상태</td>
+<td>Realtime alarm monitoring with sensor cards</td>
+</tr>
+<tr>
+<td><code>/alarms_rt_new</code></td>
+<td>YES</td>
+<td><code>pages/alarms_rt_new.py</code></td>
+<td>실시간 알람 (개선)</td>
+<td>Improved realtime alarm UI (alarm_item component)</td>
+</tr>
+<tr>
+<td><code>/alarms_hist</code></td>
+<td>YES</td>
+<td><code>pages/alarms_hist_simple.py</code></td>
+<td>알람 이력 분석</td>
+<td>Alarm history query with pagination</td>
+</tr>
+<tr>
+<td><code>/alarms_hist_new</code></td>
+<td>YES</td>
+<td><code>pages/alarms_hist_new.py</code></td>
+<td>알람 이력 (개선)</td>
+<td>Improved alarm history with severity checkboxes</td>
+</tr>
+<tr>
+<td><code>/comm</code></td>
+<td>YES</td>
+<td><code>pages/communication.py</code></td>
+<td>(none set)</td>
+<td>Communication success rate heatmap + daily trend</td>
+</tr>
+<tr>
+<td><code>/forecast</code></td>
+<td>YES</td>
+<td><code>pages/forecast_player.py</code></td>
+<td>예측 플레이어 | KSYS</td>
+<td>Online ML prediction player with MAPE/NRMSE/accuracy</td>
+</tr>
+<tr>
+<td><code>/model-performance</code></td>
+<td>YES</td>
+<td><code>pages/model_performance.py</code></td>
+<td>모델 성능 - KSYS</td>
+<td>ML model performance comparison + deployment mgmt</td>
+</tr>
+<tr>
+<td><code>/scada-alarm-comparison</code></td>
+<td>YES</td>
+<td><code>pages/scada_alarm_comparison.py</code></td>
+<td>AI Alarms | KSYS</td>
+<td>Rule-based vs AI-based alarm comparison</td>
+</tr>
+<tr>
+<td><code>/scada-alarms</code></td>
+<td>YES</td>
+<td><code>pages/scada_alarm_viewer.py</code></td>
+<td>SCADA 알람 로그</td>
+<td>SCADA alarm log viewer with real-time streaming</td>
+</tr>
+<tr>
+<td><code>/training-wizard</code></td>
+<td>YES</td>
+<td><code>pages/training_wizard/__init__.py</code></td>
+<td>(none set)</td>
+<td>6-step ML model training wizard</td>
+</tr>
+<tr>
+<td><code>/trend</code></td>
+<td>YES</td>
+<td><code>pages/trend_enhanced_v2.py</code></td>
+<td>Trend Analysis</td>
+<td>Sensor trend charts with brush sync + CSV export</td>
+</tr>
+<tr>
+<td><code>/viewer-tag</code></td>
+<td>YES</td>
+<td><code>pages/viewer_tag.py</code></td>
+<td>(none set)</td>
+<td>Tag visibility management admin panel</td>
+</tr>
+<tr>
+<td><code>/design-system-demo</code></td>
+<td><strong>NOT IMPORTED</strong></td>
+<td><code>pages/design_system_demo.py</code></td>
+<td>Design System Demo | KSYS</td>
+<td>Component showcase (dev-only)</td>
+</tr>
+<tr>
+<td><code>/ai</code></td>
+<td><strong>NOT IMPORTED</strong></td>
+<td><code>pages/ai_insights.py</code></td>
+<td>AI 센서 인사이트 - KSys Dashboard</td>
+<td>AI chat interface for sensor insights</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Summary: 16 total page modules. 14 registered (imported in ksys_app.py). 2 dead/unregistered.</strong></p>
+<hr />
+<h2 id="dead-unregistered-pages">Dead / Unregistered Pages</h2>
+<h3 id="1-ai-pagesai_insightspy">1. <code>/ai</code> — <code>pages/ai_insights.py</code></h3>
+<ul>
+<li>Has <code>@rx.page("/ai", title="AI 센서 인사이트 - KSys Dashboard")</code> at line 568.</li>
+<li>Module is <strong>NOT imported</strong> in <code>ksys_app/ksys_app.py</code>. The decorator never executes.</li>
+<li>Contains a full chat interface (<code>AIState.send_message</code>, <code>AIState.load_initial_sensor_data</code>).</li>
+<li>AI features are environment-gated (<code>ENABLE_AI_FEATURES</code> env var) but the import gate is missing entirely.</li>
+<li><strong>Route <code>/ai</code> will return 404.</strong></li>
+</ul>
+<h3 id="2-design-system-demo-pagesdesign_system_demopy">2. <code>/design-system-demo</code> — <code>pages/design_system_demo.py</code></h3>
+<ul>
+<li>Has <code>@rx.page(route="/design-system-demo", ...)</code> at line 247.</li>
+<li>Module is <strong>NOT imported</strong> in <code>ksys_app/ksys_app.py</code>.</li>
+<li>Pure developer reference page (no real data). Intended as internal UI showcase.</li>
+<li><strong>Route <code>/design-system-demo</code> will return 404.</strong></li>
+</ul>
+<hr />
+<h2 id="per-page-detail-catalog">Per-Page Detail Catalog</h2>
+<hr />
+<h3 id="page-1-dashboard">Page 1: Dashboard (<code>/</code>)</h3>
+<p><strong>File:</strong> <code>pages/dashboard.py</code> (22 lines) + <code>views/dashboard_realtime_view.py</code>
+<strong>State(s):</strong> <code>DashboardRealtimeState</code>, <code>SchedulerState</code>
+<strong>on_load:</strong> <code>DashboardRealtimeState.start_streaming</code>, <code>SchedulerState.start_schedulers</code></p>
+<p><strong>Visible UI Elements:</strong>
+- Real-time sensor status table (columns: ID, 상태, 현재값, 범위, 초과량, 위험도, 판정시간, 액션)
+- Status badges: NORMAL (green) / WARNING (amber) / CRITICAL (red)
+- Risk bar visualization per sensor row
+- Action buttons per row ("확인" / "조치")
+- Sidebar navigation (via <code>shell</code> layout component)</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click action button per row | State event (row-level action) |
+| Page load triggers streaming | <code>DashboardRealtimeState.start_streaming</code> |
+| Navigation sidebar links | Route navigation |</p>
+<p><strong>Display Data:</strong>
+- Live sensor values with current/range/deviation
+- Risk percentage bars
+- Timestamp of last judgment per sensor
+- Sensor count summary (total / normal / warning / critical)</p>
+<p><strong>Test Scenarios:</strong>
+1. Open <code>/</code> — verify sensor table loads with data within 5s (start_streaming fires).
+2. Verify NORMAL sensors show green badges; WARNING/CRITICAL show amber/red.
+3. Click "조치" button on a CRITICAL sensor — verify UI responds.
+4. Check browser console: no JS errors on initial load.
+5. Wait 30s with page open — verify table values update (real-time streaming).</p>
+<hr />
+<h3 id="page-2-alarms-alarms">Page 2: Alarms (<code>/alarms</code>)</h3>
+<p><strong>File:</strong> <code>pages/alarms.py</code> (~465 lines)
+<strong>State(s):</strong> <code>AlarmsState</code>, <code>DashboardRealtimeState</code>
+<strong>on_load:</strong> <code>AlarmsState.initialize</code>, <code>DashboardRealtimeState.start_streaming</code></p>
+<p><strong>Visible UI Elements:</strong>
+- 4 stat cards: Total Sensors, Normal, Warning, Critical (from DashboardRealtimeState)
+- View toggle: "Active Alarms" / "History" buttons
+- <strong>Active view:</strong> Table (columns: ID, 상태, 현재값, 범위, 초과량, 위험도, 판정시간, 액션)
+- <strong>History view:</strong> ISA-18.2 priority stats (4 cards: P1 Advisory, P2 Caution, P3 Warning, P4 Emergency)
+  - Time range segmented control: 1h / 6h / 24h / 7d
+  - "Show Acknowledged" toggle switch
+  - Search/filter bar (<code>filter_bar</code> component)
+  - Info bar: filtered count + last update
+  - Table (columns: 상태, 시간, 센서, ISA Priority, 시나리오, 값, 메시지, 액션)
+  - Pagination component
+- "Refresh" button (top right)
+- Error callout (shown on error)
+- Loading spinner (during data fetch)</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click "Active Alarms" tab | <code>AlarmsState.set_view_mode("active")</code> |
+| Click "History" tab | <code>AlarmsState.set_view_mode("history")</code> |
+| Click "Refresh" | <code>AlarmsState.refresh_data</code> |
+| Select time range (1h/6h/24h/7d) | <code>AlarmsState.set_hours_filter</code> |
+| Toggle "Show Acknowledged" | <code>AlarmsState.toggle_show_acknowledged</code> |
+| Type in search box | <code>AlarmsState.set_search_query</code> |
+| Select severity filter | <code>AlarmsState.set_severity_filter</code> |
+| Select status filter | <code>AlarmsState.set_status_filter</code> |
+| Click "Acknowledge" on an alarm | <code>AlarmsState.acknowledge_alarm(event_id)</code> |
+| Click Previous/Next page | <code>AlarmsState.prev_page</code> / <code>AlarmsState.next_page</code> |</p>
+<p><strong>Display Data:</strong>
+- ISA-18.2 alarm priorities (P1–P4) with color coding
+- Scenario type badge: RULE_BASE (blue) / AI_BASE (purple)
+- Real-time sensor status from dashboard state</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/alarms</code> in Active view — verify sensor table appears with status badges.
+2. Switch to History view — verify ISA-18.2 priority cards appear and alarm list loads.
+3. Change time range to 7d — verify alarm count updates.
+4. Search for a known tag name — verify list filters correctly.
+5. Click "Acknowledge" on an unacknowledged alarm — verify badge changes to "확인완료".</p>
+<hr />
+<h3 id="page-3-realtime-alarms-simple-alarms_rt">Page 3: Realtime Alarms Simple (<code>/alarms_rt</code>)</h3>
+<p><strong>File:</strong> <code>pages/alarms_rt_simple.py</code> (~400 lines)
+<strong>State(s):</strong> <code>AlarmRTState</code> (aliased as <code>A</code>)
+<strong>on_load:</strong> <code>A.load_all_data</code></p>
+<p><strong>Visible UI Elements:</strong>
+- 4 sensor status stat cards (Total/Normal/Warning/Critical sensors)
+- Sensor detail grid (responsive 2→6 column card grid for all sensors)
+- 6 alarm stat cards (Total/Critical/Warning/Info alarms + Unacked/Acked)
+- Filter bar (static render, no state binding — see note below)
+- Action bar (showing count)
+- Alarm list (cards per alarm with current value, threshold, scenario badge)
+- "Acknowledge" button per alarm
+- "Load More" button (static, no handler)
+- Pagination count display</p>
+<p><strong>Note on filter_bar:</strong> The filter_bar is rendered with hardcoded <code>search_value=""</code>, <code>severity_filter="all"</code> — filter inputs are NOT wired to state. Filtering does not work.</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click "새로고침" | <code>A.load_all_data</code> |
+| Click "Acknowledge" per alarm | <code>A.acknowledge_alarm(tag_name)</code> |</p>
+<p><strong>Display Data:</strong>
+- Per-sensor: tag_name, status, description, current value, unit, range, timestamp
+- Per-alarm: status badge, tag, current_value, threshold range, scenario type, last alarm time</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/alarms_rt</code> — verify sensor cards grid loads (responsive at narrow viewport).
+2. Verify alarm cards show correct threshold ranges.
+3. Click Acknowledge on a WARNING alarm — verify badge updates.
+4. Click Refresh — verify data refreshes.
+5. Check "Load More" button — expect it does nothing (unimplemented, bug).</p>
+<hr />
+<h3 id="page-4-realtime-alarms-new-alarms_rt_new">Page 4: Realtime Alarms New (<code>/alarms_rt_new</code>)</h3>
+<p><strong>File:</strong> <code>pages/alarms_rt_new.py</code> (~180 lines)
+<strong>State(s):</strong> <code>AlarmRTState</code> (aliased as <code>A</code>)
+<strong>on_load:</strong> <code>A.on_load</code> (via <code>on_mount</code> in shell call)</p>
+<p><strong>Visible UI Elements:</strong>
+- 6 stat cards (Total/Critical/Warning/Info/Unacked/Acked)
+- Filter bar (same static binding issue as /alarms_rt)
+- Action bar
+- Alarm list using <code>alarm_item</code> component (from <code>components/alarms/alarm_item.py</code>)
+- "Next" pagination button (static, no handler)
+- LIVE indicator badge + Refresh button</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click "Refresh" | <code>A.refresh_realtime</code> |</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/alarms_rt_new</code> — verify alarm_item component renders correctly vs /alarms_rt.
+2. Compare alarm_item styling with /alarms_rt cards.
+3. Verify LIVE indicator badge is visible.
+4. Click Refresh — verify list updates.
+5. Note: "Next" pagination button is wired to no handler — document as bug.</p>
+<hr />
+<h3 id="page-5-alarm-history-simple-alarms_hist">Page 5: Alarm History Simple (<code>/alarms_hist</code>)</h3>
+<p><strong>File:</strong> <code>pages/alarms_hist_simple.py</code> (~286 lines)
+<strong>State(s):</strong> <code>AlarmHistState</code>
+<strong>on_load:</strong> <code>AlarmHistState.on_load</code> (via <code>on_mount</code>)</p>
+<p><strong>Visible UI Elements:</strong>
+- Page header with datetime range pickers (start/end, type=datetime-local)
+- 조회 button
+- 4 stat cards: 총 알람, 최다 센서, 평균 레벨, 해결율
+- Alarm history list (cards): shows acknowledged status, triggered_at, tag_name, level badge, scenario, value, message, resolved status
+- Pagination: 이전/다음 buttons + page info</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Set start datetime | <code>AlarmHistState.set_start_date</code> |
+| Set end datetime | <code>AlarmHistState.set_end_date</code> |
+| Click 조회 | <code>AlarmHistState.fetch_history</code> |
+| Click 이전 | <code>AlarmHistState.prev_page</code> |
+| Click 다음 | <code>AlarmHistState.next_page</code> |</p>
+<p><strong>Display Data:</strong>
+- Alarm cards with acknowledged/unacknowledged status (visual priority)
+- Scenario ID badges: AI_BASE (purple) / DYNAMIC_RULE (blue) / other (gray)
+- Resolved / in-progress badge</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/alarms_hist</code> — verify page renders with empty state or last query.
+2. Set start/end date range covering today and click 조회 — verify alarms list populates.
+3. Navigate pages (이전/다음) — verify page counter updates.
+4. Set date range with no data — verify empty state shown.
+5. Check stat cards update after 조회.</p>
+<hr />
+<h3 id="page-6-alarm-history-new-alarms_hist_new">Page 6: Alarm History New (<code>/alarms_hist_new</code>)</h3>
+<p><strong>File:</strong> <code>pages/alarms_hist_new.py</code> (~285 lines)
+<strong>State(s):</strong> <code>AlarmHistState</code>
+<strong>on_load:</strong> <code>AlarmHistState.on_load</code> (via <code>on_mount</code>)</p>
+<p><strong>Visible UI Elements:</strong>
+- Date range quick-select buttons: 오늘 / 어제 / 1주일 / 1개월 (segmented)
+- Severity checkboxes: Critical / Warning / Info
+- 조회 button
+- 4 stat cards: 총 알람, Critical, Warning, Info (colored)
+- Alarm history table (columns: 발생시간, 종료시간, 태그, 심각도, 메시지, 지속시간)
+- Pagination (이전/다음 + page info)
+- Empty state illustration</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click 오늘/어제/1주일/1개월 | <code>AlarmHistState.set_date_range(key)</code> |
+| Toggle Critical checkbox | <code>AlarmHistState.toggle_critical</code> |
+| Toggle Warning checkbox | <code>AlarmHistState.toggle_warning</code> |
+| Toggle Info checkbox | <code>AlarmHistState.toggle_info</code> |
+| Click 조회 | <code>AlarmHistState.search_alarms</code> |
+| Click 이전/다음 | <code>AlarmHistState.prev_page</code> / <code>AlarmHistState.next_page</code> |</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/alarms_hist_new</code> — verify date quick-select buttons render.
+2. Click "오늘" — verify date range updates and alarms load.
+3. Uncheck "Critical" — click 조회 — verify critical alarms are hidden.
+4. Click "1개월" — verify large dataset loads with pagination.
+5. Navigate through multiple pages — verify content changes.</p>
+<hr />
+<h3 id="page-7-communication-comm">Page 7: Communication (<code>/comm</code>)</h3>
+<p><strong>File:</strong> <code>pages/communication.py</code> (~200+ lines)
+<strong>State(s):</strong> <code>CommunicationState</code>
+<strong>on_load:</strong> <code>CommunicationState.initialize</code></p>
+<p><strong>Visible UI Elements:</strong>
+- Header: "통신 성공률" + Real-time badge
+- Controls card: sensor selector dropdown + period segmented control (3일/7일/14일/30일)
+- Stat cards (success rate metrics)
+- Daily success rate trend area chart (with 95% reference line)
+- Wrapped grid heatmap (hourly data collection success per day)</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Select sensor | <code>CommunicationState.set_selected_tag</code> |
+| Select period (3/7/14/30일) | <code>CommunicationState.set_selected_days_str</code> |</p>
+<p><strong>Display Data:</strong>
+- Daily success rate as area chart (0–100%, 95% threshold line)
+- Hourly heatmap grid showing data collection completeness per sensor</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/comm</code> — verify heatmap renders (if data exists).
+2. Change sensor selection — verify heatmap and chart update.
+3. Switch period to 30일 — verify chart extends.
+4. Verify 95% reference line appears on area chart.
+5. Check that missing data hours show clearly in heatmap (low-color cells).</p>
+<hr />
+<h3 id="page-8-forecast-player-forecast">Page 8: Forecast Player (<code>/forecast</code>)</h3>
+<p><strong>File:</strong> <code>pages/forecast_player.py</code> (~958 lines) — most complex page
+<strong>State(s):</strong> <code>ForecastPlayerState</code> (aliased as <code>FPS</code>)
+<strong>on_load:</strong> <code>FPS.load_deployed_models</code>, <code>FPS.start_countdown_monitor</code></p>
+<p><strong>Visible UI Elements:</strong>
+- Page header with subtitle (interval info)
+- 3 metric cards: MAPE (green gradient), NRMSE (purple gradient), 예측 정확도 (pink gradient)
+- Formula display section: RMSE → Mean → CV-RMSE → Accuracy step cards
+- Terminology glossary (collapsible info box)
+- Model selector dropdown (deployed models list)
+- "데이터 새로고침" button
+- System info panel (센서명, 예측 횟수, 갱신 주기, 모델, 데이터 윈도우, 예측 호라이즌)
+- Update status panel (T0 기준 시간, 마지막 업데이트, 예측 스케줄러 status, 다음 예측 countdown)
+- Main chart: ComposedChart with past/future zones, T0 reference line, actual + predicted + CI bands
+  - Y-axis scale toggle: "0 기준" ↔ "자동 스케일"
+- Data table: horizontal (rows = metrics, columns = time points) with scroll
+  - Rows: 실제 시간, 실측값, 예측값, 절대오차, 상대오차(%), MAPE, 상태
+  - Colored by past (blue) / present (yellow) / future (green)
+- Empty state with "스트리밍 시작" button</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Select model from dropdown | <code>FPS.select_model</code> |
+| Click 데이터 새로고침 | <code>FPS.load_predictions</code> |
+| Toggle Y-axis scale | <code>FPS.toggle_y_axis_scale</code> |
+| Click 스트리밍 시작 (empty state) | <code>FPS.start_streaming</code> |
+| Page load | <code>FPS.load_deployed_models</code>, <code>FPS.start_countdown_monitor</code> |</p>
+<p><strong>Display Data:</strong>
+- Online ML predictions vs actual sensor values
+- MAPE / NRMSE / CV-RMSE accuracy metrics
+- Rolling window time series with confidence intervals
+- Scheduler status and next-prediction countdown</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/forecast</code> — verify deployed models dropdown populates.
+2. Select a model — verify metric cards (MAPE/NRMSE/accuracy) populate.
+3. Verify chart renders with past zone (blue) and future zone (orange) + T0 red line.
+4. Toggle Y-axis scale — verify chart re-renders with correct domain.
+5. Scroll horizontal data table — verify all time columns visible with correct color coding.</p>
+<hr />
+<h3 id="page-9-model-performance-model-performance">Page 9: Model Performance (<code>/model-performance</code>)</h3>
+<p><strong>File:</strong> <code>pages/model_performance.py</code> (~262 lines)
+<strong>State(s):</strong> <code>ModelPerformanceState</code> (aliased as <code>M</code>)
+<strong>on_load:</strong> <code>M.on_mount</code></p>
+<p><strong>Visible UI Elements:</strong>
+- Page header: "모델 성능 모니터링"
+- Error callout (on error)
+- Control panel: sensor selector + Refresh button + last-update timestamp badge
+- Section 1 — Algorithm Comparison chart (Prophet / Auto-ARIMA / XGBoost)
+- Best Algorithm card highlight
+- Section 2 — Deployed Model Info card
+- Section 3 — Saved Models Table with "배포" (Deploy) buttons
+- Section 4 — ML Pipeline comparison cards (Top 3 + deployed, grid layout)</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Select sensor | <code>M.set_selected_sensor</code> |
+| Click 새로고침 | <code>M.refresh_data</code> |
+| Click 배포 (deploy) button per model | (deploy action — in <code>saved_models_table</code> component) |</p>
+<p><strong>Display Data:</strong>
+- Algorithm validation MAPE comparison (bar chart)
+- Best algorithm highlighted card
+- Currently deployed model (name, sensor, accuracy, training date)
+- All saved models in table (model_id, name, tag, MAPE, training params)
+- Pipeline configuration details per top-3 models</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/model-performance</code> — verify sensor dropdown loads available sensors.
+2. Select a sensor — verify algorithm comparison chart updates.
+3. Verify "Best Algorithm" card shows the lowest-MAPE algorithm.
+4. Find a model in Saved Models table and click 배포 — verify deployment message appears.
+5. Check ML Pipeline section shows up to 3 pipeline cards side by side.</p>
+<hr />
+<h3 id="page-10-scada-alarm-comparison-scada-alarm-comparison">Page 10: SCADA Alarm Comparison (<code>/scada-alarm-comparison</code>)</h3>
+<p><strong>File:</strong> <code>pages/scada_alarm_comparison.py</code> (~400+ lines)
+<strong>State(s):</strong> <code>ScadaAlarmComparisonState</code>
+<strong>on_load:</strong> (check registration only)</p>
+<p><strong>Visible UI Elements:</strong>
+- Page header: "AI Alarms Comparison"
+- Stat cards for rule-based vs AI-based counts
+- Dual alarm tables: Rule-based alarms | AI-based alarms
+- Severity badges (CAUTION/INFO/WARNING/ERROR/CRITICAL)
+- Method badges (Rule-based blue / AI-based purple)</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| (check state for filter/refresh events) | <code>ScadaAlarmComparisonState.*</code> |</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/scada-alarm-comparison</code> — verify both tables render.
+2. Verify Rule-based badges show blue, AI-based show purple.
+3. Compare alarm counts in stat cards vs table rows.
+4. Check that alarms with same timestamp but different methods both appear.
+5. Verify page renders without JS errors.</p>
+<hr />
+<h3 id="page-11-scada-alarm-viewer-scada-alarms">Page 11: SCADA Alarm Viewer (<code>/scada-alarms</code>)</h3>
+<p><strong>File:</strong> <code>pages/scada_alarm_viewer.py</code>
+<strong>State(s):</strong> <code>ScadaAlarmState</code>
+<strong>on_load:</strong> (no explicit on_load; streaming initiated via button)</p>
+<p><strong>Visible UI Elements:</strong>
+- Heading: "SCADA 알람 실시간 로그" + total count
+- Refresh button
+- Start/Stop streaming toggle button (plays/pauses real-time)
+- Severity filter dropdown (전체/긴급/위험/경고/주의/정보)
+- Tag name search input
+- Last update timestamp
+- Alarm log table</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click 새로고침 | <code>ScadaAlarmState.load_alarm_logs</code> |
+| Click 실시간 시작 / 정지 | <code>ScadaAlarmState.toggle_streaming</code> |
+| Select severity filter | <code>ScadaAlarmState.set_severity_filter</code> |
+| Type tag filter | <code>ScadaAlarmState.set_tag_filter</code> |</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/scada-alarms</code> — verify alarm table shows historical data.
+2. Click 실시간 시작 — verify button changes to 정지 and new rows appear.
+3. Filter by 긴급 severity — verify only high-severity rows remain.
+4. Type a tag name in search — verify rows filter.
+5. Click 정지 — verify streaming halts.</p>
+<hr />
+<h3 id="page-12-training-wizard-training-wizard">Page 12: Training Wizard (<code>/training-wizard</code>)</h3>
+<p><strong>File:</strong> <code>pages/training_wizard/__init__.py</code> (93 lines) + 6 step files + results submodule
+<strong>State(s):</strong> <code>TrainingWizardState</code>
+<strong>on_load:</strong> <code>TrainingWizardState.initialize_wizard</code></p>
+<p><strong>Visible UI Elements:</strong>
+- Wizard header with progress bar (step N of 6)
+- Error display callout
+- Step content area (conditional per wizard_step 1–6):
+  - Step 1: Sensor selection (step_1_sensor.py)
+  - Step 2: Model algorithm selection (step_2_model.py)
+  - Step 3: Feature configuration (step_3_features.py)
+  - Step 4: Training parameter tuning (step_4_params.py)
+  - Step 5: Execute training (step_5_training.py)
+  - Step 6: View results + model diagnostics (step_6_results.py)
+- Navigation: Back / Next / Train buttons</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Select sensor (Step 1) | <code>TrainingWizardState.*</code> |
+| Select model algorithm (Step 2) | <code>TrainingWizardState.*</code> |
+| Configure features (Step 3) | <code>TrainingWizardState.*</code> |
+| Set training params (Step 4) | <code>TrainingWizardState.*</code> |
+| Start training (Step 5) | <code>TrainingWizardState.*</code> (training execution) |
+| View results (Step 6) | Display only, deploy action |
+| Next / Back navigation | <code>TrainingWizardState.*</code> |</p>
+<p><strong>Display Data (Step 6):</strong>
+- Performance summary (MAPE, R², accuracy)
+- Fold results table
+- Validation charts
+- Model diagnostics
+- Residuals diagnostics
+- Algorithm comparison (data_summary, evaluation_metrics, model_selection_info)</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/training-wizard</code> — verify Step 1 (sensor selection) renders.
+2. Select a sensor and click Next — verify step advances to Step 2.
+3. Navigate all 6 steps forward/backward without error.
+4. Complete all steps and submit training (Step 5) — verify loading state appears.
+5. After training completes, navigate to Step 6 — verify result charts render.</p>
+<hr />
+<h3 id="page-13-trend-analysis-trend">Page 13: Trend Analysis (<code>/trend</code>)</h3>
+<p><strong>File:</strong> <code>pages/trend_enhanced_v2.py</code> (~849 lines)
+<strong>State(s):</strong> <code>TrendState</code> (aliased as <code>T</code>)
+<strong>on_load:</strong> <code>T.load</code> (also on_mount)</p>
+<p><strong>Visible UI Elements:</strong>
+- Control card:
+  - Tag selector dropdown
+  - Aggregation unit selector: 1m / 10m / 1h / 1d
+  - Time range selector dropdown
+  - Current selection summary badges
+- Chart card:
+  - Chart type: Area / Line / Bar (segmented)
+  - Y-axis: Auto / Fixed toggle button
+  - Data selector: Average / Minimum / Maximum / First / Last (segmented)
+  - Info callout (brush usage tip)
+  - Top chart (Area/Line/Bar — user selected)
+  - Bottom chart: ComposedChart with avg/max/min + Brush range selector
+  - Two charts sync via <code>sync_id="trend"</code>
+- Data table card:
+  - Columns: No. / Tag / Timestamp / Average / Min / Max / Last / First / Count
+  - Missing data rows highlighted in red
+  - CSV export dropdown (전체 / 현재 페이지)
+  - Pagination (page size selector: 10/20/50/100 + prev/next)
+  - Data completeness badge + missing count badge</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Select tag | <code>T.set_tag_select</code> |
+| Select aggregation (1m/10m/1h/1d) | <code>T.set_aggregation_view</code> |
+| Select time range | <code>T.set_time_range</code> |
+| Click 새로고침 | <code>T.load</code> |
+| Switch chart mode | <code>T.set_chart_mode</code> |
+| Toggle Y-axis auto/fixed | <code>T.toggle_auto_scale</code> |
+| Select data type (avg/min/max/first/last) | <code>T.set_trend_selected</code> |
+| Drag Brush on bottom chart | (recharts brush — client-side, syncs top chart) |
+| Export CSV (all) | <code>T.export_csv_all</code> |
+| Export CSV (page) | <code>T.export_csv_page</code> |
+| Change page size | <code>T.set_page_size</code> |
+| Click 이전/다음 page | <code>T.prev_page</code> / <code>T.next_page</code> |</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/trend</code> — verify tag dropdown populated.
+2. Select a tag + 1h aggregation + last 24h — verify charts render.
+3. Switch chart from Area to Line — verify top chart changes.
+4. Drag brush on bottom chart — verify top chart zooms.
+5. Click "CSV 내보내기 &gt; 전체 데이터" — verify file download triggers.</p>
+<hr />
+<h3 id="page-14-viewer-tag-viewer-tag">Page 14: Viewer Tag (<code>/viewer-tag</code>)</h3>
+<p><strong>File:</strong> <code>pages/viewer_tag.py</code>
+<strong>State(s):</strong> <code>ViewerTagState</code>
+<strong>on_load:</strong> (no explicit on_load; loaded via <code>ViewerTagState.load_tags</code> on button)</p>
+<p><strong>Visible UI Elements:</strong>
+- Heading "Viewer Tags"
+- "Add Tag" button (green)
+- "Refresh" button
+- Error callout / Success callout (conditional)
+- Tags table (columns: Order / Tag Name / Dashboard / Alarm / Trend / Model / Actions)
+  - Display Order: editable number input per row
+  - Dashboard/Alarm/Trend/Model: toggle switches per row
+  - Actions: delete button per row
+- Add Tag dialog:
+  - Tag name text input
+  - Available tags list (tags not yet configured, with + buttons)
+  - Confirm/Cancel buttons</p>
+<p><strong>User-Actionable Features:</strong>
+| Action | Event Handler |
+|--------|--------------|
+| Click "Refresh" | <code>ViewerTagState.load_tags</code> |
+| Click "Add Tag" | <code>ViewerTagState.open_add_dialog</code> |
+| Edit display_order input | <code>ViewerTagState.update_order(tag_name, value)</code> |
+| Toggle Dashboard switch | <code>ViewerTagState.toggle_dashboard(tag_name)</code> |
+| Toggle Alarm switch | <code>ViewerTagState.toggle_alarm(tag_name)</code> |
+| Toggle Trend switch | <code>ViewerTagState.toggle_trend(tag_name)</code> |
+| Toggle Model switch | <code>ViewerTagState.toggle_model(tag_name)</code> |
+| Click + in dialog list | <code>ViewerTagState.set_add_tag_name(tag_name)</code> |
+| Confirm Add Tag | <code>ViewerTagState.add_tag</code> (inferred) |
+| Delete tag | (delete action in row) |</p>
+<p><strong>Display Data:</strong>
+- Complete list of configured viewer tags
+- Visibility flags per tag per screen (dashboard/alarm/trend/model)</p>
+<p><strong>Test Scenarios:</strong>
+1. Load <code>/viewer-tag</code> — verify tags table loads.
+2. Toggle Dashboard switch for a tag — verify state updates (switch changes).
+3. Change display_order for a tag (blur input) — verify order persists on refresh.
+4. Click "Add Tag" — verify dialog opens with available tags.
+5. Delete a tag — verify it disappears from the table and a success callout appears.</p>
+<hr />
+<h2 id="component-library">Component Library</h2>
+<h3 id="componentslayoutpy">components/layout.py</h3>
+<ul>
+<li><strong><code>shell(content, active_route)</code></strong> — Top-level page shell with sidebar navigation. Used by ALL registered pages.</li>
+</ul>
+<h3 id="componentsalarms">components/alarms/</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Purpose</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stat_card</code></td>
+<td><code>stat_card.py</code></td>
+<td>Colored stat tile (title/value/icon/color)</td>
+<td>alarms.py, alarms_rt_simple.py, alarms_rt_new.py</td>
+</tr>
+<tr>
+<td><code>filter_bar</code></td>
+<td><code>filter_bar.py</code></td>
+<td>Search + severity + status filter row</td>
+<td>alarms.py, alarms_rt_simple.py, alarms_rt_new.py</td>
+</tr>
+<tr>
+<td><code>pagination</code></td>
+<td><code>pagination.py</code></td>
+<td>Prev/Next pagination with page info</td>
+<td>alarms.py</td>
+</tr>
+<tr>
+<td><code>alarm_item</code></td>
+<td><code>alarm_item.py</code></td>
+<td>Individual alarm card component</td>
+<td>alarms_rt_new.py</td>
+</tr>
+<tr>
+<td><code>live_indicator</code></td>
+<td>(in <code>__init__.py</code>)</td>
+<td>LIVE badge with last update</td>
+<td>alarms_rt_simple.py, alarms_rt_new.py</td>
+</tr>
+<tr>
+<td><code>action_bar</code></td>
+<td>(in <code>__init__.py</code>)</td>
+<td>Shown/selected count bar</td>
+<td>alarms_rt_simple.py, alarms_rt_new.py</td>
+</tr>
+</tbody>
+</table>
+<h3 id="componentscards">components/cards/</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Purpose</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stat_card</code></td>
+<td><code>stat_card.py</code></td>
+<td>Generic stat card</td>
+<td>alarms.py</td>
+</tr>
+<tr>
+<td><code>kpi_card</code></td>
+<td><code>kpi_card.py</code></td>
+<td>KPI metric card</td>
+<td>(dashboard, kpi_tiles)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="componentscharts">components/charts/</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Purpose</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mini_chart</code></td>
+<td><code>mini_chart.py</code></td>
+<td>Compact sparkline chart</td>
+<td>(dashboard tiles)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="componentstrends">components/trends/</h3>
+<p>Modular trend sub-system with sub-packages: <code>cards/</code>, <code>charts/</code>, <code>feedback/</code>, <code>inputs/</code>, <code>layout/</code>
+| Component | File | Purpose |
+|-----------|------|---------|
+| <code>HierarchicalTagSelector</code> | <code>inputs/hierarchical_tag_selector.py</code> | Tag picker with hierarchy |
+| <code>ChartModeSelector</code> | <code>inputs/chart_mode_selector.py</code> | Area/Line/Bar toggle |
+| <code>TagSelector</code> | <code>inputs/tag_selector.py</code> | Tag dropdown |
+| <code>TimeRangeSelector</code> | <code>inputs/time_range_selector.py</code> | Time range picker |
+| <code>TrendChart</code> | <code>charts/trend_chart.py</code> | Main trend chart |
+| <code>ChartContainer</code> | <code>charts/chart_container.py</code> | Chart wrapper with loading |
+| <code>EmptyState</code> | <code>feedback/empty_state.py</code> | No-data placeholder |
+| <code>LoadingState</code> | <code>feedback/loading_state.py</code> | Loading spinner |
+| <code>PageHeader</code> | <code>layout/page_header.py</code> | Trend page header |
+| <code>SectionContainer</code> | <code>layout/section_container.py</code> | Section wrapper |</p>
+<h3 id="standalone-components">Standalone Components</h3>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>File</th>
+<th>Purpose</th>
+<th>Used in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>page_header</code></td>
+<td><code>page_header.py</code></td>
+<td>Reusable page header w/ title/icon/actions</td>
+<td>alarms_rt_simple, alarms_hist_simple, forecast_player, model_performance</td>
+</tr>
+<tr>
+<td><code>forecast_chart</code></td>
+<td><code>forecast_chart.py</code></td>
+<td>Recharts forecast line chart</td>
+<td>(forecast pages)</td>
+</tr>
+<tr>
+<td><code>forecast_chart_plotly</code></td>
+<td><code>forecast_chart_plotly.py</code></td>
+<td>Plotly version of forecast chart</td>
+<td>(backup/alternate)</td>
+</tr>
+<tr>
+<td><code>algorithm_comparison_chart</code></td>
+<td><code>algorithm_comparison_chart.py</code></td>
+<td>Bar chart comparing algorithm MAPE</td>
+<td>model_performance</td>
+</tr>
+<tr>
+<td><code>performance_charts</code></td>
+<td><code>performance_charts.py</code></td>
+<td><code>model_comparison_chart</code>, <code>saved_models_table</code>, <code>deployed_model_info_card</code></td>
+<td>model_performance</td>
+</tr>
+<tr>
+<td><code>pipeline_detail_card</code></td>
+<td><code>pipeline_detail_card.py</code></td>
+<td>ML pipeline config card</td>
+<td>model_performance</td>
+</tr>
+<tr>
+<td><code>wrapped_heatmap</code></td>
+<td><code>wrapped_heatmap.py</code></td>
+<td>Hourly grid heatmap</td>
+<td>communication</td>
+</tr>
+<tr>
+<td><code>gauge</code></td>
+<td><code>gauge.py</code></td>
+<td>Circular gauge widget</td>
+<td>(dashboard KPIs)</td>
+</tr>
+<tr>
+<td><code>realtime_chart</code></td>
+<td><code>realtime_chart.py</code></td>
+<td>Live-updating chart</td>
+<td>(dashboard)</td>
+</tr>
+<tr>
+<td><code>sparkline_chart</code></td>
+<td><code>sparkline_chart.py</code></td>
+<td>Tiny trend line</td>
+<td>(tiles)</td>
+</tr>
+<tr>
+<td><code>sensor_card_enhanced</code></td>
+<td><code>sensor_card_enhanced.py</code></td>
+<td>Enhanced sensor card</td>
+<td>(dashboard)</td>
+</tr>
+<tr>
+<td><code>design_system</code></td>
+<td><code>design_system.py</code></td>
+<td><code>DesignSystem</code> class — heading/card/metric_card etc.</td>
+<td>design_system_demo.py</td>
+</tr>
+<tr>
+<td><code>layout_v2</code></td>
+<td><code>layout_v2.py</code></td>
+<td>Alternate layout shell</td>
+<td>(unused or alternate)</td>
+</tr>
+<tr>
+<td><code>status_badge</code></td>
+<td><code>status_badge.py</code></td>
+<td>Generic status badge</td>
+<td>(scattered)</td>
+</tr>
+<tr>
+<td><code>time_selector</code></td>
+<td><code>time_selector.py</code></td>
+<td>Time range input</td>
+<td>(older pages)</td>
+</tr>
+<tr>
+<td><code>kpi_tiles</code></td>
+<td><code>kpi_tiles.py</code></td>
+<td>KPI tile grid</td>
+<td>(dashboard)</td>
+</tr>
+<tr>
+<td><code>trend_enhanced</code></td>
+<td><code>trend_enhanced.py</code></td>
+<td>Old trend component (superseded by v2)</td>
+<td>(deprecated)</td>
+</tr>
+<tr>
+<td><code>saved_data_display</code></td>
+<td><code>saved_data_display.py</code></td>
+<td>Display saved model results</td>
+<td>(model perf)</td>
+</tr>
+<tr>
+<td><code>stock_chart</code></td>
+<td><code>stock_chart.py</code></td>
+<td>Candlestick/OHLC style chart</td>
+<td>(unused or experimental)</td>
+</tr>
+<tr>
+<td><code>features_table</code></td>
+<td><code>features_table.py</code></td>
+<td>Feature importance table</td>
+<td>(training wizard)</td>
+</tr>
+<tr>
+<td><code>indicators_table</code></td>
+<td><code>indicators_table.py</code></td>
+<td>Technical indicator display</td>
+<td>(deprecated, removed from views)</td>
+</tr>
+<tr>
+<td><code>training_charts</code></td>
+<td><code>training_charts.py</code></td>
+<td>Training result charts</td>
+<td>(training wizard)</td>
+</tr>
+<tr>
+<td><code>ai_visualizations</code></td>
+<td><code>ai_visualizations.py</code></td>
+<td>AI insight visualization components</td>
+<td>(ai_insights — dead page)</td>
+</tr>
+<tr>
+<td><code>forecast_panel</code></td>
+<td><code>forecast_panel.py</code></td>
+<td>Forecast summary panel</td>
+<td>(forecast player)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="known-issues-surprises">Known Issues / Surprises</h2>
+<h3 id="issue-1-ai-page-dead-route-not-registered">Issue 1: <code>/ai</code> Page — Dead Route (NOT REGISTERED)</h3>
+<ul>
+<li><code>pages/ai_insights.py</code> has <code>@rx.page("/ai", ...)</code> but is never imported in <code>ksys_app.py</code>.</li>
+<li>The <code>ENABLE_AI_FEATURES</code> env flag exists but the import guard that should conditionally import the page is missing.</li>
+<li>All AI service code (<code>ai_service.py</code>, <code>ai_state.py</code>) and <code>ai_visualizations.py</code> component exist but are unreachable.</li>
+<li><strong>Impact:</strong> Any sidebar link pointing to <code>/ai</code> will 404.</li>
+</ul>
+<h3 id="issue-2-filter-bar-not-wired-in-alarms_rt-and-alarms_rt_new">Issue 2: Filter Bar Not Wired in <code>/alarms_rt</code> and <code>/alarms_rt_new</code></h3>
+<ul>
+<li>Both pages call <code>filter_bar(search_value="", severity_filter="all", status_filter="all")</code> with hardcoded literals.</li>
+<li>The filter_bar component likely has <code>on_search</code>, <code>on_severity_change</code>, <code>on_status_change</code> props that are not being passed.</li>
+<li><strong>Impact:</strong> Search and severity/status filtering are completely non-functional on both realtime alarm pages.</li>
+</ul>
+<h3 id="issue-3-load-more-next-pagination-buttons-are-dead">Issue 3: "Load More" / "Next" Pagination Buttons Are Dead</h3>
+<ul>
+<li><code>/alarms_rt_simple.py</code> line ~382: "Load More" button has no <code>on_click</code>.</li>
+<li><code>/alarms_rt_new.py</code> line ~160: "Next" button has no <code>on_click</code>.</li>
+<li><strong>Impact:</strong> Pagination on both realtime alarm pages is broken — users can never scroll past the first page.</li>
+</ul>
+<h3 id="issue-4-duplicate-pages-for-same-feature">Issue 4: Duplicate Pages for Same Feature</h3>
+<ul>
+<li><code>/alarms_rt</code> (simple) and <code>/alarms_rt_new</code> (new) both exist, registered, backed by the same <code>AlarmRTState</code>.</li>
+<li><code>/alarms_hist</code> (simple) and <code>/alarms_hist_new</code> (new) both exist, registered, backed by the same <code>AlarmHistState</code>.</li>
+<li>No redirect or canonical URL disambiguation. Users may encounter either version depending on navigation.</li>
+<li>The "simple" variants predate the "new" variants; it is unclear which is the intended production path.</li>
+</ul>
+<h3 id="issue-5-design_system_demo-not-imported">Issue 5: <code>design_system_demo</code> Not Imported</h3>
+<ul>
+<li>Pure developer showcase page. Not harmful but means <code>/design-system-demo</code> 404s.</li>
+<li>If a developer wants to reference the design system visually, they must add the import.</li>
+</ul>
+<hr />
+<h2 id="appendix-lines-of-code-by-page-complexity-proxy">Appendix: Lines of Code by Page (Complexity Proxy)</h2>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Module</th>
+<th>Approx LoC</th>
+<th>Complexity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/forecast</code></td>
+<td>forecast_player.py</td>
+<td>~958</td>
+<td>Very High</td>
+</tr>
+<tr>
+<td><code>/trend</code></td>
+<td>trend_enhanced_v2.py</td>
+<td>~849</td>
+<td>Very High</td>
+</tr>
+<tr>
+<td><code>/alarms</code></td>
+<td>alarms.py</td>
+<td>~465</td>
+<td>High</td>
+</tr>
+<tr>
+<td><code>/alarms_rt</code></td>
+<td>alarms_rt_simple.py</td>
+<td>~400</td>
+<td>High</td>
+</tr>
+<tr>
+<td><code>/scada-alarm-comparison</code></td>
+<td>scada_alarm_comparison.py</td>
+<td>~400+</td>
+<td>High</td>
+</tr>
+<tr>
+<td><code>/training-wizard</code></td>
+<td>wizard/ (18 files)</td>
+<td>~1500+ total</td>
+<td>Very High</td>
+</tr>
+<tr>
+<td><code>/model-performance</code></td>
+<td>model_performance.py</td>
+<td>~262</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/alarms_rt_new</code></td>
+<td>alarms_rt_new.py</td>
+<td>~180</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/alarms_hist_new</code></td>
+<td>alarms_hist_new.py</td>
+<td>~285</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/alarms_hist</code></td>
+<td>alarms_hist_simple.py</td>
+<td>~286</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/comm</code></td>
+<td>communication.py</td>
+<td>~200+</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/viewer-tag</code></td>
+<td>viewer_tag.py</td>
+<td>~250+</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>/scada-alarms</code></td>
+<td>scada_alarm_viewer.py</td>
+<td>~200+</td>
+<td>Low-Med</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>dashboard.py</td>
+<td>~22 (view in views/)</td>
+<td>High (view)</td>
+</tr>
+</tbody>
+</table>
+</body></html>

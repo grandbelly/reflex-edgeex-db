@@ -992,5 +992,4 @@ class ModelPerformanceState(rx.State):
         from reflex.utils import console
         console.log(f"Navigating to forecast player with sensor: {self.selected_sensor}")
 
-        # ✅ FIX: Use correct route /forecast-player-fixed
-        return rx.redirect(f"/forecast-player-fixed?sensor={self.selected_sensor}")
+        return rx.redirect(f"/forecast?sensor={self.selected_sensor}")

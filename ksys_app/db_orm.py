@@ -16,13 +16,14 @@ from typing import Optional, AsyncGenerator
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
     AsyncSession,
     async_sessionmaker,
     AsyncEngine
 )
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool, AsyncAdaptedQueuePool
 import logging
 logger = logging.getLogger(__name__)
 
@@ -34,12 +35,25 @@ RAW_DSN = os.getenv(
     "postgresql://postgres:postgres@pgai-db:5432/ecoanp?sslmode=disable"
 )
 
-# Pool configuration
-USE_POOLING = os.getenv("USE_DB_POOLING", "true").lower() == "true"
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "20"))
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "30"))
-POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "10"))
-POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "3600"))
+# USE_DB_POOLING=false keeps NullPool (default, for Reflex background events
+# which each open a fresh asyncpg connection). Long-running schedulers should
+# opt in via USE_DB_POOLING=true to avoid per-query connection-setup latency.
+USE_POOLING = os.getenv("USE_DB_POOLING", "false").lower() == "true"
+POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
+MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+POOL_RECYCLE = int(os.getenv("DB_POOL_RECYCLE", "1800"))
+
+# asyncpg command_timeout was previously hardcoded to 10s — too tight for
+# TimescaleDB hypertable inserts (chunk creation + many horizons per session).
+COMMAND_TIMEOUT = int(os.getenv("DB_COMMAND_TIMEOUT", "30"))
+CONNECT_TIMEOUT = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
+
+# Server-side statement_timeout in ms (set 0 to disable). Independent of
+# asyncpg's command_timeout — enforced by Postgres, bounds the query DB-side.
+STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "30000"))
+
+POOL_TRACE = os.getenv("DB_POOL_TRACE", "false").lower() == "true"
 
 def normalize_asyncpg_url(raw: str) -> str:
     """
@@ -86,27 +100,91 @@ class EngineManager:
     def __init__(self):
         self._engine: Optional[AsyncEngine] = None
         self._session_factory: Optional[async_sessionmaker] = None
+        # Diagnostics — populated when POOL_TRACE is on (or accessed by tests)
+        self.checkouts = 0
+        self.checkins = 0
+        self.connects = 0
 
     def get_engine(self) -> AsyncEngine:
         """Get or create engine (lazy initialization)"""
         if self._engine is None:
-            # Use NullPool for Reflex - creates new connection per request
-            # This avoids asyncio/greenlet compatibility issues
-            logger.info("Creating async engine with NullPool for Reflex compatibility")
+            server_settings = {
+                "application_name": "reflex_app",
+                "jit": "off",
+            }
+            if STATEMENT_TIMEOUT_MS > 0:
+                # asyncpg uses str values for server_settings
+                server_settings["statement_timeout"] = str(STATEMENT_TIMEOUT_MS)
 
-            self._engine = create_async_engine(
-                ASYNC_URL,
-                echo=False,
-                poolclass=NullPool,  # CRITICAL: NullPool for Reflex compatibility
-                connect_args={
-                    "server_settings": {
-                        "application_name": "reflex_app",
-                        "jit": "off"
-                    },
-                    "timeout": 10,
-                    "command_timeout": 10,  # Command timeout
-                }
-            )
+            connect_args = {
+                "server_settings": server_settings,
+                "timeout": CONNECT_TIMEOUT,
+                "command_timeout": COMMAND_TIMEOUT,
+            }
+
+            if USE_POOLING:
+                logger.info(
+                    "Creating async engine with AsyncAdaptedQueuePool "
+                    "(pool_size=%d, max_overflow=%d, pool_timeout=%d, "
+                    "pool_recycle=%d, command_timeout=%d, "
+                    "statement_timeout_ms=%d)",
+                    POOL_SIZE, MAX_OVERFLOW, POOL_TIMEOUT,
+                    POOL_RECYCLE, COMMAND_TIMEOUT, STATEMENT_TIMEOUT_MS,
+                )
+                self._engine = create_async_engine(
+                    ASYNC_URL,
+                    echo=False,
+                    poolclass=AsyncAdaptedQueuePool,
+                    pool_size=POOL_SIZE,
+                    max_overflow=MAX_OVERFLOW,
+                    pool_timeout=POOL_TIMEOUT,
+                    pool_recycle=POOL_RECYCLE,
+                    pool_pre_ping=True,
+                    connect_args=connect_args,
+                )
+            else:
+                # Legacy behavior: NullPool for Reflex background-event
+                # compatibility. Each get_async_session() opens a fresh
+                # asyncpg connection.
+                logger.info(
+                    "Creating async engine with NullPool "
+                    "(command_timeout=%d, statement_timeout_ms=%d)",
+                    COMMAND_TIMEOUT, STATEMENT_TIMEOUT_MS,
+                )
+                self._engine = create_async_engine(
+                    ASYNC_URL,
+                    echo=False,
+                    poolclass=NullPool,
+                    connect_args=connect_args,
+                )
+
+            # Pool checkout/checkin counters — drive the connection-leak
+            # regression tests; opt-in trace logging via DB_POOL_TRACE=true.
+            sync_engine = self._engine.sync_engine
+
+            @event.listens_for(sync_engine, "connect")
+            def _on_connect(dbapi_conn, conn_record):  # noqa: ARG001
+                self.connects += 1
+                if POOL_TRACE:
+                    logger.debug("DB connect (#%d)", self.connects)
+
+            @event.listens_for(sync_engine, "checkout")
+            def _on_checkout(dbapi_conn, conn_record, conn_proxy):  # noqa: ARG001
+                self.checkouts += 1
+                if POOL_TRACE:
+                    logger.debug(
+                        "DB checkout (#%d, outstanding=%d)",
+                        self.checkouts, self.checkouts - self.checkins,
+                    )
+
+            @event.listens_for(sync_engine, "checkin")
+            def _on_checkin(dbapi_conn, conn_record):  # noqa: ARG001
+                self.checkins += 1
+                if POOL_TRACE:
+                    logger.debug(
+                        "DB checkin (#%d, outstanding=%d)",
+                        self.checkins, self.checkouts - self.checkins,
+                    )
 
             self._session_factory = async_sessionmaker(
                 bind=self._engine,
@@ -128,6 +206,14 @@ class EngineManager:
             await self._engine.dispose()
             self._engine = None
             self._session_factory = None
+            self.checkouts = 0
+            self.checkins = 0
+            self.connects = 0
+
+    @property
+    def outstanding_connections(self) -> int:
+        """Connections currently checked out but not yet returned."""
+        return self.checkouts - self.checkins
 
 # Global manager instance
 _manager = EngineManager()
@@ -171,6 +257,16 @@ def get_engine() -> AsyncEngine:
     WARNING: Usually you should use get_async_session() instead
     """
     return _manager.get_engine()
+
+
+def get_engine_manager() -> "EngineManager":
+    """Return the singleton EngineManager (exposes checkout/checkin counters).
+
+    Intended for tests and operational diagnostics — production code should
+    keep using ``get_async_session()``.
+    """
+    return _manager
+
 
 async def close_engine():
     """Close the engine and clean up connections"""

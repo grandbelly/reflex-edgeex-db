@@ -1,0 +1,2789 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_10_screens_operations_domain</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="operations-b3">화면 설계서 — Operations 도메인 (B3 담당)</h1>
+<blockquote>
+<p>Spec #10 | Generated: 2026-05-28
+수박 겉핥기 금지. 정통 SI 화면 설계서 깊이.</p>
+</blockquote>
+<hr />
+<h2 id="_1">목차</h2>
+<ol>
+<li><a href="#1-메타-개요">메타 개요</a></li>
+<li><a href="#2-대시보드-">대시보드 <code>/</code></a></li>
+<li><a href="#3-viewer-tag-viewer-tag">Viewer Tag <code>/viewer-tag</code></a></li>
+<li><a href="#4-sensors--미등록-페이지">Sensors — 미등록 페이지</a></li>
+<li><a href="#5-sync-monitor-sync">Sync Monitor <code>/sync</code></a></li>
+<li><a href="#6-communication-comm">Communication <code>/comm</code></a></li>
+<li><a href="#7-도메인-공통-결함-요약">도메인 공통 결함 요약</a></li>
+</ol>
+<hr />
+<h2 id="1">1. 메타 개요</h2>
+<h3 id="11-operations">1.1 Operations 도메인 범위</h3>
+<p>Operations 도메인은 IoT 센서 실시간 운영, 태그 가시성 관리, 상위 클라우드 동기화, 통신 품질 모니터링 4개 영역을 커버한다. 이 스펙은 각 페이지의 UI 구조, 상태 바인딩, 이벤트 흐름, 성능 이슈, 알려진 결함을 SI 화면 설계서 기준으로 기술한다.</p>
+<h3 id="12-operations">1.2 Operations 도메인 페이지 인벤토리</h3>
+<table>
+<thead>
+<tr>
+<th>번호</th>
+<th>URL</th>
+<th>파일</th>
+<th>상태</th>
+<th>LoC (UI+State)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B3-01</td>
+<td><code>/</code></td>
+<td>pages/dashboard.py + views/dashboard_realtime_view.py + states/dashboard_realtime.py</td>
+<td>등록됨</td>
+<td>848 (view) + 597 (state) = 1,445</td>
+</tr>
+<tr>
+<td>B3-02</td>
+<td><code>/viewer-tag</code></td>
+<td>pages/viewer_tag.py + states/viewer_tag_state.py</td>
+<td>등록됨</td>
+<td>313 + 333 = 646</td>
+</tr>
+<tr>
+<td>B3-03</td>
+<td><code>/sensors</code></td>
+<td>—</td>
+<td><strong>페이지 없음</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>B3-04</td>
+<td><code>/sync</code></td>
+<td>(SyncMonitorState 존재, 페이지 모듈 없음)</td>
+<td><strong>ORPHAN STATE</strong></td>
+<td>244 (state만)</td>
+</tr>
+<tr>
+<td>B3-05</td>
+<td><code>/comm</code></td>
+<td>pages/communication.py + states/communication_state.py</td>
+<td>등록됨</td>
+<td>361 + 501 = 862</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>참고</strong>: spec_02에서 지적된 DashboardState(states/dashboard/state.py)는 1,635 LoC god-class이나
+현재 <code>/</code> 페이지는 이를 사용하지 않는다. DashboardState는 legacy — <code>features_table</code>, <code>indicators_table</code>
+컴포넌트에서만 참조. 실제 활성 대시보드는 DashboardRealtimeState(597 LoC)를 사용한다.</p>
+</blockquote>
+<hr />
+<h2 id="2">2. 대시보드 <code>/</code></h2>
+<h3 id="21">2.1 기본 정보</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>/</code></td>
+</tr>
+<tr>
+<td>페이지 함수</td>
+<td><code>dashboard()</code> in <code>pages/dashboard.py</code></td>
+</tr>
+<tr>
+<td>View 함수</td>
+<td><code>dashboard_realtime_page()</code> in <code>views/dashboard_realtime_view.py</code></td>
+</tr>
+<tr>
+<td>State</td>
+<td><code>DashboardRealtimeState</code> in <code>states/dashboard_realtime.py</code></td>
+</tr>
+<tr>
+<td>보조 State</td>
+<td><code>SchedulerState</code> (on_load 시작, UI 없음)</td>
+</tr>
+<tr>
+<td>LoC</td>
+<td>pages/dashboard.py: 21 / views/dashboard_realtime_view.py: 848 / states/dashboard_realtime.py: 597</td>
+</tr>
+<tr>
+<td>on_load</td>
+<td><code>DashboardRealtimeState.start_streaming</code>, <code>SchedulerState.start_schedulers</code></td>
+</tr>
+<tr>
+<td>타이틀</td>
+<td>"Dashboard | KSYS"</td>
+</tr>
+<tr>
+<td>레이아웃 래퍼</td>
+<td><code>shell()</code> (components/layout.py)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-text-based-wireframe">2.2 화면 레이아웃 (Text-based Wireframe)</h3>
+<pre><code>+==============================================================================+
+| [sidebar]  | DASHBOARD                                                        |
+|            +------------------------------------------------------------------|
+|            | [activity icon] 실시간 모니터링          ● LIVE  Last: HH:MM:SS  |
+|            +------------------------------------------------------------------+
+|            | [KPI Row — 4 tiles]                                              |
+|            | +----------+ +----------+ +----------+ +----------+             |
+|            | | 총 센서  | | Normal   | | Warning  | | Critical |             |
+|            | |   9      | |   1      | |   1      | |   7      |             |
+|            | | cpu icon | |check icon| |alert icon| |alert icon|             |
+|            | +----------+ +----------+ +----------+ +----------+             |
+|            +------------------------------------------------------------------+
+|            | [Status Badge Row]                                               |
+|            | ● Normal: 1   ● Warning: 1   ● Critical: 7                     |
+|            +------------------------------------------------------------------+
+|            | [Sensor Card Grid — responsive 1/2/4 columns]                   |
+|            | +------------------+ +------------------+ +------------------+  |
+|            | | TAG_NAME         | | TAG_NAME         | | TAG_NAME         |  |
+|            | | Description      | | Description      | | Description      |  |
+|            | | [settings btn]   | | [settings btn]   | | [settings btn]   |  |
+|            | | [badge: Normal/  | | [badge: Warning] | | [badge: Critical]|  |
+|            | |  Warning/Critical]                                            |  |
+|            | | [Gauge 50px] 9.45| | [Gauge 50px] ... | | [Gauge 50px] ... |  |
+|            | |  unit label      | |                  | |                  |  |
+|            | | min ~ max range  | | min ~ max range  | | min ~ max range  |  |
+|            | | timestamp label  | | timestamp        | | timestamp        |  |
+|            | | [Mini Chart      | | [Mini Chart]     | | [Mini Chart]     |  |
+|            | |  (click=dialog)] | | (clickable)      | | (clickable)      |  |
+|            | +------------------+ +------------------+ +------------------+  |
+|            +------------------------------------------------------------------+
+|            | [실시간 알람 모니터링 테이블]                                    |
+|            | ID | 상태  | 현재값 | 범위       | 초과량 | 위험도 | 판정시간  |액션|
+|            | ---|-------|--------|------------|--------|--------|---------- |---|
+|            | T1 |NORMAL | 9.45   | 0~100      | -      | ▓░░░  | 2025-.. |확인|
+|            | T2 |WARN.. | 85.2   | 0~80       | 5.2    | ▓▓░░  | 2025-.. |조치|
+|            +------------------------------------------------------------------+
++==============================================================================+
+
+[Dialog 1: Full-Screen Chart — open on mini chart click]
++----------------------------------------------+
+| [X] Sensor Chart: TAG_NAME                   |
+| [badge] Current: 9.45  Range: 0~100          |
+| [Large Area Chart — 500px height]            |
+|  - X axis: timestamp (45deg rotated)         |
+|  - Y axis: value                             |
+|  - Reference lines: min/max (orange dashed)  |
+| Last 24 hours | Updated: HH:MM:SS            |
++----------------------------------------------+
+
+[Dialog 2: Sensor Edit — open on settings icon click]
++----------------------------------------------+
+| [settings] 센서 정보 편집                    |
+| 센서 TAG_NAME의 정보를 수정합니다.           |
+| 설명: [input]                                |
+| 단위: [input]  (예: °C, %, bar)              |
+| 최소값: [number]  최대값: [number]           |
+| 경고 하한: [number]  경고 상한: [number]     |
+| 위험 하한: [number]  위험 상한: [number]     |
+| [취소]                     [저장]            |
++----------------------------------------------+
+</code></pre>
+<h3 id="23">2.3 컴포넌트 명세 표</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State Binding</th>
+<th>Event</th>
+<th>라벨</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>realtime_header</code></td>
+<td>최상단 bar</td>
+<td>rx.box / rx.hstack</td>
+<td><code>DashboardRealtimeState.last_update</code></td>
+<td>없음 (display only)</td>
+<td>"실시간 모니터링"</td>
+</tr>
+<tr>
+<td>LIVE 펄스 뱃지</td>
+<td>header 우측</td>
+<td>rx.badge (green)</td>
+<td>없음</td>
+<td>없음</td>
+<td>"LIVE" (animation: pulse 2s infinite)</td>
+</tr>
+<tr>
+<td>Last update 텍스트</td>
+<td>header 우측</td>
+<td>rx.text (monospace)</td>
+<td><code>.last_update</code></td>
+<td>없음</td>
+<td>"Last update: {timestamp}"</td>
+</tr>
+<tr>
+<td><code>dashboard_kpi_tiles_compact</code></td>
+<td>KPI Row</td>
+<td>rx.grid columns=4</td>
+<td><code>.total_devices</code>, <code>.normal_count</code>, <code>.warning_count</code>, <code>.critical_count</code></td>
+<td>없음</td>
+<td>"총 센서 수 / Normal / Warning / Critical"</td>
+</tr>
+<tr>
+<td><code>status_badges_row</code></td>
+<td>KPI 아래</td>
+<td>rx.hstack</td>
+<td><code>.normal_count</code>, <code>.warning_count</code>, <code>.critical_count</code></td>
+<td>없음</td>
+<td>"● Normal: N ● Warning: N ● Critical: N"</td>
+</tr>
+<tr>
+<td>Sensor Card Grid</td>
+<td>메인 영역</td>
+<td>rx.grid (1/2/4 col responsive)</td>
+<td><code>DashboardRealtimeState.formatted_sensors</code></td>
+<td>rx.foreach</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>sensor_tile</code> — tag/description</td>
+<td>카드 헤더</td>
+<td>rx.text (gray/small)</td>
+<td><code>sensor["tag_name"]</code>, <code>sensor["description"]</code></td>
+<td>없음</td>
+<td>tag_name + description</td>
+</tr>
+<tr>
+<td><code>sensor_tile</code> — settings icon</td>
+<td>카드 헤더 우측</td>
+<td>rx.icon_button</td>
+<td>—</td>
+<td><code>DashboardRealtimeState.open_edit_dialog(tag_name, ...)</code></td>
+<td>gear icon, size=1</td>
+</tr>
+<tr>
+<td><code>sensor_tile</code> — status badge</td>
+<td>카드 헤더 우측</td>
+<td>rx.badge</td>
+<td><code>sensor["status"]</code> → 0/1/2</td>
+<td>없음</td>
+<td>"Normal" / "Warning" / "Critical"</td>
+</tr>
+<tr>
+<td>Circular gauge (small 50px)</td>
+<td>카드 중단 좌</td>
+<td>rc.circular_progress</td>
+<td><code>sensor["gauge_percent"]</code>, <code>sensor["status"]</code></td>
+<td>없음</td>
+<td>gauge_percent% (color: green/yellow/red)</td>
+</tr>
+<tr>
+<td>Current value + unit</td>
+<td>카드 중단 우</td>
+<td>rx.text size="7" bold</td>
+<td><code>sensor["value"]</code>, <code>sensor["unit"]</code></td>
+<td>없음</td>
+<td>"{value:.2f} {unit}"</td>
+</tr>
+<tr>
+<td>Range text</td>
+<td>카드 중단 하</td>
+<td>rx.text size="1"</td>
+<td><code>sensor["min_val"]</code>, <code>sensor["max_val"]</code></td>
+<td>없음</td>
+<td>"{min:.2f} ~ {max:.2f}"</td>
+</tr>
+<tr>
+<td>Timestamp</td>
+<td>차트 위</td>
+<td>rx.text size="1" gray</td>
+<td><code>sensor["timestamp"]</code></td>
+<td>없음</td>
+<td>최신 판정 시각</td>
+</tr>
+<tr>
+<td>Mini chart (clickable)</td>
+<td>카드 하단</td>
+<td>rx.box &gt; mini_chart()</td>
+<td><code>sensor["chart_points"]</code>, <code>sensor["chart_color"]</code>, <code>sensor["min_val"]</code>, <code>sensor["max_val"]</code></td>
+<td><code>DashboardRealtimeState.open_chart_dialog(tag)</code></td>
+<td>클릭 시 전체화면 차트 다이얼로그</td>
+</tr>
+<tr>
+<td>Alarm table</td>
+<td>페이지 하단</td>
+<td>rx.table.root</td>
+<td><code>DashboardRealtimeState.sensors</code></td>
+<td>rx.foreach</td>
+<td>"실시간 알람 모니터링"</td>
+</tr>
+<tr>
+<td>Alarm table — action button</td>
+<td>행 우측</td>
+<td>rx.button</td>
+<td><code>sensor["status"]</code></td>
+<td>없음 (버튼 존재하나 on_click 없음 — <strong>결함</strong>)</td>
+<td>"확인" / "조치"</td>
+</tr>
+<tr>
+<td>Full-screen chart dialog</td>
+<td>overlay</td>
+<td>rx.dialog.root</td>
+<td><code>DashboardRealtimeState.show_chart_dialog</code>, <code>.chart_dialog_tag_name</code>, <code>.chart_dialog_data</code>, <code>.chart_dialog_sensor</code></td>
+<td><code>set_show_chart_dialog</code></td>
+<td>max_width="90vw"</td>
+</tr>
+<tr>
+<td>Sensor edit dialog</td>
+<td>overlay</td>
+<td>rx.dialog.root</td>
+<td><code>DashboardRealtimeState.show_edit_dialog</code>, edit_* vars</td>
+<td><code>save_sensor_info</code>, <code>set_show_edit_dialog</code></td>
+<td>max_width="500px"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="24-state-dashboardrealtimestate">2.4 State 변수 매핑 — DashboardRealtimeState</h3>
+<p><strong>Group 1: 센서 데이터</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sensors</code></td>
+<td><code>List[Dict]</code></td>
+<td>DB에서 로드한 원본 센서 리스트. 각 센서는 tag_name, status, value, gauge_percent, chart_points 등 포함</td>
+<td><code>[]</code></td>
+</tr>
+<tr>
+<td><code>chart_data</code></td>
+<td><code>Dict[str, List[Dict]]</code></td>
+<td>집계 차트 데이터 (tag → [{timestamp, value}])</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td><code>forecast_data</code></td>
+<td><code>Dict[str, Dict]</code></td>
+<td>배포된 ML 모델의 24시간 예측값 (tag → {predictions, timestamps, model_info})</td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Group 2: KPI / 통계</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>normal_count</code></td>
+<td><code>int</code></td>
+<td>status==0 센서 수</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>warning_count</code></td>
+<td><code>int</code></td>
+<td>status==1 센서 수</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>critical_count</code></td>
+<td><code>int</code></td>
+<td>status==2 센서 수</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>total_devices</code></td>
+<td><code>int</code></td>
+<td>SensorService.get_dashboard_statistics()에서 로드</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>critical_percentage</code></td>
+<td><code>float</code></td>
+<td>Critical 비율 (%)</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>avg_critical_deviation</code></td>
+<td><code>float</code></td>
+<td>Critical 센서 평균 초과량 (%)</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>max_alarm_sensor</code></td>
+<td><code>str</code></td>
+<td>최대 알람값 센서 이름</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>max_alarm_value</code></td>
+<td><code>float</code></td>
+<td>최대 알람값</td>
+<td>0.0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Group 3: UI / 스트리밍 제어</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>last_update</code></td>
+<td><code>str</code></td>
+<td>마지막 갱신 시각 (KST, strftime format)</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>is_streaming</code></td>
+<td><code>bool</code></td>
+<td>스트리밍 루프 활성화 여부</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>update_interval</code></td>
+<td><code>int</code></td>
+<td>폴링 간격 (초). 코드 주석은 "15 seconds"이나 실제값 30 — <strong>주석-코드 불일치 결함</strong></td>
+<td>30</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Group 4: Sensor Edit Dialog</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>show_edit_dialog</code></td>
+<td><code>bool</code></td>
+<td>편집 다이얼로그 표시 여부</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>edit_tag_name</code></td>
+<td><code>str</code></td>
+<td>편집 중인 센서 ID</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>edit_description</code></td>
+<td><code>str</code></td>
+<td>편집 중인 설명</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>edit_unit</code></td>
+<td><code>str</code></td>
+<td>편집 중인 단위</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>edit_min_val</code></td>
+<td><code>float</code></td>
+<td>편집 중인 최소값</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>edit_max_val</code></td>
+<td><code>float</code></td>
+<td>편집 중인 최대값</td>
+<td>100.0</td>
+</tr>
+<tr>
+<td><code>edit_warning_low</code></td>
+<td><code>float</code></td>
+<td>경고 하한</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>edit_warning_high</code></td>
+<td><code>float</code></td>
+<td>경고 상한</td>
+<td>100.0</td>
+</tr>
+<tr>
+<td><code>edit_critical_low</code></td>
+<td><code>float</code></td>
+<td>위험 하한</td>
+<td>0.0</td>
+</tr>
+<tr>
+<td><code>edit_critical_high</code></td>
+<td><code>float</code></td>
+<td>위험 상한</td>
+<td>120.0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Group 5: Full-Screen Chart Dialog</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>show_chart_dialog</code></td>
+<td><code>bool</code></td>
+<td>전체화면 차트 다이얼로그 표시 여부</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>chart_dialog_tag_name</code></td>
+<td><code>str</code></td>
+<td>현재 열린 차트 센서 ID</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>chart_dialog_data</code></td>
+<td><code>List[Dict]</code></td>
+<td>24시간 상세 차트 데이터 (background 로드)</td>
+<td><code>[]</code></td>
+</tr>
+<tr>
+<td><code>chart_dialog_sensor</code></td>
+<td><code>Dict</code></td>
+<td>현재 센서 메타데이터 (status, value_str, range_str 포함)</td>
+<td><code>{}</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>@rx.var computed properties (10개)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>반환 타입</th>
+<th>설명</th>
+<th>성능 이슈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>total_sensors</code></td>
+<td><code>int</code></td>
+<td>len(sensors)</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>system_status</code></td>
+<td><code>str</code></td>
+<td>"critical" / "warning" / "normal"</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>status_color</code></td>
+<td><code>str</code></td>
+<td>green/yellow/red</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>is_loading</code></td>
+<td><code>bool</code></td>
+<td>loading or not sensors</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>formatted_sensors</code></td>
+<td><code>List[Dict]</code></td>
+<td>sensors + chart_data 조합. 각 렌더마다 재계산 — <strong>성능 이슈</strong></td>
+<td>chart_data 딕셔너리 조회를 매 렌더마다 반복</td>
+</tr>
+<tr>
+<td><code>critical_percentage_display</code></td>
+<td><code>str</code></td>
+<td>f"{critical_percentage:.2f}%"</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>avg_deviation_display</code></td>
+<td><code>str</code></td>
+<td>f"{avg_critical_deviation:.2f}%"</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>max_alarm_display</code></td>
+<td><code>str</code></td>
+<td>f"{max_alarm_value:.2f}"</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>warning_percentage</code></td>
+<td><code>float</code></td>
+<td>warning_count / total_devices × 100</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>normal_percentage</code></td>
+<td><code>float</code></td>
+<td>normal_count / total_devices × 100</td>
+<td>없음</td>
+</tr>
+</tbody>
+</table>
+<h3 id="25-event-handler">2.5 Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>타입</th>
+<th>트리거</th>
+<th>동작</th>
+<th>성능/결함</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_streaming</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>on_load</td>
+<td>초기 데이터 로드 후 <code>update_interval</code>(30s) 주기로 <code>_fetch_data()</code> 반복 호출. <code>is_streaming=True</code> 동안 무한 루프</td>
+<td>페이지 떠나도 루프 중단 조건 없음 — <strong>좀비 루프 위험</strong></td>
+</tr>
+<tr>
+<td><code>stop_streaming</code></td>
+<td><code>async def</code></td>
+<td>(현재 외부 호출 없음)</td>
+<td><code>is_streaming=False</code> 설정</td>
+<td>페이지 off-mount 핸들러 연결 없음 — <strong>결함</strong></td>
+</tr>
+<tr>
+<td><code>_fetch_data</code></td>
+<td><code>async def</code> (internal)</td>
+<td>start_streaming 내부</td>
+<td>SensorService → sensor data + statistics + forecast 가져옴. 모든 DB 작업 포함</td>
+<td>timeout=update_interval-2(28s). 타임아웃 시 last_update에 오류 메시지 표시</td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>(외부 버튼 없음 — 현재 UI에 수동 새로고침 버튼 없음)</td>
+<td>_fetch_data 호출 후 yield</td>
+<td>UI에 refresh 버튼 없음 — <strong>UX 결함</strong></td>
+</tr>
+<tr>
+<td><code>open_edit_dialog</code></td>
+<td><code>def</code></td>
+<td>sensor_tile settings icon click</td>
+<td>edit_* vars 일괄 설정 + show_edit_dialog=True</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>close_edit_dialog</code></td>
+<td><code>def</code></td>
+<td>다이얼로그 취소</td>
+<td>show_edit_dialog=False</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>update_min_val</code> / <code>update_max_val</code> / <code>update_warning_low</code> / <code>update_warning_high</code> / <code>update_critical_low</code> / <code>update_critical_high</code></td>
+<td><code>def</code> (×6)</td>
+<td>input on_change</td>
+<td>문자열 → float 변환 (ValueError 처리 포함)</td>
+<td>6개 분리 핸들러 → 단일 <code>update_threshold(field, value)</code> 함수로 통합 권장</td>
+</tr>
+<tr>
+<td><code>save_sensor_info</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>편집 다이얼로그 "저장"</td>
+<td>SensorService.update_sensor_metadata 호출 → show_edit_dialog=False → _fetch_data 재로드</td>
+<td>저장 성공/실패 시 사용자 피드백 없음 (오류만 last_update에 표시) — <strong>UX 결함</strong></td>
+</tr>
+<tr>
+<td><code>open_chart_dialog</code></td>
+<td><code>def</code></td>
+<td>mini chart 클릭</td>
+<td>즉시 dialog 열고 load_chart_data background 호출</td>
+<td>좋은 패턴: 즉시 열고 데이터 비동기 로드</td>
+</tr>
+<tr>
+<td><code>load_chart_data</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>open_chart_dialog에서 호출</td>
+<td>24시간 데이터 로드 → chart_dialog_data 설정</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>close_chart_dialog</code></td>
+<td><code>def</code></td>
+<td>dialog close 버튼</td>
+<td>show=False, 데이터 초기화</td>
+<td>set_show_chart_dialog로도 닫힘 (on_open_change 연결)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="26-ui">2.6 상태별 UI</h3>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>표현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Loading / 초기</strong></td>
+<td><code>last_update="Initializing..."</code>, sensors=[] → sensor grid 빈 상태. KPI tiles는 0으로 표시. 스피너 없음 — <strong>결함</strong>: 로딩 중 시각적 피드백 없음</td>
+</tr>
+<tr>
+<td><strong>데이터 정상</strong></td>
+<td>Sensor card grid 표시. KPI tiles 갱신. Last update timestamp 표시. 30초마다 자동 갱신</td>
+</tr>
+<tr>
+<td><strong>DB 타임아웃</strong></td>
+<td><code>last_update="Timeout at HH:MM:SS"</code> — header의 timestamp만 변경. 카드는 이전 데이터 유지</td>
+</tr>
+<tr>
+<td><strong>오류</strong></td>
+<td><code>last_update="Error: {message[:50]}"</code> — 이전 데이터 유지</td>
+</tr>
+<tr>
+<td><strong>chart_dialog open</strong></td>
+<td>dialog 오버레이 표시. 초기엔 chart_dialog_data=[] → 빈 차트. background 로드 완료 후 데이터 채워짐</td>
+</tr>
+<tr>
+<td><strong>edit_dialog open</strong></td>
+<td>edit_* vars로 초기화된 폼 표시</td>
+</tr>
+<tr>
+<td><strong>sensor 없음</strong></td>
+<td>sensor grid 빈 상태 (빈 foreach). 에러 메시지 없음 — <strong>결함</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="27-status-badge">2.7 Status Badge 색상 코드</h3>
+<p>센서 카드의 status badge 및 gauge 색상은 <code>sensor["status"]</code> (0/1/2) 기준:</p>
+<table>
+<thead>
+<tr>
+<th>status 값</th>
+<th>의미</th>
+<th>Badge color_scheme</th>
+<th>Gauge color</th>
+<th>Chart color (hex)</th>
+<th>Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Normal</td>
+<td><code>"green"</code></td>
+<td><code>"green.500"</code></td>
+<td><code>#10b981</code> (emerald-500)</td>
+<td>정상</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Warning</td>
+<td><code>"amber"</code></td>
+<td><code>"yellow.500"</code></td>
+<td><code>#eab308</code> (yellow-500)</td>
+<td>주의</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Critical</td>
+<td><code>"red"</code></td>
+<td><code>"red.500"</code></td>
+<td><code>#ef4444</code> (red-500)</td>
+<td>위험</td>
+</tr>
+</tbody>
+</table>
+<p>Alarm table 행 배경색: status==2 → <code>rgba(239, 68, 68, 0.1)</code> + 좌측 border <code>4px solid #ef4444</code> / status==1 → amber 계열 / status==0 → white.</p>
+<h3 id="28-god-class-dashboardstate-legacy-dashboardrealtimestate">2.8 God-Class 분리 제안 (DashboardState legacy → 향후 DashboardRealtimeState)</h3>
+<p>현재 <code>states/dashboard/state.py</code>는 1,635 LoC로 spec_02에서 god-class 지적. 활성 대시보드는 DashboardRealtimeState를 사용하지만, 이도 성장 중. 제안 sub-component 분리:</p>
+<table>
+<thead>
+<tr>
+<th>가상 Sub-Component</th>
+<th>현재 위치</th>
+<th>책임</th>
+<th>분리 근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SensorCardComponent</code></td>
+<td>views/dashboard_realtime_view.py: <code>sensor_tile()</code> (L286-475)</td>
+<td>개별 센서 카드 렌더링 (gauge + chart + badge)</td>
+<td>독립 재사용 가능, 알람 페이지에서도 동일 카드 필요</td>
+</tr>
+<tr>
+<td><code>MiniChartComponent</code></td>
+<td>views/dashboard_realtime_view.py: <code>mini_chart()</code> (L135-283)</td>
+<td>Recharts Area 차트 (status color, threshold lines)</td>
+<td>트렌드 페이지와 중복 가능성. 별도 컴포넌트로 분리 시 재사용</td>
+</tr>
+<tr>
+<td><code>AlarmTableComponent</code></td>
+<td>views/dashboard_realtime_view.py: <code>alarm_monitoring_table()</code> (L478-511)</td>
+<td>실시간 알람 테이블</td>
+<td>알람 도메인 페이지와 중복. alarms/ 도메인으로 이관 권장</td>
+</tr>
+<tr>
+<td><code>SensorEditDialogComponent</code></td>
+<td>views/dashboard_realtime_view.py: <code>sensor_edit_dialog()</code> (L645-802)</td>
+<td>센서 메타데이터 편집 폼</td>
+<td>독립 컴포넌트화 시 viewer-tag 페이지에서도 재사용 가능</td>
+</tr>
+<tr>
+<td><code>FullScreenChartDialogComponent</code></td>
+<td>views/dashboard_realtime_view.py: <code>full_screen_chart_dialog()</code> (L515-642)</td>
+<td>전체화면 24시간 차트</td>
+<td>트렌드 페이지 차트와 중복. 공통 컴포넌트 가능</td>
+</tr>
+<tr>
+<td><code>KPITileRowComponent</code></td>
+<td>components/dashboard/kpi_tile.py: <code>dashboard_kpi_tiles_compact()</code></td>
+<td>4개 KPI 타일</td>
+<td>이미 분리됨. 현행 유지</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Streaming 동작 요약</strong>: <code>start_streaming</code> → initial <code>_fetch_data()</code> (timeout 10s) → 30초 sleep → <code>_fetch_data()</code> (timeout 28s) → 반복. 페이지 unload 시 <code>stop_streaming</code> 호출 없음. WebSocket 연결이 끊어지면 루프는 서버에서 계속 실행 가능.</p>
+<p><strong>KPI 토글 / chart blob 재직렬화 문제</strong>: <code>formatted_sensors</code> (@rx.var)는 캐싱되지 않으며 <code>sensors</code>와 <code>chart_data</code> 두 vars의 조합 연산. sensors 배열(N개)을 매 렌더마다 순회하며 chart_data 딕셔너리에서 조회. 센서 수 증가 시 O(N) 연산이 모든 UI 상태 변경마다 실행됨. <strong>해결책</strong>: <code>sensors</code> 변경 시에만 재계산되도록 <code>@rx.var(cache=True)</code> 또는 별도 background event에서 처리.</p>
+<h3 id="29-save_sensor_info-dialog">2.9 save_sensor_info Dialog 동작</h3>
+<ol>
+<li>settings 아이콘 클릭 → <code>open_edit_dialog(tag_name, description, unit, min_val, max_val, warning_low, warning_high, critical_low, critical_high)</code> 호출</li>
+<li>edit_* vars 일괄 설정, <code>show_edit_dialog=True</code></li>
+<li>사용자 폼 편집 → 각 필드 <code>on_change</code> 핸들러 (6개 별도 함수)</li>
+<li>"저장" 클릭 → <code>save_sensor_info()</code> background 실행</li>
+<li><code>SensorService.update_sensor_metadata()</code> DB 업데이트</li>
+<li>성공 시: <code>show_edit_dialog=False</code>, <code>_fetch_data()</code> 재로드</li>
+<li>실패 시: <code>last_update="Save error: {msg[:50]}"</code> — <strong>toast/callout 없음</strong>, 사용자가 header timestamp 보지 않으면 알 수 없음</li>
+</ol>
+<h3 id="210-responsive">2.10 Responsive 추정</h3>
+<pre><code class="language-python">columns=GRID_PRESETS[&quot;cards_1_2_4&quot;]  # mobile:1, tablet:2, desktop:4
+</code></pre>
+<ul>
+<li>모바일(1열): 센서 카드 전체 너비</li>
+<li>태블릿(2열): 2열 그리드</li>
+<li>데스크톱(4열): 4열 그리드</li>
+<li>KPI row: <code>columns="4"</code> — 고정 4열, 모바일에서 overflow 가능성 있음 (반응형 breakpoint 설정 없음 — <strong>결함</strong>)</li>
+<li>Alarm table: 8열 고정 너비 — 모바일에서 수평 스크롤 없음 — <strong>결함</strong></li>
+</ul>
+<h3 id="211">2.11 알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+<th>위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D-01</td>
+<td>High</td>
+<td><code>stop_streaming</code> 호출 없음 — 페이지 이탈 시 30초 폴링 루프 서버에서 계속 실행</td>
+<td>dashboard_realtime.py:119</td>
+</tr>
+<tr>
+<td>D-02</td>
+<td>Medium</td>
+<td>알람 테이블 "확인"/"조치" 버튼에 <code>on_click</code> 없음 — 동작 없는 더미 버튼</td>
+<td>dashboard_realtime_view.py:491</td>
+</tr>
+<tr>
+<td>D-03</td>
+<td>Medium</td>
+<td><code>update_interval</code> 주석 "15 seconds"이나 실제값 30 — 오해 유발</td>
+<td>dashboard_realtime.py:44</td>
+</tr>
+<tr>
+<td>D-04</td>
+<td>Medium</td>
+<td>KPI tile row <code>columns="4"</code> 고정 — 모바일 overflow 발생 가능</td>
+<td>dashboard/kpi_tile.py:257</td>
+</tr>
+<tr>
+<td>D-05</td>
+<td>Low</td>
+<td><code>save_sensor_info</code> 성공 시 사용자 피드백 없음 (toast 없음)</td>
+<td>dashboard_realtime.py:536-539</td>
+</tr>
+<tr>
+<td>D-06</td>
+<td>Low</td>
+<td>sensor 없을 때 empty state 메시지 없음</td>
+<td>dashboard_realtime_view.py:830-835</td>
+</tr>
+<tr>
+<td>D-07</td>
+<td>Low</td>
+<td><code>formatted_sensors</code> @rx.var 미캐싱 — 매 렌더마다 O(N) 재계산</td>
+<td>dashboard_realtime.py:392-409</td>
+</tr>
+<tr>
+<td>D-08</td>
+<td>Info</td>
+<td>forecast_data 로드되나 UI에 미표시 — 구현 미완성</td>
+<td>dashboard_realtime.py:26-27</td>
+</tr>
+</tbody>
+</table>
+<h3 id="212">2.12 테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>시나리오</th>
+<th>전제</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-D-01</td>
+<td>페이지 진입 — 정상 데이터</td>
+<td>DB에 센서 데이터 존재</td>
+<td>30초 내 KPI tiles, sensor cards, alarm table 표시. Last update timestamp 갱신</td>
+</tr>
+<tr>
+<td>TC-D-02</td>
+<td>센서 카드 미니차트 클릭</td>
+<td>데이터 로드 완료 후</td>
+<td>full-screen chart dialog 즉시 열림. 잠시 후 24시간 데이터 채워짐</td>
+</tr>
+<tr>
+<td>TC-D-03</td>
+<td>settings 아이콘 클릭 → 편집 저장</td>
+<td>임의 센서</td>
+<td>편집 다이얼로그 열림, 값 수정 후 저장 시 DB 업데이트, 카드 값 갱신</td>
+</tr>
+<tr>
+<td>TC-D-04</td>
+<td>편집 다이얼로그 — 잘못된 숫자 입력</td>
+<td>min_val 필드에 "abc" 입력</td>
+<td>update_min_val이 ValueError catch → 0.0으로 설정</td>
+</tr>
+<tr>
+<td>TC-D-05</td>
+<td>30초 경과 자동 갱신</td>
+<td>페이지 진입 30초 후</td>
+<td>last_update timestamp 갱신, 센서 값 업데이트</td>
+</tr>
+<tr>
+<td>TC-D-06</td>
+<td>DB 연결 불가 상태</td>
+<td>DB 컨테이너 정지</td>
+<td>last_update에 "Error: ..." 표시. 기존 센서 데이터 유지</td>
+</tr>
+<tr>
+<td>TC-D-07</td>
+<td>Critical 센서 존재</td>
+<td>status==2 센서 1개 이상</td>
+<td>해당 카드 red badge + red chart color. alarm table 행 빨간 배경 + 좌측 4px border</td>
+</tr>
+<tr>
+<td>TC-D-08</td>
+<td>모바일 viewport (375px)</td>
+<td>브라우저 폭 축소</td>
+<td>sensor grid 1열 전환. KPI tile overflow 여부 확인 (현재 결함 D-04)</td>
+</tr>
+<tr>
+<td>TC-D-09</td>
+<td>차트 다이얼로그 X 버튼</td>
+<td>dialog 열린 상태</td>
+<td>dialog 닫힘, chart_dialog_data 초기화</td>
+</tr>
+<tr>
+<td>TC-D-10</td>
+<td>알람 테이블 "조치" 버튼 클릭</td>
+<td>status==2 센서 존재</td>
+<td>현재: 아무 동작 없음 (결함 D-02). 기대: 알람 처리 플로우</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-viewer-tag-viewer-tag">3. Viewer Tag <code>/viewer-tag</code></h2>
+<h3 id="31">3.1 기본 정보</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>/viewer-tag</code></td>
+</tr>
+<tr>
+<td>페이지 함수</td>
+<td><code>viewer_tag_page()</code> in <code>pages/viewer_tag.py</code></td>
+</tr>
+<tr>
+<td>State</td>
+<td><code>ViewerTagState</code> in <code>states/viewer_tag_state.py</code></td>
+</tr>
+<tr>
+<td>LoC</td>
+<td>pages/viewer_tag.py: 313 / states/viewer_tag_state.py: 333</td>
+</tr>
+<tr>
+<td>on_load</td>
+<td><code>ViewerTagState.load_tags</code></td>
+</tr>
+<tr>
+<td>타이틀</td>
+<td>(없음 — <code>@rx.page("/viewer-tag", on_load=...)</code> title 파라미터 없음 — <strong>결함</strong>)</td>
+</tr>
+<tr>
+<td>레이아웃 래퍼</td>
+<td><code>rx.box</code> (shell 없음 — 사이드바 없음 — <strong>결함</strong>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="32-text-based-wireframe">3.2 화면 레이아웃 (Text-based Wireframe)</h3>
+<pre><code>+==============================================================================+
+| [eye icon] Tag Viewer Engineering                                             |
+| Control which tags are visible on each screen                                |
++==============================================================================+
+
++--- 3fr (main tag table) ----------+--- 1fr (sidebar) -------------------+
+| [Viewer Tags]          [+Add Tag] | [Bulk Actions card]                 |
+|                        [Refresh]  |   Dashboard: [Show All][Hide All]   |
+|                                   |                                     |
+| [callout error — red]             | [Available Tags card]               |
+| [callout success — green]         |   Tags in influx_hist but           |
+|                                   |   not in viewer_tag                 |
+| +-----+----------+---+---+---+---+  + TAG_A             [+]             |
+| |Order| Tag Name |Dsh|Alm|Trd|Mdl|  | TAG_B             [+]             |
+| |-----|----------|---|---|---|---|  |   ...                               |
+| |[10] | PRESSURE |[●]|[●]|[●]|[●]|  | (scroll max 200px)               |
+| |[20] | FLOW_1   |[○]|[●]|[●]|[○]|  +-------------------------------------+
+| |[30] | TEMP_A   |[●]|[○]|[○]|[●]|
+| | ... |  ...     |...|...|...|...|
+| +-----+----------+---+---+---+---+
+|  (trash icon per row)             |
++-----------------------------------+
+
+[Dialog: Add Tag]
++------------------------------------------+
+| Add Tag                                  |
+| Enter a tag name to add to viewer_tag    |
+| [input: tag name...]                     |
+| Or select from available:                |
+| [Select dropdown]                        |
+| [Cancel]                    [Add Tag]    |
++------------------------------------------+
+</code></pre>
+<h3 id="33">3.3 컴포넌트 명세 표</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State Binding</th>
+<th>Event</th>
+<th>라벨</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>페이지 헤더</td>
+<td>최상단</td>
+<td>rx.hstack (eye icon + heading)</td>
+<td>없음</td>
+<td>없음</td>
+<td>"Tag Viewer Engineering"</td>
+</tr>
+<tr>
+<td>설명 텍스트</td>
+<td>헤더 아래</td>
+<td>rx.text</td>
+<td>없음</td>
+<td>없음</td>
+<td>"Control which tags are visible on each screen..."</td>
+</tr>
+<tr>
+<td>Add Tag 버튼</td>
+<td>테이블 헤더 우측</td>
+<td>rx.button (green)</td>
+<td>—</td>
+<td><code>ViewerTagState.open_add_dialog</code></td>
+<td>"+ Add Tag"</td>
+</tr>
+<tr>
+<td>Refresh 버튼</td>
+<td>테이블 헤더 우측</td>
+<td>rx.button (soft)</td>
+<td><code>ViewerTagState.is_loading</code></td>
+<td><code>ViewerTagState.load_tags</code></td>
+<td>"Refresh" (loading 스피너 연결)</td>
+</tr>
+<tr>
+<td>Error callout</td>
+<td>테이블 위</td>
+<td>rx.callout (red)</td>
+<td><code>ViewerTagState.error_message</code></td>
+<td>없음</td>
+<td>error_message 텍스트 (조건부 표시)</td>
+</tr>
+<tr>
+<td>Success callout</td>
+<td>테이블 위</td>
+<td>rx.callout (green)</td>
+<td><code>ViewerTagState.success_message</code></td>
+<td>없음</td>
+<td>success_message 텍스트 (조건부 표시)</td>
+</tr>
+<tr>
+<td>Tag table</td>
+<td>메인 영역</td>
+<td>rx.table.root</td>
+<td><code>ViewerTagState.tags</code></td>
+<td>rx.foreach</td>
+<td>7컬럼 테이블</td>
+</tr>
+<tr>
+<td>Display Order 입력</td>
+<td>행 col-1</td>
+<td>rx.input (width=50px)</td>
+<td><code>tag["display_order"]</code></td>
+<td><code>ViewerTagState.update_order(tag_name, e)</code> on_blur</td>
+<td>숫자 입력, blur 시 DB 저장</td>
+</tr>
+<tr>
+<td>Tag Name</td>
+<td>행 col-2</td>
+<td>rx.text (weight=medium)</td>
+<td><code>tag["tag_name"]</code></td>
+<td>없음</td>
+<td>태그 이름 표시</td>
+</tr>
+<tr>
+<td>show_dashboard toggle</td>
+<td>행 col-3</td>
+<td>rx.switch</td>
+<td><code>tag["show_dashboard"]</code></td>
+<td><code>ViewerTagState.toggle_dashboard(tag_name)</code></td>
+<td>size="1"</td>
+</tr>
+<tr>
+<td>show_alarm toggle</td>
+<td>행 col-4</td>
+<td>rx.switch</td>
+<td><code>tag["show_alarm"]</code></td>
+<td><code>ViewerTagState.toggle_alarm(tag_name)</code></td>
+<td>size="1"</td>
+</tr>
+<tr>
+<td>show_trend toggle</td>
+<td>행 col-5</td>
+<td>rx.switch</td>
+<td><code>tag["show_trend"]</code></td>
+<td><code>ViewerTagState.toggle_trend(tag_name)</code></td>
+<td>size="1"</td>
+</tr>
+<tr>
+<td>show_model toggle</td>
+<td>행 col-6</td>
+<td>rx.switch</td>
+<td><code>tag["show_model"]</code></td>
+<td><code>ViewerTagState.toggle_model(tag_name)</code></td>
+<td>size="1"</td>
+</tr>
+<tr>
+<td>Delete 버튼</td>
+<td>행 col-7</td>
+<td>rx.button (ghost, red, trash-2 icon)</td>
+<td>—</td>
+<td><code>ViewerTagState.delete_tag(tag_name)</code></td>
+<td>아이콘만 (trash-2, size=14)</td>
+</tr>
+<tr>
+<td>Bulk Actions card</td>
+<td>사이드바 상단</td>
+<td>rx.card</td>
+<td>—</td>
+<td>show_all_dashboard / hide_all_dashboard</td>
+<td>"Show All" / "Hide All"</td>
+</tr>
+<tr>
+<td>Available Tags card</td>
+<td>사이드바 하단</td>
+<td>rx.card (max_height=200px, overflow=auto)</td>
+<td><code>ViewerTagState.available_tags</code></td>
+<td><code>ViewerTagState.set_add_tag_name(tag)</code></td>
+<td>influx_hist에 있으나 viewer_tag에 없는 태그</td>
+</tr>
+<tr>
+<td>Add Tag Dialog</td>
+<td>overlay</td>
+<td>rx.dialog.root</td>
+<td><code>ViewerTagState.show_add_dialog</code>, <code>.add_tag_name</code>, <code>.available_tags</code></td>
+<td>add_tag, close_add_dialog</td>
+<td>max_width 미설정</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-state-viewertagstate">3.4 State 변수 매핑 — ViewerTagState</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tags</code></td>
+<td><code>List[Dict]</code></td>
+<td>viewer_tag 테이블 전체 (tag_name, display_order, show_dashboard, show_alarm, show_trend, show_model, created_at, updated_at)</td>
+<td><code>[]</code></td>
+</tr>
+<tr>
+<td><code>available_tags</code></td>
+<td><code>List[str]</code></td>
+<td>influx_hist LEFT JOIN viewer_tag WHERE v.tag_name IS NULL 결과 (최근 7일 데이터 있는 태그)</td>
+<td><code>[]</code></td>
+</tr>
+<tr>
+<td><code>is_loading</code></td>
+<td><code>bool</code></td>
+<td>load_tags 실행 중 여부</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>error_message</code></td>
+<td><code>str</code></td>
+<td>오류 메시지 (callout 표시용)</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>success_message</code></td>
+<td><code>str</code></td>
+<td>성공 메시지 (callout 표시용)</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>show_edit_dialog</code></td>
+<td><code>bool</code></td>
+<td>편집 다이얼로그 (현재 UI에서 미사용 — <strong>결함</strong>)</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>edit_tag</code></td>
+<td><code>Dict</code></td>
+<td>편집 중인 태그 데이터 (현재 미사용)</td>
+<td><code>{}</code></td>
+</tr>
+<tr>
+<td><code>show_add_dialog</code></td>
+<td><code>bool</code></td>
+<td>Add Tag 다이얼로그 표시 여부</td>
+<td><code>False</code></td>
+</tr>
+<tr>
+<td><code>add_tag_name</code></td>
+<td><code>str</code></td>
+<td>추가할 태그 이름</td>
+<td><code>""</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="35-toggle">3.5 Toggle 반응성 분석</h3>
+<p><strong>UI 즉시 반영 vs DB persist 흐름:</strong></p>
+<pre><code>사용자 toggle 클릭
+    → on_change → ViewerTagState.toggle_dashboard(tag_name)  [background=True]
+    → async: DB UPDATE SET show_dashboard = NOT show_dashboard
+    → await commit()
+    → yield ViewerTagState.load_tags  [전체 재로드]
+    → load_tags background 실행 → DB SELECT 전체 → self.tags 업데이트 → yield
+</code></pre>
+<p><strong>문제점</strong>: toggle 클릭 → DB commit → 전체 테이블 재로드 사이에 UI 즉시 반영 없음. 
+즉, 토글 클릭 후 DB 왕복이 완료될 때까지 toggle UI는 클릭 전 상태 유지 → 사용자가 이미 처리됐는지 불확실.</p>
+<p><strong>권장 개선</strong>: optimistic update — toggle 직후 <code>self.tags</code> 내 해당 항목 상태를 즉시 반전, 이후 background에서 DB 커밋. 실패 시 원상 복구.</p>
+<p><strong>bulk action 흐름</strong>: <code>show_all_dashboard</code> → <code>UPDATE viewer_tag SET show_dashboard = true</code> → <code>yield ViewerTagState.load_tags</code>. 모든 태그에 일괄 적용. 진행 피드백 없음.</p>
+<h3 id="36-event-handler">3.6 Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>타입</th>
+<th>트리거</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_tags</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>on_load, Refresh 버튼, 각 toggle/add/delete 후</td>
+<td>viewer_tag 전체 + available_tags 로드</td>
+</tr>
+<tr>
+<td><code>toggle_dashboard</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>switch on_change</td>
+<td>DB NOT toggle → reload</td>
+</tr>
+<tr>
+<td><code>toggle_alarm</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>switch on_change</td>
+<td>DB NOT toggle → reload</td>
+</tr>
+<tr>
+<td><code>toggle_trend</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>switch on_change</td>
+<td>DB NOT toggle → reload</td>
+</tr>
+<tr>
+<td><code>toggle_model</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>switch on_change</td>
+<td>DB NOT toggle → reload</td>
+</tr>
+<tr>
+<td><code>update_order</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>input on_blur</td>
+<td>숫자 파싱 → DB UPDATE → reload</td>
+</tr>
+<tr>
+<td><code>open_add_dialog</code></td>
+<td><code>def</code></td>
+<td>Add Tag 버튼</td>
+<td>show_add_dialog=True, add_tag_name=""</td>
+</tr>
+<tr>
+<td><code>close_add_dialog</code></td>
+<td><code>def</code></td>
+<td>Cancel 버튼</td>
+<td>show_add_dialog=False</td>
+</tr>
+<tr>
+<td><code>set_add_tag_name</code></td>
+<td><code>def</code></td>
+<td>input on_change, select on_change</td>
+<td>add_tag_name 설정</td>
+</tr>
+<tr>
+<td><code>add_tag</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>"Add Tag" 버튼</td>
+<td>빈 이름 검증 → MAX(display_order)+10 계산 → INSERT (ON CONFLICT DO NOTHING) → success_message → reload</td>
+</tr>
+<tr>
+<td><code>delete_tag</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>trash 아이콘</td>
+<td>DELETE FROM viewer_tag → success_message → reload</td>
+</tr>
+<tr>
+<td><code>show_all_dashboard</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>"Show All" 버튼</td>
+<td>UPDATE all → reload</td>
+</tr>
+<tr>
+<td><code>hide_all_dashboard</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>"Hide All" 버튼</td>
+<td>UPDATE all → reload</td>
+</tr>
+<tr>
+<td><code>clear_messages</code></td>
+<td><code>def</code></td>
+<td>(외부 호출 없음 — <strong>결함</strong>: 메시지 자동 소거 없음)</td>
+<td>error_message="", success_message=""</td>
+</tr>
+</tbody>
+</table>
+<h3 id="37-ui">3.7 상태별 UI</h3>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>표현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Loading</strong></td>
+<td>Refresh 버튼 loading 스피너 표시. 테이블은 기존 데이터 유지</td>
+</tr>
+<tr>
+<td><strong>tags 비어있음</strong></td>
+<td>"No tags configured. Click 'Add Tag' to start." — rx.text (gray)</td>
+</tr>
+<tr>
+<td><strong>에러</strong></td>
+<td>red callout 상단 표시</td>
+</tr>
+<tr>
+<td><strong>성공</strong></td>
+<td>green callout 상단 표시 (delete/add 후)</td>
+</tr>
+<tr>
+<td><strong>add dialog open</strong></td>
+<td>overlay. 빈 input + available_tags 드롭다운</td>
+</tr>
+<tr>
+<td><strong>available_tags 없음</strong></td>
+<td>"All tags are already configured"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="38-edge-cases">3.8 Edge Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>현재 동작</th>
+<th>이상적 동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>동일 tag_name 중복 추가</td>
+<td>ON CONFLICT DO NOTHING — 오류 없음, success_message 표시</td>
+<td>"이미 존재하는 태그" 안내</td>
+</tr>
+<tr>
+<td>display_order에 소수 입력 (예: "1.5")</td>
+<td>int() → ValueError → "Order must be a number"</td>
+<td>권장: 정수로 자동 반올림</td>
+</tr>
+<tr>
+<td>display_order 비워두고 blur</td>
+<td>int("") → ValueError → 오류 메시지</td>
+<td>기존 값 유지 권장</td>
+</tr>
+<tr>
+<td>delete 확인 없이 삭제</td>
+<td>즉시 삭제</td>
+<td>확인 다이얼로그 필요 — <strong>결함</strong></td>
+</tr>
+<tr>
+<td>available_tags 쿼리 7일 기준</td>
+<td>최근 7일 데이터 없는 태그는 목록에 미표시</td>
+<td>설계 의도이나 신규 센서 연결 시 혼란 가능</td>
+</tr>
+</tbody>
+</table>
+<h3 id="39-responsive">3.9 Responsive 추정</h3>
+<ul>
+<li><code>rx.grid(columns="3fr 1fr")</code> — 고정 그리드, 모바일 breakpoint 없음</li>
+<li>모바일에서 사이드바(1fr)가 좁아 컨트롤 보기 어려움 — <strong>결함</strong></li>
+<li>테이블 7컬럼 — 좁은 화면에서 가로 스크롤 없음</li>
+</ul>
+<h3 id="310">3.10 알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V-01</td>
+<td>High</td>
+<td>delete_tag에 확인 다이얼로그 없음 — 오조작 시 복구 불가</td>
+</tr>
+<tr>
+<td>V-02</td>
+<td>Medium</td>
+<td>toggle 즉시 UI 반영 없음 — DB 왕복 완료까지 시각 피드백 없음</td>
+</tr>
+<tr>
+<td>V-03</td>
+<td>Medium</td>
+<td>페이지 title 없음 (<code>@rx.page("/viewer-tag")</code> title 파라미터 누락)</td>
+</tr>
+<tr>
+<td>V-04</td>
+<td>Medium</td>
+<td>shell() 래퍼 없음 — 사이드바 네비게이션 없음</td>
+</tr>
+<tr>
+<td>V-05</td>
+<td>Low</td>
+<td>success_message/error_message 자동 소거 없음 — <code>clear_messages()</code> 호출 없음</td>
+</tr>
+<tr>
+<td>V-06</td>
+<td>Low</td>
+<td>show_edit_dialog, edit_tag 변수 정의되나 UI에서 미사용 — 미구현 기능 잔재</td>
+</tr>
+<tr>
+<td>V-07</td>
+<td>Low</td>
+<td>모바일 responsive 대응 없음 (grid, table 고정)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="311">3.11 테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>시나리오</th>
+<th>전제</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-V-01</td>
+<td>페이지 진입 — 태그 목록 로드</td>
+<td>DB에 viewer_tag 데이터 존재</td>
+<td>테이블에 태그 목록 표시, Available Tags에 미등록 태그 표시</td>
+</tr>
+<tr>
+<td>TC-V-02</td>
+<td>show_dashboard toggle OFF</td>
+<td>TAG_A show_dashboard=true 상태</td>
+<td>toggle 클릭 → DB UPDATE → 테이블 재로드 → switch OFF 표시</td>
+</tr>
+<tr>
+<td>TC-V-03</td>
+<td>Add Tag — 신규 태그 추가</td>
+<td>add_tag_name 입력 후 Add Tag 클릭</td>
+<td>DB INSERT, success callout 표시, 테이블에 새 행 추가</td>
+</tr>
+<tr>
+<td>TC-V-04</td>
+<td>Add Tag — 중복 태그 추가</td>
+<td>이미 존재하는 태그명 입력</td>
+<td>ON CONFLICT DO NOTHING. success_message 표시되나 테이블 변화 없음</td>
+</tr>
+<tr>
+<td>TC-V-05</td>
+<td>delete_tag</td>
+<td>임의 태그 trash 클릭</td>
+<td>즉시 삭제 (확인 없음). 테이블에서 제거. success callout 표시</td>
+</tr>
+<tr>
+<td>TC-V-06</td>
+<td>display_order 수정</td>
+<td>order 입력 필드 blur</td>
+<td>DB UPDATE, 테이블 재정렬</td>
+</tr>
+<tr>
+<td>TC-V-07</td>
+<td>Show All Dashboard</td>
+<td>Bulk Actions Show All 클릭</td>
+<td>모든 태그 show_dashboard=true. 테이블 switch 전체 ON</td>
+</tr>
+<tr>
+<td>TC-V-08</td>
+<td>Hide All Dashboard</td>
+<td>Bulk Actions Hide All 클릭</td>
+<td>모든 태그 show_dashboard=false. 테이블 switch 전체 OFF</td>
+</tr>
+<tr>
+<td>TC-V-09</td>
+<td>available_tags에서 태그 선택</td>
+<td>오른쪽 패널 + 버튼 클릭</td>
+<td>add_tag_name 자동 설정. Add Tag dialog 열리지 않음 — <strong>의도 불명확</strong></td>
+</tr>
+<tr>
+<td>TC-V-10</td>
+<td>에러 상태 — DB 연결 불가</td>
+<td>DB 정지</td>
+<td>error callout 빨간색 표시. 기존 tags 유지</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-sensors">4. Sensors — 미등록 페이지</h2>
+<h3 id="41">4.1 기본 정보</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>/sensors</code></td>
+</tr>
+<tr>
+<td>상태</td>
+<td><strong>페이지 없음</strong></td>
+</tr>
+<tr>
+<td>관련 기능</td>
+<td>센서 관리(메타데이터, 임계값)는 대시보드의 <code>sensor_edit_dialog</code>에서 수행</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42">4.2 분석 및 권고</h3>
+<p><code>/sensors</code> 페이지는 <code>ksys_app.py</code> 라우트 등록 목록에 없고, pages/ 디렉토리에도 파일이 없다. 센서 관련 기능은 현재 두 곳에 분산되어 있다:</p>
+<ol>
+<li><strong>대시보드 sensor_edit_dialog</strong> (<code>dashboard_realtime_view.py:645-802</code>): 개별 센서 설명/단위/임계값 편집. 1개씩 처리. 비효율적.</li>
+<li><strong>viewer-tag 페이지</strong> (<code>viewer_tag.py</code>): 태그 가시성 관리. 임계값과 별개.</li>
+</ol>
+<p><strong>신설 권고 내용</strong>: <code>/sensors</code> 페이지를 별도로 만든다면 아래 기능을 통합해야 한다:</p>
+<table>
+<thead>
+<tr>
+<th>기능</th>
+<th>현재 위치</th>
+<th>/sensors로 이관 여부</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>센서 목록 조회</td>
+<td>대시보드 내 암묵적</td>
+<td>이관</td>
+</tr>
+<tr>
+<td>설명/단위 편집</td>
+<td>sensor_edit_dialog</td>
+<td>이관</td>
+</tr>
+<tr>
+<td>임계값(min/max/warning/critical) 편집</td>
+<td>sensor_edit_dialog</td>
+<td>이관</td>
+</tr>
+<tr>
+<td>태그 가시성 토글</td>
+<td>viewer-tag</td>
+<td>통합 or 유지</td>
+</tr>
+<tr>
+<td>센서 활성/비활성 제어</td>
+<td>없음</td>
+<td>신규</td>
+</tr>
+<tr>
+<td>QC 룰 일괄 설정</td>
+<td>없음</td>
+<td>신규</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-sync-monitor-sync">5. Sync Monitor <code>/sync</code></h2>
+<h3 id="51">5.1 기본 정보</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>/sync</code></td>
+</tr>
+<tr>
+<td>페이지 함수</td>
+<td><strong>없음</strong> — <code>ksys_app.py</code>에 미등록</td>
+</tr>
+<tr>
+<td>State</td>
+<td><code>SyncMonitorState</code> in <code>states/sync_monitor_state.py</code></td>
+</tr>
+<tr>
+<td>State 상태</td>
+<td><strong>ORPHAN</strong> (spec_02 확인)</td>
+</tr>
+<tr>
+<td>LoC</td>
+<td>states/sync_monitor_state.py: 244 (state만)</td>
+</tr>
+<tr>
+<td>페이지 모듈</td>
+<td>없음</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-syncmonitorstate">5.2 SyncMonitorState 분석</h3>
+<p>State 파일은 완성도 높은 편으로, DB 조회 로직과 수동 동기화 버튼 핸들러가 구현되어 있으나 페이지 파일이 존재하지 않는다. spec_02에서 ORPHAN으로 분류됨.</p>
+<p><strong>State 변수 인벤토리</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sync_statuses</code></td>
+<td><code>List[Dict]</code></td>
+<td>sync_status 테이블 (remote_system, table_name, last_sync_time, health_status 포함)</td>
+</tr>
+<tr>
+<td><code>recent_logs</code></td>
+<td><code>List[Dict]</code></td>
+<td>sync_log 테이블 최근 1시간 20건</td>
+</tr>
+<tr>
+<td><code>total_tags</code></td>
+<td><code>int</code></td>
+<td>influx_tag WHERE remote_system='exaxt_stp' COUNT</td>
+</tr>
+<tr>
+<td><code>active_tags</code></td>
+<td><code>int</code></td>
+<td>influx_hist 최근 24시간 활성 태그 수</td>
+</tr>
+<tr>
+<td><code>records_24h</code></td>
+<td><code>int</code></td>
+<td>influx_hist 최근 24시간 레코드 수</td>
+</tr>
+<tr>
+<td><code>avg_delay</code></td>
+<td><code>int</code></td>
+<td>초 단위 평균 지연</td>
+</tr>
+<tr>
+<td><code>loading</code></td>
+<td><code>bool</code></td>
+<td>refresh_data 실행 중</td>
+</tr>
+<tr>
+<td><code>auto_refresh</code></td>
+<td><code>bool</code></td>
+<td>자동 새로고침 ON/OFF</td>
+</tr>
+<tr>
+<td><code>syncing_tags</code></td>
+<td><code>bool</code></td>
+<td>sync_tags 실행 중 버튼 비활성화용</td>
+</tr>
+<tr>
+<td><code>syncing_realtime</code></td>
+<td><code>bool</code></td>
+<td>sync_realtime 실행 중</td>
+</tr>
+<tr>
+<td><code>syncing_historical</code></td>
+<td><code>bool</code></td>
+<td>sync_historical 실행 중</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이벤트 핸들러 인벤토리</strong></p>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>refresh_data</code></td>
+<td>sync_status, sync_log, influx_tag 통계 조회</td>
+</tr>
+<tr>
+<td><code>sync_tags</code></td>
+<td>UPSTREAM_DB_* 환경변수 확인 → RemoteDBService.get_tag_config() → refresh_data</td>
+</tr>
+<tr>
+<td><code>sync_realtime</code></td>
+<td>구현 미완성 (console.log만 있음) — <strong>결함</strong></td>
+</tr>
+<tr>
+<td><code>sync_historical</code></td>
+<td>구현 미완성 (console.log만 있음) — <strong>결함</strong></td>
+</tr>
+<tr>
+<td><code>toggle_auto_refresh</code></td>
+<td>auto_refresh 토글 (실제 asyncio task 미연결 — <strong>결함</strong>)</td>
+</tr>
+<tr>
+<td><code>on_load</code></td>
+<td>refresh_data 반환</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Secret 외부화 확인 (Day 1 AM 작업)</strong></p>
+<pre><code class="language-python"># sync_monitor_state.py:158-175
+import os
+upstream_host = os.getenv(&quot;UPSTREAM_DB_HOST&quot;, &quot;&quot;)
+upstream_user = os.getenv(&quot;UPSTREAM_DB_USER&quot;, &quot;&quot;)
+upstream_password = os.getenv(&quot;UPSTREAM_DB_PASSWORD&quot;, &quot;&quot;)
+config = RemoteDBConfig(
+    host=upstream_host,
+    port=int(os.getenv(&quot;UPSTREAM_DB_PORT&quot;, &quot;9543&quot;)),
+    database=os.getenv(&quot;UPSTREAM_DB_NAME&quot;, &quot;iot_cloud_v2_exaxt_stp&quot;),
+    ...
+)
+</code></pre>
+<p>환경변수 미설정 시 조기 반환 + 안내 메시지. 올바른 패턴.</p>
+<h3 id="53">5.3 추정 화면 레이아웃 (구현 시 권고안)</h3>
+<pre><code>+==============================================================================+
+| [sync icon] Sync Monitor                [Refresh] [Auto: ON/OFF]             |
++==============================================================================+
+| [KPI Row — 4 tiles]                                                           |
+| +----------+ +----------+ +----------+ +----------+                          |
+| | 전체 태그 | | 활성 태그 | |24h 레코드| | 평균 지연 |                        |
+| |   N       | |   N       | |   N,NNN  | |   Ns     |                        |
+| +----------+ +----------+ +----------+ +----------+                          |
++==============================================================================+
+| [Sync Status 테이블]                          [Sync 버튼 패널]               |
+| remote_system | table_name | last_sync | status  | [Sync Tags  ]  syncing... |
+| exaxt_stp     | influx_hist| HH:MM:SS  | ✅정상   | [Sync RT    ]             |
+| ...           | ...        | ...       | ⚠️확인필요| [Sync Hist  ]             |
+|                                               +-------------------------------+
++==============================================================================+
+| [Recent Logs — 최근 1시간 20건]                                               |
+| table_name | timestamp | status | records                                     |
+| influx_hist| HH:MM:SS  | OK     | 150                                         |
+| ...        | ...       | ...    | ...                                         |
++==============================================================================+
+</code></pre>
+<h3 id="54-health-status">5.4 Health Status 색상 코드</h3>
+<p>sync_status 테이블의 CASE WHEN 결과:</p>
+<table>
+<thead>
+<tr>
+<th>조건</th>
+<th>값</th>
+<th>의미</th>
+<th>표시 색상 (권고)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>last_sync_time &gt; NOW() - 10min</code></td>
+<td>"✅ 정상"</td>
+<td>10분 내 동기화</td>
+<td>green</td>
+</tr>
+<tr>
+<td><code>last_sync_time &gt; NOW() - 1hour</code></td>
+<td>"⚠️ 확인필요"</td>
+<td>10분~1시간 전</td>
+<td>amber</td>
+</tr>
+<tr>
+<td>그 외</td>
+<td>"❌ 중단됨"</td>
+<td>1시간 이상 미동기화</td>
+<td>red</td>
+</tr>
+</tbody>
+</table>
+<h3 id="55-state">5.5 알려진 결함 (State 수준)</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S-01</td>
+<td>Critical</td>
+<td>페이지 파일 없음 — <code>/sync</code> 라우트 접근 불가 (404)</td>
+</tr>
+<tr>
+<td>S-02</td>
+<td>High</td>
+<td><code>sync_realtime</code>, <code>sync_historical</code> 핸들러 미구현 (console.log만)</td>
+</tr>
+<tr>
+<td>S-03</td>
+<td>High</td>
+<td><code>toggle_auto_refresh</code> — asyncio task 연결 없음. 실제 자동 갱신 불작동</td>
+</tr>
+<tr>
+<td>S-04</td>
+<td>Medium</td>
+<td><code>get_pool()</code> 사용 (psycopg 구형 패턴). 타 페이지는 <code>get_async_session()</code> 사용 — 불일치</td>
+</tr>
+<tr>
+<td>S-05</td>
+<td>Low</td>
+<td><code>_refresh_task: Any = None</code> 변수 정의되나 미사용</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-communication-comm">6. Communication <code>/comm</code></h2>
+<h3 id="61">6.1 기본 정보</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>/comm</code></td>
+</tr>
+<tr>
+<td>페이지 함수</td>
+<td><code>communication_page()</code> in <code>pages/communication.py</code></td>
+</tr>
+<tr>
+<td>State</td>
+<td><code>CommunicationState</code> in <code>states/communication_state.py</code></td>
+</tr>
+<tr>
+<td>LoC</td>
+<td>pages/communication.py: 361 / states/communication_state.py: 501</td>
+</tr>
+<tr>
+<td>on_load / on_mount</td>
+<td><code>CommunicationState.initialize</code> (이중 연결: <code>@rx.page(on_load=...)</code> + <code>shell(..., on_mount=...)</code>)</td>
+</tr>
+<tr>
+<td>타이틀</td>
+<td>(없음 — <code>@rx.page(route="/comm", on_load=...)</code> title 파라미터 없음 — <strong>결함</strong>)</td>
+</tr>
+<tr>
+<td>레이아웃 래퍼</td>
+<td><code>shell()</code></td>
+</tr>
+<tr>
+<td>외부 라이브러리</td>
+<td><code>react-grid-heatmap@1.3.0</code> (components/wrapped_heatmap.py)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-text-based-wireframe">6.2 화면 레이아웃 (Text-based Wireframe)</h3>
+<pre><code>+==============================================================================+
+| [sidebar] | 통신 성공률  [Real-time badge]                                  |
+|           +------------------------------------------------------------------|
+|           | [Controls card]                                                  |
+|           | 센서 선택: [Select dropdown]   조회 기간: [3일|7일|14일|30일]   |
+|           +------------------------------------------------------------------+
+|           | [KPI 4-tile grid — responsive 1/2/4 col]                        |
+|           | +-------------+ +-------------+ +-------------+ +-------------+ |
+|           | | 평균 성공률 | | 전체 레코드 | | 활성 시간   | | 데이터 품질 | |
+|           | |  99.50%     | |  10,080     | |  168 hours  | |  우수        | |
+|           | | (7일 기준)  | | 예상: 10,080| | Out of 168h | | 센서명       | |
+|           | +-------------+ +-------------+ +-------------+ +-------------+ |
+|           +------------------------------------------------------------------+
+|           | [2-col grid: Heatmap card | Daily trend chart]                  |
+|           |                                                                  |
+|           | [시간대별 성공률 히트맵]      [일별 성공률 트렌드]              |
+|           | Tag: INLET_PRESSURE           ↑ 100                             |
+|           | Period: 7 days   Success: 99% |  ~~~~~~~~~~~~~~~~~~~~            |
+|           |                              |                95% 기준선 ---     |
+|           | [Loading spinner / HeatMapGrid]  x: 날짜  y: 성공률             |
+|           |  Y: 날짜 (행)                 +-----------------------------------+
+|           |  X: 시간(00-23, 열)           |
+|           |  Cell: 색상 (0%=gray→100%=blue)|
+|           +------------------------------------------------------------------+
+|           | [2-col grid: 히트맵 패턴 분석 | 이상치 탐지]                   |
+|           |                                                                  |
+|           | [히트맵 패턴 분석 card]        [이상치 탐지 card — 조건부]      |
+|           | 최적 시간대  저조 시간대       ⚠️ 이상치 탐지 (Z-score &gt; 2)    |
+|           | 시간대 일관성  주야 비교       | timestamp | rate | Z |          |
+|           |                               | MM/DD HH  | 72%  |2.3|          |
+|           +------------------------------------------------------------------+
++==============================================================================+
+</code></pre>
+<h3 id="63">6.3 컴포넌트 명세 표</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State Binding</th>
+<th>Event</th>
+<th>라벨</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>페이지 헤더</td>
+<td>최상단</td>
+<td>rx.hstack</td>
+<td>없음</td>
+<td>없음</td>
+<td>"통신 성공률" + "Real-time" badge</td>
+</tr>
+<tr>
+<td>센서 선택 드롭다운</td>
+<td>Controls card</td>
+<td>rx.select</td>
+<td><code>CommunicationState.available_tags</code>, <code>.selected_tag</code></td>
+<td><code>CommunicationState.set_selected_tag</code></td>
+<td>"센서 선택"</td>
+</tr>
+<tr>
+<td>조회 기간 segmented control</td>
+<td>Controls card</td>
+<td>rx.segmented_control.root</td>
+<td><code>CommunicationState.selected_days_str</code></td>
+<td><code>CommunicationState.set_selected_days_str</code></td>
+<td>"3일/7일/14일/30일" default=7</td>
+</tr>
+<tr>
+<td>평균 성공률 KPI</td>
+<td>KPI 4열 col-1</td>
+<td>stats_card</td>
+<td><code>CommunicationState.overall_success_rate</code></td>
+<td>없음</td>
+<td>색상: ≥95%=green, ≥80%=blue, ≥60%=amber, else red</td>
+</tr>
+<tr>
+<td>전체 레코드 KPI</td>
+<td>KPI 4열 col-2</td>
+<td>stats_card</td>
+<td><code>.total_records</code>, <code>.expected_records</code></td>
+<td>없음</td>
+<td>파란색 고정</td>
+</tr>
+<tr>
+<td>활성 시간 KPI</td>
+<td>KPI 4열 col-3</td>
+<td>stats_card</td>
+<td><code>.active_hours_str</code>, <code>.total_hours_str</code></td>
+<td>없음</td>
+<td>보라색</td>
+</tr>
+<tr>
+<td>데이터 품질 KPI</td>
+<td>KPI 4열 col-4</td>
+<td>stats_card</td>
+<td><code>.overall_success_rate</code> → "우수/양호/주의/위험"</td>
+<td>없음</td>
+<td>품질 등급</td>
+</tr>
+<tr>
+<td>히트맵 카드</td>
+<td>2열 grid 좌</td>
+<td>rx.card &gt; wrapped_grid_heatmap</td>
+<td><code>.loading</code>, <code>.heatmap_matrix</code>, <code>.hour_labels</code>, <code>.date_labels</code>, <code>.selected_tag</code>, <code>.selected_days</code>, <code>.overall_success_rate</code></td>
+<td>없음</td>
+<td>"시간대별 성공률 히트맵"</td>
+</tr>
+<tr>
+<td>Loading spinner</td>
+<td>히트맵 내</td>
+<td>rx.cond &gt; rx.spinner</td>
+<td><code>.loading</code></td>
+<td>없음</td>
+<td>"데이터 로딩 중..."</td>
+</tr>
+<tr>
+<td>HeatMapGrid</td>
+<td>히트맵 내</td>
+<td>custom rx.Component (react-grid-heatmap)</td>
+<td>heatmap_matrix (days×24), hour_labels, date_labels</td>
+<td>없음</td>
+<td>cell: 성공률에 따른 색상</td>
+</tr>
+<tr>
+<td>Daily trend 차트</td>
+<td>2열 grid 우</td>
+<td>rx.recharts.area_chart</td>
+<td><code>.daily_chart_data</code></td>
+<td>없음</td>
+<td>"일별 성공률 트렌드" + 95% reference line</td>
+</tr>
+<tr>
+<td>최적 시간대</td>
+<td>패턴 분석 카드 col-1</td>
+<td>rx.text</td>
+<td><code>.hourly_pattern_stats['peak_hours']</code></td>
+<td>없음</td>
+<td>green</td>
+</tr>
+<tr>
+<td>저조 시간대</td>
+<td>패턴 분석 카드 col-2</td>
+<td>rx.text</td>
+<td><code>.hourly_pattern_stats['low_hours']</code></td>
+<td>없음</td>
+<td>red</td>
+</tr>
+<tr>
+<td>시간대 일관성</td>
+<td>패턴 분석 카드 col-3</td>
+<td>rx.text</td>
+<td><code>.hourly_pattern_stats['consistency']</code></td>
+<td>없음</td>
+<td>blue</td>
+</tr>
+<tr>
+<td>주야 비교</td>
+<td>패턴 분석 카드 col-4</td>
+<td>rx.text</td>
+<td><code>.hourly_pattern_stats['trend']</code></td>
+<td>없음</td>
+<td>purple</td>
+</tr>
+<tr>
+<td>이상치 탐지 카드</td>
+<td>2열 grid 우</td>
+<td>rx.cond &gt; rx.card</td>
+<td><code>.anomaly_detection</code> (list &gt; 0일 때만 표시)</td>
+<td>없음</td>
+<td>"⚠️ 이상치 탐지 (Z-score &gt; 2)"</td>
+</tr>
+<tr>
+<td>이상치 목록</td>
+<td>이상치 카드 내</td>
+<td>rx.foreach</td>
+<td><code>.anomaly_detection</code> → [{timestamp, success_rate, z_score}]</td>
+<td>없음</td>
+<td>"MM/DD HH:MM — N% — Z: N.NN"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-state-communicationstate">6.4 State 변수 매핑 — CommunicationState</h3>
+<p><strong>UI Control 변수</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+<th>기본값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selected_tag</code></td>
+<td><code>str</code></td>
+<td>선택된 센서 태그</td>
+<td><code>"INLET_PRESSURE"</code></td>
+</tr>
+<tr>
+<td><code>selected_days</code></td>
+<td><code>int</code></td>
+<td>조회 기간 (일)</td>
+<td>7</td>
+</tr>
+</tbody>
+</table>
+<p><strong>내부 데이터 저장소</strong></p>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>available_tags</code></td>
+<td><code>List[str]</code></td>
+<td>선택 가능한 태그 목록</td>
+</tr>
+<tr>
+<td><code>_df_hourly</code></td>
+<td><code>List[Dict]</code></td>
+<td>시간별 통계 원본 (tag_name, date, hour, record_count, expected_count, success_rate)</td>
+</tr>
+<tr>
+<td><code>_df_daily</code></td>
+<td><code>List[Dict]</code></td>
+<td>일별 통계 원본</td>
+</tr>
+<tr>
+<td><code>_summary</code></td>
+<td><code>Dict</code></td>
+<td>요약 통계 (현재 computed vars에서 미사용)</td>
+</tr>
+<tr>
+<td><code>loading</code></td>
+<td><code>bool</code></td>
+<td>로딩 상태</td>
+</tr>
+<tr>
+<td><code>error_message</code></td>
+<td><code>str</code></td>
+<td>오류 메시지</td>
+</tr>
+</tbody>
+</table>
+<p><strong>@rx.var computed properties (15개) — 성능 핵심 이슈</strong></p>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>반환 타입</th>
+<th>설명</th>
+<th>성능 이슈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selected_days_str</code></td>
+<td><code>str</code></td>
+<td>int → str 변환</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>chart_height</code></td>
+<td><code>int</code></td>
+<td>기간별 차트 높이 (250/350/450)</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>active_hours_str</code></td>
+<td><code>str</code></td>
+<td>len(_df_hourly) 문자열</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>total_hours_str</code></td>
+<td><code>str</code></td>
+<td>f"Out of {days*24} hours"</td>
+<td>없음</td>
+</tr>
+<tr>
+<td><code>overall_success_rate</code></td>
+<td><code>float</code></td>
+<td><strong>매 렌더 pandas DataFrame 생성 + 집계</strong></td>
+<td><strong>HIGH</strong></td>
+</tr>
+<tr>
+<td><code>total_records</code></td>
+<td><code>int</code></td>
+<td><strong>매 렌더 pandas DataFrame 생성 + sum</strong></td>
+<td><strong>HIGH</strong></td>
+</tr>
+<tr>
+<td><code>expected_records</code></td>
+<td><code>int</code></td>
+<td><strong>매 렌더 pandas DataFrame 생성 + sum</strong></td>
+<td><strong>HIGH</strong></td>
+</tr>
+<tr>
+<td><code>heatmap_matrix</code></td>
+<td><code>List[List[float]]</code></td>
+<td><strong>매 렌더 pandas pivot_table 재계산</strong> (days×24 행렬)</td>
+<td><strong>CRITICAL</strong></td>
+</tr>
+<tr>
+<td><code>hour_labels</code></td>
+<td><code>List[str]</code></td>
+<td>["00".."23"] — 상수. 매 렌더마다 재생성</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td><code>date_labels</code></td>
+<td><code>List[str]</code></td>
+<td><strong>매 렌더 pandas 파싱 + timezone 변환</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>heatmap_dates</code></td>
+<td><code>List[str]</code></td>
+<td>date_labels 단순 반환 — 이중 계산</td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>daily_chart_data</code></td>
+<td><code>List[Dict]</code></td>
+<td><strong>매 렌더 pandas DataFrame 필터링 + 정렬 + 포맷</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>hourly_data</code></td>
+<td><code>List[Dict]</code></td>
+<td><strong>매 렌더 pandas groupby + 집계</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>hourly_pattern_stats</code></td>
+<td><code>Dict</code></td>
+<td><strong>매 렌더 pandas groupby + CV 계산 + Z-score 패턴</strong></td>
+<td>HIGH</td>
+</tr>
+<tr>
+<td><code>anomaly_detection</code></td>
+<td><code>List[Dict]</code></td>
+<td><strong>매 렌더 pandas Z-score 계산, pytz 타임존 처리</strong></td>
+<td>HIGH</td>
+</tr>
+</tbody>
+</table>
+<p><strong>결론</strong>: 15개 @rx.var 중 9개가 pandas 연산을 포함하며 모두 <code>@rx.var</code> 캐싱 없음. 컴포넌트 트리의 어느 state 변수가 변경되어도 이 9개 pandas 연산이 전부 재실행된다. Reflex @rx.var는 캐싱을 명시적으로 적용해야 하며(<code>@rx.var(cache=True)</code>) 현재 미적용.</p>
+<h3 id="65-overall_success_rate-100-cap">6.5 overall_success_rate 100% cap 버그 분석</h3>
+<pre><code class="language-python"># communication_state.py:66-81
+@rx.var
+def overall_success_rate(self) -&gt; float:
+    &quot;&quot;&quot;전체 성공률 - FIXED: 100% cap added&quot;&quot;&quot;
+    ...
+    if expected_records &gt; 0:
+        rate = round(float(total_records / expected_records) * 100, 2)
+        return min(rate, 100.0)  # Cap at 100%
+    return 0.0
+</code></pre>
+<p><strong>버그 내용 (spec_02에서 발견)</strong>: 원래 <code>min()</code> 없이 계산했을 때 <code>total_records &gt; expected_records</code> 상황 (DB 집계 오차 등)에서 100% 초과값 반환 가능. 현재 <code>min(rate, 100.0)</code> 패치 완료.</p>
+<p><strong>잔류 리스크</strong>: <code>expected_records</code> 계산도 동일 <code>_df_hourly</code>에서 별도 pandas 연산으로 수행 — 두 @rx.var의 pandas 연산이 독립적으로 실행되어 edge case에서 race condition 가능성 (단일 스레드 이벤트 루프이므로 실제 경쟁 조건은 아니나, 동일 데이터를 두 번 파싱하는 중복 문제).</p>
+<h3 id="66-event-handler">6.6 Event Handler 매핑</h3>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>타입</th>
+<th>트리거</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>on_load + on_mount (이중)</td>
+<td>available_tags 로드 → _fetch_data()</td>
+</tr>
+<tr>
+<td><code>load_data</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>(직접 호출 없음)</td>
+<td>initialize 위임 — <strong>결함: 중복 정의</strong></td>
+</tr>
+<tr>
+<td><code>_fetch_data</code></td>
+<td><code>async def</code> (internal)</td>
+<td>initialize, refresh_data에서 호출</td>
+<td>서비스 3개 순차 호출 (hourly, daily, summary). 상세 타이밍 로그 포함</td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>set_selected_tag, set_selected_days_str에서 반환</td>
+<td>현재 선택값으로 재조회 + yield</td>
+</tr>
+<tr>
+<td><code>set_selected_tag</code></td>
+<td><code>@rx.event(background=True)</code></td>
+<td>센서 드롭다운 on_change</td>
+<td>selected_tag 설정 → refresh_data 반환</td>
+</tr>
+<tr>
+<td><code>set_selected_days_str</code></td>
+<td><code>def</code></td>
+<td>segmented_control on_change</td>
+<td>문자열→int 파싱 → selected_days 설정 → refresh_data 반환</td>
+</tr>
+</tbody>
+</table>
+<p><strong>이중 initialize 호출 문제</strong>:</p>
+<pre><code class="language-python"># pages/communication.py:89
+@rx.page(route=&quot;/comm&quot;, on_load=CommunicationState.initialize)
+...
+return shell(
+    ...,
+    on_mount=CommunicationState.initialize,  # 이중 호출
+    active_route=&quot;/comm&quot;
+)
+</code></pre>
+<p>페이지 진입 시 <code>initialize</code>가 2회 실행될 수 있음. DB 쿼리 2배 발생 — <strong>결함</strong>.</p>
+<h3 id="67-ui">6.7 상태별 UI</h3>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>표현</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Loading</strong></td>
+<td>히트맵 카드 내 spinner + "데이터 로딩 중..." 표시. daily chart는 empty state ("센서를 선택하고 조회 기간을 설정하세요")</td>
+</tr>
+<tr>
+<td><strong>데이터 정상</strong></td>
+<td>HeatMapGrid 표시. daily trend 차트 렌더. KPI tiles 갱신</td>
+</tr>
+<tr>
+<td><strong>센서 미선택</strong></td>
+<td>selected_tag 기본값 "INLET_PRESSURE". 해당 태그 데이터 없으면 0 표시</td>
+</tr>
+<tr>
+<td><strong>이상치 없음</strong></td>
+<td>이상치 탐지 카드 미표시 (<code>rx.cond(..., rx.fragment())</code>)</td>
+</tr>
+<tr>
+<td><strong>이상치 있음</strong></td>
+<td>이상치 탐지 카드 표시. timestamp/rate/z_score 목록</td>
+</tr>
+</tbody>
+</table>
+<h3 id="68-heatmap">6.8 Heatmap 색상 체계</h3>
+<p><code>react-grid-heatmap@1.3.0</code>의 기본 색상 스케일 적용 (cellStyle 미설정 시 라이브러리 기본값):
+- 0% → 회색 계열
+- 100% → 파란색 계열 (라이브러리 기본)
+- <code>cellStyle</code> prop 미설정 — 커스텀 색상 없음. 라이브러리 기본값 사용</p>
+<p><strong>권장 색상 스케일</strong>:
+- 0~60%: red → 통신 불량
+- 60~80%: amber → 주의
+- 80~95%: blue → 양호
+- 95~100%: green → 정상</p>
+<h3 id="69-edge-cases">6.9 Edge Cases</h3>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>현재 동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>_df_hourly</code> 비어있음</td>
+<td>모든 @rx.var 즉시 반환 (guard clause 존재). KPI 0, heatmap 빈 행렬, daily chart empty state</td>
+</tr>
+<tr>
+<td><code>expected_records</code> = 0</td>
+<td><code>overall_success_rate</code> = 0.0 반환</td>
+</tr>
+<tr>
+<td>std=0 (데이터 편차 없음)</td>
+<td><code>anomaly_detection</code>에서 <code>if std &gt; 0</code> 체크로 빈 리스트 반환</td>
+</tr>
+<tr>
+<td>pivot_table 실패</td>
+<td>try/except → <code>[[0]*24 for _ in range(days)]</code> 빈 행렬 반환</td>
+</tr>
+<tr>
+<td><code>selected_tag</code> 변경</td>
+<td>background refresh. UI는 이전 데이터 유지하다 새 데이터로 교체</td>
+</tr>
+</tbody>
+</table>
+<h3 id="610-responsive">6.10 Responsive 추정</h3>
+<pre><code class="language-python">columns=rx.breakpoints(initial=&quot;1&quot;, sm=&quot;2&quot;, lg=&quot;4&quot;)  # KPI row
+columns=rx.breakpoints(initial=&quot;1&quot;, lg=&quot;2&quot;)           # heatmap+chart row
+columns=rx.breakpoints(initial=&quot;1&quot;, sm=&quot;2&quot;, md=&quot;4&quot;)   # 패턴 분석 4열
+</code></pre>
+<p>비교적 잘 설정된 반응형. 모바일에서 히트맵(24열 × N행)은 가로 스크롤 필요. <code>min_width="0"</code> 설정으로 카드 축소 대응. <code>overflow="hidden"</code> 내부 처리.</p>
+<h3 id="611">6.11 알려진 결함</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C-01</td>
+<td>High</td>
+<td><code>initialize</code> 이중 호출 (on_load + on_mount) — DB 쿼리 2배 발생</td>
+</tr>
+<tr>
+<td>C-02</td>
+<td>High</td>
+<td>9개 @rx.var 모두 미캐싱 — 매 UI 상태 변경마다 pandas pivot_table 등 재실행</td>
+</tr>
+<tr>
+<td>C-03</td>
+<td>Medium</td>
+<td>페이지 title 없음</td>
+</tr>
+<tr>
+<td>C-04</td>
+<td>Medium</td>
+<td><code>load_data</code> 핸들러 중복 정의 (initialize 위임만 함, 직접 호출 없음)</td>
+</tr>
+<tr>
+<td>C-05</td>
+<td>Medium</td>
+<td><code>hour_labels</code> @rx.var가 상수([00..23])임에도 매 렌더마다 list comprehension</td>
+</tr>
+<tr>
+<td>C-06</td>
+<td>Low</td>
+<td><code>heatmap_dates</code> @rx.var가 <code>date_labels</code>만 반환 — 이중 계산</td>
+</tr>
+<tr>
+<td>C-07</td>
+<td>Low</td>
+<td><code>_summary</code> 로드하나 computed vars에서 미사용 (dead data)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="612">6.12 테스트 시나리오</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>시나리오</th>
+<th>전제</th>
+<th>기대 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-C-01</td>
+<td>페이지 진입 — 기본 센서(INLET_PRESSURE), 7일</td>
+<td>해당 데이터 존재</td>
+<td>KPI 4개 표시, 히트맵 렌더, daily chart 표시</td>
+</tr>
+<tr>
+<td>TC-C-02</td>
+<td>센서 변경</td>
+<td>드롭다운에서 다른 센서 선택</td>
+<td>loading 스피너 → 새 센서 데이터로 교체</td>
+</tr>
+<tr>
+<td>TC-C-03</td>
+<td>기간 변경 3일 → 30일</td>
+<td></td>
+<td>히트맵 행 수 변경 (3→30행). chart_height 250→450</td>
+</tr>
+<tr>
+<td>TC-C-04</td>
+<td>overall_success_rate &gt; 100% 케이스</td>
+<td>total_records &gt; expected_records</td>
+<td><code>min(rate, 100.0)</code> 적용으로 100% 표시 (패치 확인)</td>
+</tr>
+<tr>
+<td>TC-C-05</td>
+<td>이상치 없는 센서</td>
+<td>모든 시간대 성공률 균일</td>
+<td>이상치 탐지 카드 미표시</td>
+</tr>
+<tr>
+<td>TC-C-06</td>
+<td>이상치 있는 센서</td>
+<td>일부 시간대 success_rate 급락</td>
+<td>Z-score &gt; 2 항목 카드 표시</td>
+</tr>
+<tr>
+<td>TC-C-07</td>
+<td>데이터 없는 센서 선택</td>
+<td>available_tags에는 있으나 data 없음</td>
+<td>KPI 모두 0, heatmap 빈 행렬, empty state 메시지</td>
+</tr>
+<tr>
+<td>TC-C-08</td>
+<td>히트맵 색상 검증</td>
+<td>성공률 0%~100% 범위</td>
+<td>라이브러리 기본 색상 스케일 적용 확인</td>
+</tr>
+<tr>
+<td>TC-C-09</td>
+<td>일별 트렌드 95% 기준선</td>
+<td></td>
+<td>reference_line(y=95) 점선으로 표시</td>
+</tr>
+<tr>
+<td>TC-C-10</td>
+<td>로딩 중 UI</td>
+<td>DB 응답 지연</td>
+<td>spinner 표시. 이전 데이터 유지</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="7">7. 도메인 공통 결함 요약</h2>
+<h3 id="71-criticalhigh">7.1 Critical/High 결함 종합</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>페이지</th>
+<th>심각도</th>
+<th>결함 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>D-01</td>
+<td><code>/</code></td>
+<td>High</td>
+<td>스트리밍 루프 중단 핸들러 없음 (페이지 이탈 후 서버 리소스 낭비)</td>
+</tr>
+<tr>
+<td>D-02</td>
+<td><code>/</code></td>
+<td>Medium</td>
+<td>알람 테이블 "확인"/"조치" 버튼 on_click 없음</td>
+</tr>
+<tr>
+<td>V-01</td>
+<td><code>/viewer-tag</code></td>
+<td>High</td>
+<td>delete_tag 확인 다이얼로그 없음</td>
+</tr>
+<tr>
+<td>V-04</td>
+<td><code>/viewer-tag</code></td>
+<td>Medium</td>
+<td>shell() 래퍼 없음 (사이드바 네비 없음)</td>
+</tr>
+<tr>
+<td>S-01</td>
+<td><code>/sync</code></td>
+<td>Critical</td>
+<td>페이지 파일 없음 — 404</td>
+</tr>
+<tr>
+<td>S-02</td>
+<td><code>/sync</code></td>
+<td>High</td>
+<td>sync_realtime/sync_historical 미구현</td>
+</tr>
+<tr>
+<td>C-01</td>
+<td><code>/comm</code></td>
+<td>High</td>
+<td>initialize 이중 호출 (DB 쿼리 2배)</td>
+</tr>
+<tr>
+<td>C-02</td>
+<td><code>/comm</code></td>
+<td>High</td>
+<td>9개 @rx.var 미캐싱 — pandas 재계산</td>
+</tr>
+</tbody>
+</table>
+<h3 id="72">7.2 성능 이슈 종합</h3>
+<table>
+<thead>
+<tr>
+<th>페이지</th>
+<th>이슈</th>
+<th>영향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td><code>formatted_sensors</code> @rx.var O(N) 재계산 (미캐싱)</td>
+<td>센서 수 증가 시 렌더 지연</td>
+</tr>
+<tr>
+<td><code>/</code></td>
+<td>30초 스트리밍 루프 좀비 가능</td>
+<td>서버 메모리/DB 연결</td>
+</tr>
+<tr>
+<td><code>/comm</code></td>
+<td>pandas pivot_table 매 렌더 재실행</td>
+<td>30일 × 24시간 = 720셀 행렬 재계산</td>
+</tr>
+<tr>
+<td><code>/comm</code></td>
+<td>9개 @rx.var 독립 pandas 계산</td>
+<td>동일 _df_hourly를 9번 DataFrame으로 변환</td>
+</tr>
+</tbody>
+</table>
+<h3 id="73">7.3 미구현 기능 목록</h3>
+<table>
+<thead>
+<tr>
+<th>기능</th>
+<th>현재 상태</th>
+<th>위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/sync</code> 페이지 UI</td>
+<td>State만 존재, 페이지 없음</td>
+<td>sync_monitor_state.py</td>
+</tr>
+<tr>
+<td><code>/sensors</code> 페이지</td>
+<td>완전 부재</td>
+<td>—</td>
+</tr>
+<tr>
+<td>알람 테이블 "조치" 버튼 액션</td>
+<td>UI만 존재</td>
+<td>dashboard_realtime_view.py:491</td>
+</tr>
+<tr>
+<td>대시보드 forecast_data 표시</td>
+<td>State에 로드되나 View 미표시</td>
+<td>dashboard_realtime.py:26</td>
+</tr>
+<tr>
+<td>auto_refresh (sync)</td>
+<td>toggle만 있고 task 연결 없음</td>
+<td>sync_monitor_state.py:233</td>
+</tr>
+<tr>
+<td>sync_realtime / sync_historical 실제 구현</td>
+<td>console.log만</td>
+<td>sync_monitor_state.py:201, 217</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>spec_10 END — 생성일: 2026-05-28</em></p>
+</body></html>

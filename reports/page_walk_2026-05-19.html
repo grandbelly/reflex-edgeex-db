@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>풍도 페이지 walk-through — 2026-05-19</title>
+<style>
+:root { --bg:#0e1117; --panel:#161b22; --line:#30363d; --fg:#e6edf3; --muted:#8b949e; --ok:#3fb950; --warn:#d29922; --err:#f85149; --accent:#2f81f7; --kbd:#1f2328; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, "Segoe UI", "Pretendard", sans-serif; margin: 0; padding: 24px; line-height: 1.5; }
+.wrap { max-width: 1200px; margin: 0 auto; }
+h1 { margin: 0 0 4px 0; font-size: 24px; }
+.sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+h2 { margin: 32px 0 10px 0; font-size: 17px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.row { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.card .value { font-size: 22px; margin-top: 4px; font-weight: 600; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.badge.ok { background: rgba(63,185,80,.15); color: var(--ok); border: 1px solid rgba(63,185,80,.4); }
+.badge.warn { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.4); }
+.badge.err { background: rgba(248,81,73,.15); color: var(--err); border: 1px solid rgba(248,81,73,.4); }
+.badge.info { background: rgba(47,129,247,.15); color: var(--accent); border: 1px solid rgba(47,129,247,.4); }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 18px 0; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; background: var(--panel); }
+tr:hover td { background: rgba(255,255,255,.02); }
+.url { color: var(--accent); text-decoration: none; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+.url:hover { text-decoration: underline; }
+code { background: var(--kbd); border: 1px solid var(--line); padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+.note { background: rgba(47,129,247,.08); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13px; }
+.warning { background: rgba(210,153,34,.08); border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13px; }
+.btn { display: inline-block; padding: 6px 12px; background: rgba(47,129,247,.18); color: var(--accent); border: 1px solid rgba(47,129,247,.5); border-radius: 5px; text-decoration: none; font-size: 12px; margin-right: 6px; }
+.btn:hover { background: rgba(47,129,247,.3); }
+.dim { color: var(--muted); }
+.legend { font-size: 12px; color: var(--muted); margin: 8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>풍도 페이지 walk-through</h1>
+<div class="sub">생성: 2026-05-19 01:30 KST · 갱신: 01:46 (port 14020 → 14000) · Docker reflex-app @ <code>localhost:14000</code></div>
+
+<div class="row">
+  <div class="card"><div class="label">활성 라우트</div><div class="value">21 <span class="badge info">total</span></div></div>
+  <div class="card"><div class="label">SSR 정상</div><div class="value">12 <span class="badge ok">PASS</span></div></div>
+  <div class="card"><div class="label">SSR fallback</div><div class="value">9 <span class="badge warn">검증 필요</span></div></div>
+  <div class="card"><div class="label">HTTP error</div><div class="value">0 <span class="badge ok">no 4xx/5xx</span></div></div>
+</div>
+
+<h2>1. SSR 정상 (서버에서 페이지 렌더링됨)</h2>
+<div class="legend">서버가 페이지 HTML을 SSR로 렌더해서 응답 — 첫 페인트가 빠르고 SEO 가능. 이 페이지들은 시각 확인 우선순위 낮음.</div>
+<table>
+<thead><tr><th>경로</th><th>HTTP</th><th>응답 크기</th><th>응답 시간</th><th>실제 파일</th><th>브라우저 열기</th></tr></thead>
+<tbody>
+<tr><td><code>/</code></td><td>200</td><td>45,402</td><td>5.8ms</td><td>pages/dashboard.py</td><td><a class="btn" href="http://localhost:14000/" target="_blank">열기</a></td></tr>
+<tr><td><code>/trend</code></td><td>200</td><td>54,165</td><td>5.0ms</td><td>pages/trend_enhanced_v2.py</td><td><a class="btn" href="http://localhost:14000/trend" target="_blank">열기</a></td></tr>
+<tr><td><code>/comm</code></td><td>200</td><td>64,890</td><td>5.9ms</td><td>pages/communication.py</td><td><a class="btn" href="http://localhost:14000/comm" target="_blank">열기</a></td></tr>
+<tr><td><code>/alarms</code></td><td>200</td><td>44,226</td><td>24.8ms</td><td>pages/alarms.py</td><td><a class="btn" href="http://localhost:14000/alarms" target="_blank">열기</a></td></tr>
+<tr><td><code>/alarms_hist</code></td><td>200</td><td>38,500</td><td>5.4ms</td><td>pages/alarms_hist_simple.py</td><td><a class="btn" href="http://localhost:14000/alarms_hist" target="_blank">열기</a></td></tr>
+<tr><td><code>/alarms_hist_new</code></td><td>200</td><td>42,408</td><td>5.1ms</td><td>pages/alarms_hist_new.py</td><td><a class="btn" href="http://localhost:14000/alarms_hist_new" target="_blank">열기</a></td></tr>
+<tr><td><code>/alarms_rt_new</code></td><td>200</td><td>45,972</td><td>5.4ms</td><td>pages/alarms_rt_new.py</td><td><a class="btn" href="http://localhost:14000/alarms_rt_new" target="_blank">열기</a></td></tr>
+<tr><td><code>/scada-alarms</code></td><td>200</td><td>32,582</td><td>5.9ms</td><td>pages/scada_alarm_viewer.py</td><td><a class="btn" href="http://localhost:14000/scada-alarms" target="_blank">열기</a></td></tr>
+<tr><td><code>/scada-alarm-comparison</code></td><td>200</td><td>40,797</td><td>4.5ms</td><td>pages/scada_alarm_comparison.py</td><td><a class="btn" href="http://localhost:14000/scada-alarm-comparison" target="_blank">열기</a></td></tr>
+<tr><td><code>/model-performance</code></td><td>200</td><td>45,880</td><td>4.4ms</td><td>pages/model_performance.py</td><td><a class="btn" href="http://localhost:14000/model-performance" target="_blank">열기</a></td></tr>
+<tr><td><code>/training-wizard</code></td><td>200</td><td>43,667</td><td>5.2ms</td><td>pages/training_wizard/</td><td><a class="btn" href="http://localhost:14000/training-wizard" target="_blank">열기</a></td></tr>
+<tr><td><code>/viewer-tag</code></td><td>200</td><td>29,814</td><td>4.7ms</td><td>pages/viewer_tag.py</td><td><a class="btn" href="http://localhost:14000/viewer-tag" target="_blank">열기</a></td></tr>
+</tbody>
+</table>
+
+<h2>2. SSR fallback (브라우저 검증 필요)</h2>
+<div class="warning">
+이 9개 페이지는 응답 크기 정확히 24,019 bytes로 동일 (MD5: <code>a4a51d96c07ef30857ef809fd0a748db</code>) — Reflex의 SSR fallback HTML.
+서버에서 페이지 컴포넌트를 못 렌더했지만, JS hydration으로 client-side에서 정상 동작할 가능성도 있습니다.
+<strong>브라우저로 한 번씩 열어서 실제 화면이 보이는지 확인해주세요.</strong>
+</div>
+<table>
+<thead><tr><th>경로</th><th>실제 파일</th><th>중요도</th><th>브라우저 열기</th><th>예상 원인</th></tr></thead>
+<tbody>
+<tr><td><code>/ai</code></td><td>pages/ai_insights.py</td><td><span class="badge info">High</span> AI 인사이트</td><td><a class="btn" href="http://localhost:14000/ai" target="_blank">열기</a></td><td>OpenAI/Anthropic 키 의존 / 모듈 import</td></tr>
+<tr><td><code>/forecast-player</code></td><td>pages/forecast_player_fixed.py</td><td><span class="badge info">High</span> 예측 재생기</td><td><a class="btn" href="http://localhost:14000/forecast-player" target="_blank">열기</a></td><td>State.load 시점 무거운 쿼리</td></tr>
+<tr><td><code>/model-config</code></td><td>pages/model_config.py</td><td><span class="badge info">Medium</span></td><td><a class="btn" href="http://localhost:14000/model-config" target="_blank">열기</a></td><td>—</td></tr>
+<tr><td><code>/training</code></td><td>pages/training.py</td><td><span class="badge info">Medium</span></td><td><a class="btn" href="http://localhost:14000/training" target="_blank">열기</a></td><td>—</td></tr>
+<tr><td><code>/test/wizard</code></td><td>pages/test_wizard.py</td><td><span class="dim">Low (test)</span></td><td><a class="btn" href="http://localhost:14000/test/wizard" target="_blank">열기</a></td><td>—</td></tr>
+<tr><td><code>/alarms_rt_simple</code></td><td>pages/alarms_rt_simple.py</td><td><span class="dim">Low (중복 버전)</span></td><td><a class="btn" href="http://localhost:14000/alarms_rt_simple" target="_blank">열기</a></td><td>레거시 — /alarms / /alarms_rt_new 가 후속</td></tr>
+<tr><td><code>/dashboard-v2</code></td><td>pages/dashboard_v2.py</td><td><span class="dim">Low (레거시)</span></td><td><a class="btn" href="http://localhost:14000/dashboard-v2" target="_blank">열기</a></td><td>레거시 — / 가 후속</td></tr>
+<tr><td><code>/dashboard-responsive</code></td><td>pages/dashboard_v2.py</td><td><span class="dim">Low (레거시)</span></td><td><a class="btn" href="http://localhost:14000/dashboard-responsive" target="_blank">열기</a></td><td>레거시</td></tr>
+<tr><td><code>/design-system-demo</code></td><td>pages/design_system_demo.py</td><td><span class="dim">Low (데모)</span></td><td><a class="btn" href="http://localhost:14000/design-system-demo" target="_blank">열기</a></td><td>—</td></tr>
+</tbody>
+</table>
+
+<h2>3. 다음 단계 — 사용자 협력 요청</h2>
+<div class="note">
+브라우저로 <strong>최소 4개 페이지</strong>를 한 번씩 열어보고 결과를 알려주세요:
+<ol>
+<li><strong>SSR 정상 그룹에서</strong>: <code>/</code> (대시보드), <code>/trend</code>, <code>/forecast-player</code>가 안 보이지만 사실 SSR 정상에 포함 — 위 분류 다시 확인</li>
+<li><strong>SSR fallback 그룹에서</strong>: <code>/ai</code>, <code>/forecast-player</code>, <code>/model-config</code> — JS hydration 후 정상 화면이 나오는지, 아니면 빈 페이지/에러인지</li>
+</ol>
+각 페이지에 대해 "정상" / "빈 화면" / "에러 메시지 보임" 알려주시면 broken만 추려서 fix 사이클 들어갑니다.
+</div>
+
+<h2>4. 즉시 확인 가능한 사이드바 메뉴 일관성</h2>
+<div class="legend">사이드바에서 어떤 라우트가 실제 메뉴로 노출되는지가 사용자 체감 우선순위입니다. <code>ksys_app/components/layout.py</code>를 봐야 사이드바 메뉴 정의가 보입니다 — 그 메뉴와 페이지 라우트 매칭이 맞는지 다음 cycle에서 확인 예정.</div>
+
+</div>
+</body>
+</html>

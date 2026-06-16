@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>KSys IoT — 역설계 기능 정의서 (INDEX)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 30px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 40px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 14px 18px;
+             margin: 16px 0; border-radius: 6px; }
+  .callout.crit { border-left-color: #f85149; background: #2b1414; }
+  .callout.good { border-left-color: #3fb950; background: #0e2417; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .good { color: #3fb950; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+              gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 28px; font-weight: 700; color: #79c0ff; }
+  .kpi .l { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .kpi.bad .v { color: #f85149; }
+  .kpi.warn .v { color: #d29922; }
+  .kpi.good .v { color: #3fb950; }
+  .spec-card { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+               border-radius: 12px; padding: 20px; margin: 16px 0; }
+  .spec-card a { color: #79c0ff; text-decoration: none; font-weight: 600; font-size: 16px; }
+  .spec-card a:hover { text-decoration: underline; }
+  .spec-card .desc { font-size: 13px; color: #8b949e; margin-top: 6px; }
+  .spec-card .stats { font-size: 12px; color: #ffa657; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>📚 KSys IoT — 역설계 기능 정의서 INDEX</h1>
+<p class="meta">실행 2026-05-28 · 5-agent 병렬 reverse engineering (frontend + backend + DB + PM + QA) · 사용자 요청 "역설계를 통한 모든 기능 정의서가 다시 만들어져야 함"</p>
+
+<div class="callout info">
+<strong>🗺️ 어떤 순서로 봐야 할지 모르겠다면 → <a href="spec_map.html">spec_map.html (Traceability Map)</a></strong> 먼저 여세요.
+문서 플로우 DAG (읽는 순서) + 요건→기능→화면→프로세스→테스트 추적 매트릭스 + 순번 불일치 + orphan 자동 검출을 한눈에. 노드 클릭 시 해당 spec로 점프.
+</div>
+
+<div class="callout crit">
+<strong>사용자 의심 정당했음.</strong> Reverse engineering 결과: 16 페이지 중 <strong>2 dead</strong>, 24 State 클래스 중 <strong>7 orphan</strong>, 201 event handlers, 6 schedulers, 17 tables — <strong>그 누구도 전체 기능을 파악하고 있지 못한 상태</strong>. 이 5 spec 문서가 향후 모든 테스트/유지보수/배포의 baseline.
+</div>
+
+<h2>📊 시스템 실측 규모</h2>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="v">16</div><div class="l">페이지 (pages/)<br><span class="bad">2 dead</span></div></div>
+  <div class="kpi"><div class="v">24</div><div class="l">State 클래스<br><span class="bad">7 orphan</span></div></div>
+  <div class="kpi"><div class="v">201</div><div class="l">@rx.event handlers<br>(112 background)</div></div>
+  <div class="kpi"><div class="v">17</div><div class="l">DB 테이블<br>(4 hypertable, 5 cont agg)</div></div>
+  <div class="kpi"><div class="v">6</div><div class="l">Schedulers<br>(10min/1min/1hr + pg_cron)</div></div>
+  <div class="kpi"><div class="v">11+18</div><div class="l">Services + AI engines</div></div>
+  <div class="kpi warn"><div class="v">124</div><div class="l">제안된 Test cases<br>(4-tier 분류)</div></div>
+  <div class="kpi bad"><div class="v">3</div><div class="l">산업 표준 갭<br>(auth/RBAC/zombie)</div></div>
+</div>
+
+<h2>📑 5 Specification 문서 (역설계 결과)</h2>
+
+<div class="spec-card">
+  <a href="spec_01_frontend_pages.html">spec_01_frontend_pages.html — Frontend Pages 카탈로그</a>
+  <div class="desc">16 페이지 × 각자 라우트 URL, 등록 여부, 사용 State, UI 엘리먼트, 테스트 시나리오. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">발견: /ai · /design-system-demo dead, /alarms_rt + /alarms_rt_new 중복, AlarmRT filter 하드코딩</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_02_backend_states_services.html">spec_02_backend_states_services.html — State + Service 카탈로그</a>
+  <div class="desc">24 State × 201 @rx.event handlers, 11 services, 18 ai_engine modules. 도메인별 그룹핑 + 우선순위. <strong>code-analyzer</strong> 작성.</div>
+  <div class="stats">발견: 7 orphan State, _polling_task zombie risk, AI engine 12+ raw db.q (Day 6 fix는 빙산의 일각)</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_03_database_schedulers.html">spec_03_database_schedulers.html — DB + Scheduler 카탈로그</a>
+  <div class="desc">17 테이블 (4 hypertable, 5 cont agg), 6 schedulers (forecast/alarm/virtual tag/pg_cron). 데이터 흐름 다이어그램. <strong>bkend-expert</strong> 작성.</div>
+  <div class="stats">발견: forecast 10min loop, alarm 10s polling + NOTIFY/LISTEN, pg_cron 가상 태그 계산</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_04_PRD.html">spec_04_PRD.html — 역설계 PRD (Product Requirements)</a>
+  <div class="desc">제품 정체성, 3 페르소나 (Operator/Data Analyst/Admin), 29 features (M1/M2/M3 분류), 정리 권고. <strong>product-manager</strong> 작성.</div>
+  <div class="stats">제품: 단일 사이트 정수처리 SCADA-adjacent IoT 플랫폼. M1=10, M2=9, M3=10 (M3 다수가 dead/duplicate)</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_05_test_plan.html">spec_05_test_plan.html — Master Test Catalog</a>
+  <div class="desc">124 test cases, 4-tier (Smoke 10 / Functional 52 / Regression 50 / Performance 12). 7 도메인 × 평균 10 cases. 2주 실행 계획. <strong>qa-strategist</strong> 작성.</div>
+  <div class="stats">Method: 40% Playwright + 23% pytest + 16% psql + 12% docker logs + 4% curl + 5% manual</div>
+</div>
+
+<h2>📑 Phase A+B — 정통 SI 산출물 시퀀스</h2>
+
+<div class="spec-card">
+  <a href="spec_06_menu_sitemap.html">spec_06_menu_sitemap.html — 메뉴 트리 + 사이트맵 + 네비게이션</a>
+  <div class="desc">5 메뉴 그룹, 16 라우트 트리, URL 정규화 권고 (kebab-case 일관성 43%), 권한 모델 초안. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">발견: 사이드바 노출 7개 + hidden 1개 + 미노출 6개, layout_v2.py 미사용, 모바일 사실상 불가</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_07_storyboard.html">spec_07_storyboard.html — 스토리보드 (페르소나별 user flow)</a>
+  <div class="desc">18 flows (Operator 7 + Analyst 6 + Admin 5), ASCII 다이어그램, happy/alternative/error paths, cross-flow 의존성 13개. <strong>product-manager</strong> 작성.</div>
+  <div class="stats">Critical flow: OP-02 (실시간 Critical 알람 긴급 대응, SLA 2분). Broken 10개, 누락 9개</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_08_screens_alarm_domain.html">spec_08_screens_alarm_domain.html — 화면 설계서 (Alarm 도메인 7 페이지)</a>
+  <div class="desc">/alarms · /alarms_rt · /alarms_rt_new · /alarms_hist · /alarms_hist_new · /scada-alarms · /scada-alarm-comparison. 각 페이지 layout grid + 컴포넌트 표 + state binding + 결함. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">총 145 컴포넌트, 알려진 결함 15개 (Critical 2, High 9, Medium 4). canonical 추천: /alarms 단일화</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_09_screens_ml_ai_domain.html">spec_09_screens_ml_ai_domain.html — 화면 설계서 (ML/AI 도메인)</a>
+  <div class="desc">/forecast (11 섹션) + /model-performance (8 섹션) + /training-wizard 6-step (~135 컴포넌트). save_model 파이프라인 10단계. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">결함: F-01 에러 UI 미노출, MP-01 삭제 confirm 없음, W-01 학습 취소 불가, W-02 pickle cache 휘발</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_10_screens_operations_domain.html">spec_10_screens_operations_domain.html — 화면 설계서 (Operations 도메인)</a>
+  <div class="desc">/ (dashboard 1635 LoC god-class → 6 sub-component 분리 제안) + /viewer-tag + /sync (orphan) + /comm. <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">결함: D-01 zombie loop, V-01 delete confirm 없음, S-01 /sync 페이지 404, C-02 pandas @rx.var 미캐싱</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_11_screens_analytics_misc.html">spec_11_screens_analytics_misc.html — 화면 설계서 (Analytics + 기타)</a>
+  <div class="desc">/trend (849 LoC, dual sync chart) + /ai (DEAD, 활성화 시 9개 즉시 fix 필요) + /design-system-demo (DEAD). <strong>frontend-architect</strong> 작성.</div>
+  <div class="stats">AI 활성화 Critical: ksys_app.py import 1줄 추가만으로 라우트 활성. SQL injection 추가 사이트 발견</div>
+</div>
+
+<h2>📑 Phase C/D/E — 정통 SI Spec 시퀀스 (기능 / 프로세스 / 기획 / SRS)</h2>
+
+<div class="spec-card">
+  <a href="spec_12_functional_spec.html">spec_12_functional_spec.html — 기능 명세서 (Functional Spec)</a>
+  <div class="desc">201 @rx.event handlers를 97 features × 9 도메인 (ALM 15·DSH 10·FCT 12·TRN 15·TRD 8·SNR 12·COM 6·AI 5·SYS 14)로 그룹화. 각 feature 마다 IPO + Pre/Post-conditions + Business Rules + Error Handling + Cross-references. <strong>code-analyzer</strong> 작성.</div>
+  <div class="stats">M1 40 / M2 40 / M3 17 (DEAD 12 포함). 결함 있는 features 8건. Test coverage 평균 ~50%</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_13_process_spec.html">spec_13_process_spec.html — 프로세스 명세서 (데이터 흐름 + 비즈니스 + 시스템)</a>
+  <div class="desc">15 프로세스 — 데이터 5 (센서 ingest, cont agg, virtual tag, upstream sync, training data prep) + 비즈니스 6 (알람/SCADA/이력/학습/forecast/모델 lifecycle) + 시스템 4 (boot, RPI bootstrap, backup/restore, tunnel routing). 각 프로세스 ASCII 다이어그램 + 단계별 표 + SLA + cross-spec 결함 매핑. <strong>bkend-expert + 메인 세션</strong> 작성.</div>
+  <div class="stats">Critical Path: PROC-010 알람 발생→화면 ≤15s, PROC-014 forecast 1 cycle ≤5min. SLA 측정 인프라 부재가 가장 큰 gap</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_14_operations_spec.html">spec_14_operations_spec.html — 운영 명세서 (Operations Runbook)</a>
+  <div class="desc">22 runbooks × 6 카테고리 (Provisioning 4 / Backup 3 / Monitoring 4 / Incident 4 / Security 4 / Capacity 3). 인프라 토폴로지 ASCII + 서비스별 운영 표 + Multi-RPI 매트릭스 + 운영 KPI 10종. <strong>infra-architect</strong> 작성.</div>
+  <div class="stats">Multi-RPI 배포 가능 (bootstrap_rpi.sh + restore_db.sh + measure_rpi_baseline.sh 준비됨). RBAC matrix 6×6 (auth 도입 후 적용)</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_15_planning.html">spec_15_planning.html — 기획서 (Product Planning / Vision)</a>
+  <div class="desc">비전 + 미션 + 시장 정의 + 4 분기 로드맵 (Q1 안정화 → Q2 인증+멀티RPI → Q3 성능+관찰성 → Q4 사업화) + 7 ADR (Reflex/TimescaleDB/Cloudflare/RPI5/Pickle/Monolith/asyncio) + 18 KPIs + 12 RAID items. <strong>product-manager</strong> 작성.</div>
+  <div class="stats">비전: "RPI 5 위 소규모 수처리·해수담수화 전용 IoT 관제 + AI 예측 플랫폼, 저비용 엣지 우선"</div>
+</div>
+
+<div class="spec-card">
+  <a href="spec_16_SRS.html">spec_16_SRS.html — SRS 요구사항 명세서 (IEEE 830 / ISO 29148)</a>
+  <div class="desc">161 requirements 총 — F 93 (9 domains) + NF 55 (7 categories: PRF/REL/SEC/USB/MTN/CMP/OPS) + I 8 + RTM 112+행. SHALL 61% / SHOULD 32% / MAY 7%. <strong>enterprise-expert</strong> 작성.</div>
+  <div class="stats">변경 통제: 기획→PRD→SRS→기능spec→화면spec→test plan→코드→TC. 안전 critical: REQ-F-ALM-* + REQ-NF-REL-002 (알람 누락 0건)</div>
+</div>
+
+<h2>🔢 산출물 요약 — 한눈에 보는 시스템</h2>
+
+<h3>제품 정체성 (PRD §1 추론)</h3>
+<p><strong>"KSYS = 단일 사이트 정수처리(desalination/water-treatment) SCADA-adjacent 플랫폼"</strong>. 실시간 IoT 센서 모니터링 + ISA-18.2 알람 관리 + 10분 ML 예측 사이클 + 가이드형 모델 학습. RPI Docker 배포.</p>
+<p>증거: <code>influx_hist</code>, <code>alarm_history</code>, <code>virtual_tag_*</code>, <code>prediction_performance</code>, <code>model_registry</code>, "실시간 알람", "트렌드 분석", "예측 플레이어", "training wizard" 페이지 제목.</p>
+
+<h3>3 페르소나 + 핵심 페이지 (PRD §2)</h3>
+<table>
+<tr><th>페르소나</th><th>핵심 페이지</th><th>핵심 작업</th></tr>
+<tr><td>Operator (운영자)</td><td>/, /alarms, /alarms_rt</td><td>실시간 모니터링, 알람 acknowledge, sensor 카드 확인</td></tr>
+<tr><td>Data Analyst / Process Engineer</td><td>/trend, /forecast, /training-wizard</td><td>트렌드 분석, 모델 학습, 예측 검토</td></tr>
+<tr><td>System Administrator</td><td>/viewer-tag, /model-performance, /sync</td><td>tag 설정, 모델 deploy, 업스트림 동기화</td></tr>
+</table>
+
+<h3>핵심 데이터 흐름 2개 (DB spec §6)</h3>
+<pre>
+[Forecast loop — 10분 주기]
+  ForecastScheduler @ x:00
+    → model_registry.model_pickle BYTEA load
+    → ThreadPoolExecutor 45s timeout → model.predict()
+    → INSERT predictions (N rows for N horizons)
+    → INSERT forecast_player_cache (1 snapshot)
+  ActualValueUpdater @ x:01 (10분 주기)
+    → UPDATE predictions SET actual_value = ... WHERE target_time < NOW()
+  PerformanceAggregator @ x:03 (1시간 주기)
+    → INSERT prediction_performance
+
+[Alarm loop — 10s 주기 + NOTIFY/LISTEN]
+  AlarmMonitor (every 10s)
+    → SELECT influx_hist (최근 데이터)
+    → evaluate vs influx_qc_rule thresholds (5분 dedup)
+    → INSERT alarm_history
+    → pg_notify('alarm_event', event_id)        ← 1da09aa + a5a530f fix
+    → DatabaseEventListener (psycopg3 LISTEN)    ← db_events.py channel validator
+    → frontend WS update (real-time alarm 카드)
+</pre>
+
+<h2>🚨 발견된 시스템 결함 (5 spec 종합)</h2>
+
+<table>
+<tr><th>#</th><th>유형</th><th>결함</th><th>출처</th><th>우선순위</th></tr>
+<tr><td>1</td><td>Dead route</td><td><code>/ai</code> (ai_insights.py) — @rx.page 있지만 ksys_app.py import 없음. Day 6 SQL fix가 호출 path 없음.</td><td>spec_01 + playwright_test</td><td>P0</td></tr>
+<tr><td>2</td><td>Dead route</td><td><code>/design-system-demo</code> — 같은 패턴 (모듈 import 없음)</td><td>spec_01</td><td>P2</td></tr>
+<tr><td>3</td><td>Duplicate page</td><td><code>/alarms_rt</code> + <code>/alarms_rt_new</code> 둘 다 live. 같은 state class. canonical 없음.</td><td>spec_01</td><td>P1</td></tr>
+<tr><td>4</td><td>Broken UI</td><td>AlarmRT filter bar 하드코딩 (<code>search_value="", severity_filter="all"</code> 리터럴) — 검색/필터 작동 안 함</td><td>spec_01</td><td>P1</td></tr>
+<tr><td>5</td><td>Orphan code</td><td>7 State 클래스 (AlarmState, AlarmsEnhancedState, TrendStateEnhanced, TrainingWizardStateEnhanced, DashboardRealtimeGroupedState, ModelConfigState, SyncMonitorState) — 페이지에서 사용 안 함</td><td>spec_02</td><td>P2</td></tr>
+<tr><td>6</td><td>Security</td><td>AI engine 12+ 모듈 모두 raw <code>..db.q</code> 사용. Day 6 fix는 2개만. 나머지 vulnerable.</td><td>spec_02 + audit</td><td>P1</td></tr>
+<tr><td>7</td><td>Runtime risk</td><td>BaseState <code>_polling_task</code> 선언만, assign 0건. asyncio Task cancel 부재 → DB pool 누수 위험</td><td>spec_02 + PRD</td><td>P0</td></tr>
+<tr><td>8</td><td>Code dup</td><td>trend_state.py + trend_state_enhanced.py ~90% 동일 (audit 기록)</td><td>audit</td><td>P2</td></tr>
+<tr><td>9</td><td>Unwired</td><td>DailyTrainingScheduler — 코드 존재, scheduler_manager.start_all()에 등록 안 됨</td><td>spec_03 + PRD</td><td>P2</td></tr>
+<tr><td>10</td><td>Industry gap</td><td>auth 0건 (201 events 모두 인증 없이 호출 가능, public Cloudflare tunnel 노출)</td><td>audit + PRD</td><td>P0</td></tr>
+</table>
+
+<h2>📋 다음 2주 행동 계획 (test plan §8)</h2>
+
+<h3>Week 1: Tier-1 Smoke Suite 도입</h3>
+<ol>
+  <li>Day 1: <code>scripts/seed_test_data.sql</code> 작성</li>
+  <li>Day 2: SMOKE-01..10 → <code>scripts/smoke_test.sh</code> 셸 스크립트</li>
+  <li>Day 3: 로컬 도커에서 10/10 green 검증</li>
+  <li>Day 4: pre-push hook 또는 CI 연동</li>
+  <li>Day 5: baseline 실패 항목 문서화</li>
+</ol>
+
+<h3>Week 2: Tier-2 Functional 도입 (M1 features)</h3>
+<ol>
+  <li>Day 1-2: Playwright Alarm 도메인 7건 → <code>tests/e2e/test_alarms.py</code></li>
+  <li>Day 2-3: Playwright Dashboard + Trend 7건</li>
+  <li>Day 3-4: pytest DB write handlers 5건</li>
+  <li>Day 4: scheduler smoke (docker logs + psql)</li>
+  <li>Day 5: 전체 Tier-2 12분 내 통과 검증</li>
+</ol>
+
+<h2>🎯 정리 권고 (PRD §6)</h2>
+
+<table>
+<tr><th>ID</th><th>작업</th><th>Effort</th><th>Risk</th></tr>
+<tr><td>CR-01</td><td><code>ai_insights</code> 1줄 import 추가 → /ai 활성 (또는 ai_engine/ 18모듈 통째 삭제)</td><td>0.5h</td><td>Low</td></tr>
+<tr><td>CR-02</td><td><code>/alarms_rt</code> 와 <code>/alarms_rt_new</code> 통합. filter bar state binding 수정. pagination 구현.</td><td>3-4h</td><td>Med</td></tr>
+<tr><td>CR-03</td><td><code>/alarms_hist</code> 와 <code>/alarms_hist_new</code> 통합</td><td>2-3h</td><td>Med</td></tr>
+<tr><td>CR-04</td><td>7 orphan State 클래스 삭제</td><td>1h</td><td>Low</td></tr>
+<tr><td>CR-05</td><td>DailyTrainingScheduler를 SchedulerManager에 env flag로 연결</td><td>1h</td><td>Med</td></tr>
+<tr><td>CR-06</td><td>BaseState <code>_polling_task</code> 실제 asyncio.Task assign + cancel on unmount</td><td>2-3h</td><td>Med</td></tr>
+<tr><td>CR-07</td><td>AI engine 10+ 추가 모듈에 safe_tags 패턴 일괄 적용 (또는 모듈 자체 삭제)</td><td>1-3h</td><td>Med</td></tr>
+</table>
+
+<h2>🔁 다음 단계 (사용자 결정)</h2>
+
+<ol>
+  <li><strong>5 spec 검토</strong> — 내용에 누락/오류 있으면 알려주세요. 해당 agent re-spawn으로 보완.</li>
+  <li><strong>CR-01..07 우선순위 결정</strong> — Day 8 (또는 새 sprint) 진행할 것 선택</li>
+  <li><strong>Smoke test suite 작성 시작</strong> — Week 1 plan 즉시 진행 (AI가 직접 scripts/smoke_test.sh 작성 가능)</li>
+  <li><strong>Authentication 도입 결정</strong> — PRD §7 industry gap. 별도 sprint 계획 필요.</li>
+</ol>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+역설계 완료 2026-05-28 · 5 spec × ~2000 줄 + 종합 HTML · 124 test cases · 10 결함 발견 · <strong>전체 기능 카탈로그 baseline 확립</strong>
+</p>
+
+</body>
+</html>

@@ -51,8 +51,8 @@ async def get_pool() -> asyncpg.Pool:
                         _dsn(),
                         min_size=1,  # 최소 연결 수
                         max_size=10,  # 최대 연결 수
-                        timeout=30.0,  # 연결 대기 시간
-                        command_timeout=30.0,  # 명령 타임아웃
+                        timeout=60.0,  # 연결 대기 시간
+                        command_timeout=60.0,  # 명령 타임아웃
                     )
                     logger.info(f"Global pool created successfully (PID: {pid})")
                 except Exception as e:
@@ -64,7 +64,7 @@ async def get_pool() -> asyncpg.Pool:
 
 
 @log_function
-async def q(sql: str, params: tuple | dict = (), timeout: float = 30.0):
+async def q(sql: str, params: tuple | dict = (), timeout: float = 60.0):
     """쿼리 실행 - 글로벌 풀 사용"""
     start_time = asyncio.get_event_loop().time()
 
@@ -122,7 +122,7 @@ async def q(sql: str, params: tuple | dict = (), timeout: float = 30.0):
 
 
 @log_function
-async def execute_query(sql: str, params: tuple | dict = (), timeout: float = 30.0):
+async def execute_query(sql: str, params: tuple | dict = (), timeout: float = 60.0):
     """Execute SQL without expecting results (for INSERT, UPDATE, DELETE)"""
     start_time = asyncio.get_event_loop().time()
 

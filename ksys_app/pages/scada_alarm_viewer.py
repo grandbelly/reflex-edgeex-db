@@ -209,6 +209,7 @@ def alarm_log_table() -> rx.Component:
     )
 
 
+@rx.page(route="/scada-alarms", title="SCADA 알람 로그")
 def scada_alarm_viewer() -> rx.Component:
     """SCADA 알람 뷰어 페이지"""
     return rx.vstack(

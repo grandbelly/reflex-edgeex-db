@@ -1,0 +1,2838 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_09_screens_ml_ai_domain</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="deep-design-artifact-9-mlai">DEEP DESIGN ARTIFACT #9 — 화면 설계서 (ML/AI 도메인)</h1>
+<h2 id="b2-domain-forecast-player-model-performance-training-wizard">B2 Domain: Forecast Player / Model Performance / Training Wizard</h2>
+<p>작성일: 2026-05-29<br />
+기준 코드: <code>refactor/rpi-baseline-sync</code> 브랜치<br />
+작성 기준: 코드 역공학 (AST 수준 분석) — 수박 겉핥기 금지</p>
+<hr />
+<h2 id="_1">목차</h2>
+<ol>
+<li><a href="#1-forecast--예측-플레이어">/forecast — 예측 플레이어</a></li>
+<li><a href="#2-model-performance--모델-성능-모니터링">/model-performance — 모델 성능 모니터링</a></li>
+<li><a href="#3-training-wizard--학습-마법사">/training-wizard — 학습 마법사 (6-step)</a>
+   - <a href="#step-1-센서-선택">Step 1: 센서 선택</a>
+   - <a href="#step-2-모델-선택">Step 2: 모델 선택</a>
+   - <a href="#step-3-feature-config">Step 3: Feature Config</a>
+   - <a href="#step-4-학습-파라미터">Step 4: 학습 파라미터</a>
+   - <a href="#step-5-학습-실행">Step 5: 학습 실행</a>
+   - <a href="#step-6-결과-검토--save_model">Step 6: 결과 검토 + save_model</a></li>
+</ol>
+<hr />
+<h1 id="1-forecast">1. /forecast — 예측 플레이어</h1>
+<h2 id="11">1.1 기본 정보</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>모듈 경로</td>
+<td><code>ksys_app/pages/forecast_player.py</code></td>
+</tr>
+<tr>
+<td>State 경로</td>
+<td><code>ksys_app/states/forecast_player_state/state.py</code></td>
+</tr>
+<tr>
+<td>LoC (page)</td>
+<td>958줄</td>
+</tr>
+<tr>
+<td>LoC (state)</td>
+<td>1,669줄</td>
+</tr>
+<tr>
+<td>@rx.page route</td>
+<td><code>/forecast</code></td>
+</tr>
+<tr>
+<td>page title</td>
+<td><code>예측 플레이어 | KSYS</code></td>
+</tr>
+<tr>
+<td>on_load</td>
+<td><code>FPS.load_deployed_models</code>, <code>FPS.start_countdown_monitor</code></td>
+</tr>
+<tr>
+<td>State 클래스</td>
+<td><code>ForecastPlayerState</code> (alias: <code>FPS</code>)</td>
+</tr>
+<tr>
+<td>상위 컴포넌트</td>
+<td><code>shell()</code> — 공통 레이아웃 (사이드바 포함)</td>
+</tr>
+<tr>
+<td>등록 상태</td>
+<td>활성 (라우터 등록 확인됨)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="12">1.2 화면 레이아웃</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────────┐
+│  SIDEBAR (280px)  │                   MAIN CONTENT AREA                         │
+│                   │                                                              │
+│  [nav items]      │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ PAGE HEADER: 실시간 예측 대시보드  [icon:activity]      │  │
+│                   │  │  subtitle: Rolling Window 기반 N분 간격 연속 예측 시스템 │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌──────────────┐ ┌──────────────┐ ┌────────────────────┐  │
+│                   │  │ MAPE 카드    │ │ NRMSE 카드   │ │ 예측 정확도 카드   │  │
+│                   │  │ (green grad) │ │ (purple grad)│ │ (pink gradient)    │  │
+│                   │  │ FPS.mape_    │ │ FPS.r2_disp  │ │ FPS.accuracy_%_    │  │
+│                   │  │ display      │ │              │ │ display            │  │
+│                   │  └──────────────┘ └──────────────┘ └────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ FORMULA DISPLAY (rx.cond: cached_rmse &gt; 0만 표시)     │  │
+│                   │  │  Step1: RMSE  →  Step2: 훈련 평균  →                  │  │
+│                   │  │  Step3: CV-RMSE  →  Result: 예측 정확도               │  │
+│                   │  │  계산식 한줄: rmse / mean = nrmse =&gt; 1-nrmse = acc%   │  │
+│                   │  │  추가 메트릭: MAPE | RMSE | 데이터 포인트 | 데이터 범위 │  │
+│                   │  │  용어설명: RMSE / CV-RMSE / MAPE                       │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ MODEL CONTROLS (rx.card)                              │  │
+│                   │  │  [모델 선택] Select.Root (배포된 모델 목록)            │  │
+│                   │  │  [데이터 새로고침] Button (on_click: load_predictions) │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ─── cond: has_predictions ───────────────────────────────  │
+│                   │                                                              │
+│                   │  ┌──────────────────────┐ ┌──────────────────────────────┐  │
+│                   │  │ 시스템 정보 패널     │ │ 업데이트 현황 패널           │  │
+│                   │  │ 센서명 / 예측횟수 /  │ │ T0 기준 시간 (purple)        │  │
+│                   │  │ 갱신주기 / 모델 /    │ │ 마지막 업데이트 (blue)       │  │
+│                   │  │ 데이터 윈도우 /      │ │ 예측 스케줄러 badge          │  │
+│                   │  │ 예측 호라이즌        │ │ 다음 예측 (green badge)      │  │
+│                   │  └──────────────────────┘ └──────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ ENHANCED FORECAST CHART (ComposedChart 400px height)  │  │
+│                   │  │  hstack header: &quot;시계열 트렌드 차트...&quot; + [스케일토글] │  │
+│                   │  │  ┌─────────────────────────────────────────────────┐  │  │
+│                   │  │  │   Past Zone (blue #3b82f6 @5%)                  │  │  │
+│                   │  │  │   ─ ─ ─ ─ ─ T0 (red #ef4444 dashed) ─ ─ ─ ─ ─  │  │  │
+│                   │  │  │                Future Zone (orange #f97316 @5%) │  │  │
+│                   │  │  │  실측값 (blue line, r=4)                        │  │  │
+│                   │  │  │  예측값 (orange line, r=4)                      │  │  │
+│                   │  │  │  Upper CI (orange dashed)                       │  │  │
+│                   │  │  │  Lower CI (orange dashed)                       │  │  │
+│                   │  │  │  X축: time_label, -45°, height=100              │  │  │
+│                   │  │  │  Y축: dynamic domain (FPS.y_axis_domain)        │  │  │
+│                   │  │  └─────────────────────────────────────────────────┘  │  │
+│                   │  │  Legend (bottom, icon=line)                           │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ DATA TABLE (horizontal scroll, height=400px)          │  │
+│                   │  │  rows: 실제 시간 / 실측값(blue) / 예측값(orange) /    │  │
+│                   │  │         절대오차 / 상대오차%(yellow badge) /           │  │
+│                   │  │         MAPE(purple, colspan=all) / 상태(color badge) │  │
+│                   │  │  T0 컬럼: yellow bg + red border                      │  │
+│                   │  │  Past 컬럼: blue bg  /  Future 컬럼: green bg         │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ─── else (empty state) ──────────────────────────────────  │
+│                   │  [icon: database x64] 예측 데이터가 없습니다               │  │
+│                   │  [스트리밍 시작 Button]                                    │  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>레이아웃 row 수:</strong> 11개 주요 섹션 (header + 3 metric cards + formula + model controls + 2-panel grid + chart + table + empty state)</p>
+<h2 id="13">1.3 컴포넌트 명세 표</h2>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>Event</th>
+<th>라벨/설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page Header</td>
+<td>최상단</td>
+<td><code>page_header()</code></td>
+<td><code>FPS.forecast_interval_display</code></td>
+<td>—</td>
+<td>"실시간 예측 대시보드"</td>
+</tr>
+<tr>
+<td>MAPE 카드</td>
+<td>row 2, col 1</td>
+<td><code>metric_card()</code></td>
+<td><code>FPS.mape_display</code></td>
+<td>—</td>
+<td>green gradient</td>
+</tr>
+<tr>
+<td>NRMSE 카드</td>
+<td>row 2, col 2</td>
+<td><code>metric_card()</code></td>
+<td><code>FPS.r2_display</code></td>
+<td>—</td>
+<td>purple gradient</td>
+</tr>
+<tr>
+<td>정확도 카드</td>
+<td>row 2, col 3</td>
+<td><code>metric_card()</code></td>
+<td><code>FPS.accuracy_percentage_display</code></td>
+<td>—</td>
+<td>pink gradient</td>
+</tr>
+<tr>
+<td>Formula Step1</td>
+<td>formula section</td>
+<td><code>rx.text</code></td>
+<td><code>FPS.fmt_rmse</code></td>
+<td>—</td>
+<td>RMSE 값 표시</td>
+</tr>
+<tr>
+<td>Formula Step2</td>
+<td>formula section</td>
+<td><code>rx.text</code></td>
+<td><code>FPS.fmt_data_mean</code></td>
+<td>—</td>
+<td>훈련 평균 표시</td>
+</tr>
+<tr>
+<td>Formula Step3</td>
+<td>formula section</td>
+<td><code>rx.text</code></td>
+<td><code>FPS.fmt_nrmse</code></td>
+<td>—</td>
+<td>CV-RMSE 표시</td>
+</tr>
+<tr>
+<td>Formula Result</td>
+<td>formula section</td>
+<td><code>rx.text</code></td>
+<td><code>FPS.fmt_accuracy</code></td>
+<td>—</td>
+<td>정확도 %</td>
+</tr>
+<tr>
+<td>모델 Select</td>
+<td>model controls</td>
+<td><code>rx.select.root</code></td>
+<td><code>FPS.deployed_models</code>, <code>FPS.selected_model_id</code></td>
+<td><code>FPS.select_model</code></td>
+<td>"배포된 모델을 선택하세요"</td>
+</tr>
+<tr>
+<td>새로고침 버튼</td>
+<td>model controls</td>
+<td><code>rx.button</code></td>
+<td><code>~FPS.selected_model_id</code> (disabled)</td>
+<td><code>FPS.load_predictions</code></td>
+<td>"데이터 새로고침"</td>
+</tr>
+<tr>
+<td>Y축 스케일 토글</td>
+<td>chart header</td>
+<td><code>rx.button</code></td>
+<td><code>FPS.y_axis_from_zero</code></td>
+<td><code>FPS.toggle_y_axis_scale</code></td>
+<td>"0 기준" / "자동 스케일"</td>
+</tr>
+<tr>
+<td>ComposedChart</td>
+<td>main area</td>
+<td><code>rx.recharts.composed_chart</code></td>
+<td><code>FPS.chart_data</code> (rolling_window_data)</td>
+<td>—</td>
+<td>400px height</td>
+</tr>
+<tr>
+<td>ReferenceArea Past</td>
+<td>chart</td>
+<td><code>rx.recharts.reference_area</code></td>
+<td><code>FPS.past_zone_start</code>, <code>FPS.t0_label</code></td>
+<td>—</td>
+<td>fill #3b82f6 @5%</td>
+</tr>
+<tr>
+<td>ReferenceArea Future</td>
+<td>chart</td>
+<td><code>rx.recharts.reference_area</code></td>
+<td><code>FPS.t0_label</code>, <code>FPS.future_zone_end</code></td>
+<td>—</td>
+<td>fill #f97316 @5%</td>
+</tr>
+<tr>
+<td>ReferenceLine T0</td>
+<td>chart</td>
+<td><code>rx.recharts.reference_line</code></td>
+<td><code>FPS.t0_label</code></td>
+<td>—</td>
+<td>stroke #ef4444 dashed</td>
+</tr>
+<tr>
+<td>CI Upper Line</td>
+<td>chart</td>
+<td><code>rx.recharts.line</code></td>
+<td><code>data_key="ci_upper"</code></td>
+<td>—</td>
+<td>orange dashed</td>
+</tr>
+<tr>
+<td>CI Lower Line</td>
+<td>chart</td>
+<td><code>rx.recharts.line</code></td>
+<td><code>data_key="ci_lower"</code></td>
+<td>—</td>
+<td>orange dashed</td>
+</tr>
+<tr>
+<td>예측값 Line</td>
+<td>chart</td>
+<td><code>rx.recharts.line</code></td>
+<td><code>data_key="predicted_value"</code></td>
+<td>—</td>
+<td>orange solid w=3</td>
+</tr>
+<tr>
+<td>실측값 Line</td>
+<td>chart</td>
+<td><code>rx.recharts.line</code></td>
+<td><code>data_key="actual_value"</code></td>
+<td>—</td>
+<td>blue solid w=3</td>
+</tr>
+<tr>
+<td>XAxis</td>
+<td>chart</td>
+<td><code>rx.recharts.x_axis</code></td>
+<td><code>FPS.chart_x_axis_interval</code></td>
+<td>—</td>
+<td>angle=-45, height=100</td>
+</tr>
+<tr>
+<td>YAxis</td>
+<td>chart</td>
+<td><code>rx.recharts.y_axis</code></td>
+<td><code>FPS.y_axis_domain</code></td>
+<td>—</td>
+<td>width=100, tick_count=6</td>
+</tr>
+<tr>
+<td>시스템 정보 패널</td>
+<td>2-grid left</td>
+<td><code>system_status_panel()</code></td>
+<td>FPS.selected_tag_name 외 5개</td>
+<td>—</td>
+<td>센서/횟수/주기/모델/윈도우/호라이즌</td>
+</tr>
+<tr>
+<td>업데이트 현황 패널</td>
+<td>2-grid right</td>
+<td><code>recent_updates_panel()</code></td>
+<td>FPS.t0_reference_time_display 외 3개</td>
+<td>—</td>
+<td>T0/마지막업데이트/스케줄러/다음예측</td>
+</tr>
+<tr>
+<td>Data Table</td>
+<td>하단</td>
+<td><code>styled_data_table()</code></td>
+<td>7개 row data vars</td>
+<td>—</td>
+<td>height=400px, hscroll</td>
+</tr>
+<tr>
+<td>스트리밍 시작 (empty state)</td>
+<td>center</td>
+<td><code>rx.button</code></td>
+<td>—</td>
+<td><code>FPS.start_streaming</code></td>
+<td>빈 상태에서만 표시</td>
+</tr>
+</tbody>
+</table>
+<h2 id="14-state">1.4 State 변수 매핑</h2>
+<table>
+<thead>
+<tr>
+<th>State 변수</th>
+<th>타입</th>
+<th>초기값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deployed_models</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>배포된 모델 목록</td>
+</tr>
+<tr>
+<td><code>selected_model_id</code></td>
+<td><code>Optional[int]</code></td>
+<td><code>None</code></td>
+<td>선택된 모델 ID</td>
+</tr>
+<tr>
+<td><code>selected_tag_name</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>선택된 센서명</td>
+</tr>
+<tr>
+<td><code>rolling_window_data</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>차트용 롤링 윈도우 데이터 (T-30 ~ T+36)</td>
+</tr>
+<tr>
+<td><code>cached_mape</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>캐시된 MAPE</td>
+</tr>
+<tr>
+<td><code>cached_rmse</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>캐시된 RMSE</td>
+</tr>
+<tr>
+<td><code>cached_nrmse</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>CV-RMSE (RMSE/Mean)</td>
+</tr>
+<tr>
+<td><code>cached_accuracy</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>정확도 %</td>
+</tr>
+<tr>
+<td><code>data_mean</code></td>
+<td><code>Optional[float]</code></td>
+<td><code>None</code></td>
+<td>훈련 데이터 평균 (정규화 기준)</td>
+</tr>
+<tr>
+<td><code>fmt_rmse</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>포맷된 RMSE</td>
+</tr>
+<tr>
+<td><code>fmt_nrmse</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>포맷된 NRMSE</td>
+</tr>
+<tr>
+<td><code>fmt_accuracy</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>포맷된 정확도</td>
+</tr>
+<tr>
+<td><code>fmt_accuracy_ratio</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>1-NRMSE 소수 표현</td>
+</tr>
+<tr>
+<td><code>y_axis_from_zero</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Y축 스케일 모드</td>
+</tr>
+<tr>
+<td><code>is_streaming</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>스트리밍 활성화 여부</td>
+</tr>
+<tr>
+<td><code>countdown_seconds</code></td>
+<td><code>int</code></td>
+<td><code>600</code></td>
+<td>다음 갱신까지 카운트다운</td>
+</tr>
+<tr>
+<td><code>update_interval</code></td>
+<td><code>int</code></td>
+<td><code>600</code></td>
+<td>갱신 주기 (10분)</td>
+</tr>
+<tr>
+<td><code>last_update</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>마지막 업데이트 시각</td>
+</tr>
+<tr>
+<td><code>latest_forecast_time</code></td>
+<td><code>Optional[str]</code></td>
+<td><code>None</code></td>
+<td>T0 표시용 최신 forecast_time</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Computed Vars (주요):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>반환 타입</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>has_predictions</code></td>
+<td><code>bool</code></td>
+<td><code>rolling_window_data</code> 비어있지 않음</td>
+</tr>
+<tr>
+<td><code>chart_data</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>rolling_window_data</code> alias</td>
+</tr>
+<tr>
+<td><code>t0_label</code></td>
+<td><code>str</code></td>
+<td>zone='present' 또는 첫 예측 포인트의 time_label</td>
+</tr>
+<tr>
+<td><code>past_zone_start</code></td>
+<td><code>str</code></td>
+<td>첫 데이터 포인트 time_label</td>
+</tr>
+<tr>
+<td><code>future_zone_end</code></td>
+<td><code>str</code></td>
+<td>마지막 데이터 포인트 time_label</td>
+</tr>
+<tr>
+<td><code>y_axis_domain</code></td>
+<td><code>List</code></td>
+<td>[min-5%, max+5%] 또는 [0, max+5%]</td>
+</tr>
+<tr>
+<td><code>chart_x_axis_interval</code></td>
+<td><code>int</code></td>
+<td>총 포인트수 기반 동적 계산 (목표: ~12 labels)</td>
+</tr>
+<tr>
+<td><code>mape_display</code></td>
+<td><code>str</code></td>
+<td><code>"N.NN%"</code> 또는 <code>"N/A"</code></td>
+</tr>
+<tr>
+<td><code>r2_display</code></td>
+<td><code>str</code></td>
+<td>cached_nrmse 사용 (naming 혼선 주의)</td>
+</tr>
+<tr>
+<td><code>accuracy_percentage_display</code></td>
+<td><code>str</code></td>
+<td>cached_accuracy 우선</td>
+</tr>
+<tr>
+<td><code>scheduler_running</code></td>
+<td><code>bool</code></td>
+<td>항상 <code>True</code> (하드코딩)</td>
+</tr>
+<tr>
+<td><code>next_forecast_time_display</code></td>
+<td><code>str</code></td>
+<td>now + countdown_seconds (HH:MM:SS)</td>
+</tr>
+<tr>
+<td><code>t0_reference_time_display</code></td>
+<td><code>str</code></td>
+<td>zone='present' timestamp → YYYY-MM-DD HH:MM:SS</td>
+</tr>
+<tr>
+<td><code>forecast_horizon_display</code></td>
+<td><code>str</code></td>
+<td><code>"X.Xh (N points)"</code></td>
+</tr>
+<tr>
+<td><code>forecast_interval_display</code></td>
+<td><code>str</code></td>
+<td><code>"Xm"</code> 또는 <code>"Xh"</code></td>
+</tr>
+<tr>
+<td><code>table_time_columns</code></td>
+<td><code>List[Dict]</code></td>
+<td>T-N ~ T+M 컬럼 메타데이터</td>
+</tr>
+<tr>
+<td><code>time_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>MM-DD HH:MM 실제 시간열</td>
+</tr>
+<tr>
+<td><code>actual_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>실측값 문자열</td>
+</tr>
+<tr>
+<td><code>predicted_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>예측값 문자열</td>
+</tr>
+<tr>
+<td><code>error_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>절대 오차</td>
+</tr>
+<tr>
+<td><code>error_pct_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>상대 오차 %</td>
+</tr>
+<tr>
+<td><code>status_row_data</code></td>
+<td><code>List[str]</code></td>
+<td>양호/주의/예측/-</td>
+</tr>
+</tbody>
+</table>
+<h2 id="15-event-handler">1.5 Event Handler 매핑</h2>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>트리거</th>
+<th>비동기?</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load_deployed_models</code></td>
+<td>on_load</td>
+<td>background</td>
+<td>배포 모델 목록 + 첫 모델 자동 선택 + 예측 로드</td>
+</tr>
+<tr>
+<td><code>start_countdown_monitor</code></td>
+<td>on_load</td>
+<td>background</td>
+<td>30초마다 DB poll, 새 forecast_time 감지 시 reload</td>
+</tr>
+<tr>
+<td><code>select_model(model_id)</code></td>
+<td>Select onChange</td>
+<td>sync</td>
+<td>모델 선택 → <code>load_predictions</code> 반환</td>
+</tr>
+<tr>
+<td><code>load_predictions</code></td>
+<td>새로고침 버튼</td>
+<td>background</td>
+<td><code>_load_predictions_internal()</code> 호출</td>
+</tr>
+<tr>
+<td><code>_load_predictions_internal</code></td>
+<td>내부</td>
+<td>async (internal)</td>
+<td>DB에서 rolling_window_data + 메트릭 계산</td>
+</tr>
+<tr>
+<td><code>start_streaming</code></td>
+<td>스트리밍 버튼</td>
+<td>background</td>
+<td>10분 카운트다운 루프 (is_streaming=True 시)</td>
+</tr>
+<tr>
+<td><code>stop_streaming</code></td>
+<td>(구현 있지만 UI 없음)</td>
+<td>sync</td>
+<td>is_streaming=False</td>
+</tr>
+<tr>
+<td><code>toggle_y_axis_scale</code></td>
+<td>Y축 토글 버튼</td>
+<td>sync</td>
+<td>y_axis_from_zero 토글</td>
+</tr>
+<tr>
+<td><code>trigger_forecast_now</code></td>
+<td>(구현 있지만 UI 없음)</td>
+<td>background</td>
+<td>docker exec forecast-scheduler 직접 실행</td>
+</tr>
+</tbody>
+</table>
+<h2 id="16-ui">1.6 상태별 UI</h2>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>표시 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Loading (on_load 중)</td>
+<td>메트릭 카드: "N/A", 차트 영역: 빈 상태 (cond:has_predictions=false)</td>
+</tr>
+<tr>
+<td>Empty (모델 미선택)</td>
+<td>새로고침 버튼 disabled, 차트 영역 empty state 표시</td>
+</tr>
+<tr>
+<td>Populated (데이터 있음)</td>
+<td>전체 레이아웃 표시 (2-panel + chart + table)</td>
+</tr>
+<tr>
+<td>Error</td>
+<td><code>error_message</code> state var에 저장되나 UI 표시 컴포넌트 없음 (결함)</td>
+</tr>
+<tr>
+<td>Formula hidden</td>
+<td><code>cached_rmse &lt;= 0</code> 시 formula_display_section → <code>rx.fragment()</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="17-composedchart">1.7 차트 구조 상세 (ComposedChart)</h2>
+<pre><code>recharts.composed_chart
+├── recharts.reference_area (Past: x1=past_zone_start, x2=t0_label, fill=#3b82f6 @5%)
+├── recharts.reference_area (Future: x1=t0_label, x2=future_zone_end, fill=#f97316 @5%)
+├── recharts.reference_line (T0: x=t0_label, stroke=#ef4444, dasharray=&quot;5 5&quot;)
+├── recharts.line (ci_upper: stroke=#f97316, dashed, no dot, connect_nulls=True)
+├── recharts.line (ci_lower: stroke=#f97316, dashed, no dot, connect_nulls=True)
+├── recharts.line (predicted_value: stroke=#f97316 solid, r=4, connect_nulls=True)
+├── recharts.line (actual_value: stroke=#3b82f6 solid, r=4, connect_nulls=True)
+├── recharts.x_axis (data_key=&quot;time_label&quot;, angle=-45, height=100, interval=dynamic)
+├── recharts.y_axis (domain=y_axis_domain, width=100, tick_count=6, formatter=toFixed(1))
+├── recharts.cartesian_grid (dasharray=&quot;3 3&quot;, stroke=#e2e8f0, opacity=0.5)
+├── recharts.tooltip (custom style)
+└── recharts.legend (icon_type=&quot;line&quot;, vertical_align=&quot;bottom&quot;)
+</code></pre>
+<p><strong>Y축 스케일 토글 동작:</strong>
+- <code>y_axis_from_zero=True</code> (기본): min=0, max=data_max+5%
+- <code>y_axis_from_zero=False</code> (자동): min=data_min-5%, max=data_max+5%
+- CI 밴드 상하한도 domain 계산에 포함</p>
+<p><strong>모델 드롭다운 → 메트릭 카드 reactive 관계:</strong></p>
+<pre><code>select_model(id) → load_predictions → _load_predictions_internal
+  → rolling_window_data 갱신 → chart_data 변경 → chart 재렌더
+  → cached_mape/rmse/nrmse/accuracy 갱신 → mape_display/r2_display/accuracy_% 변경 → 카드 재렌더
+</code></pre>
+<p><strong>시간 범위 selector:</strong> 없음 — rolling window 고정 (T-30 ~ T+horizons). 사용자가 범위를 조정하는 UI 없음.</p>
+<h2 id="18-responsive">1.8 Responsive 추정</h2>
+<table>
+<thead>
+<tr>
+<th>Breakpoint</th>
+<th>메트릭 카드</th>
+<th>시스템/업데이트 패널</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mobile (1col)</td>
+<td>1열</td>
+<td>1열</td>
+<td><code>responsive_grid_columns(mobile=1)</code></td>
+</tr>
+<tr>
+<td>Tablet (2col)</td>
+<td>2열</td>
+<td>2열</td>
+<td></td>
+</tr>
+<tr>
+<td>Desktop (3col)</td>
+<td>3열</td>
+<td>2열</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Chart max_width: <code>calc(100vw - 320px)</code> (사이드바 280px + 패딩 40px 제외)</p>
+<h2 id="19">1.9 알려진 결함</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-01</td>
+<td>High</td>
+<td><code>error_message</code> state var가 있지만 forecast_player.py 페이지에 error callout 컴포넌트 없음 → 에러 발생 시 사용자에게 무음 실패</td>
+</tr>
+<tr>
+<td>F-02</td>
+<td>Medium</td>
+<td><code>scheduler_running</code> var가 항상 <code>True</code> 하드코딩 — 실제 스케줄러 중단 시에도 "정상 작동" 뱃지 표시</td>
+</tr>
+<tr>
+<td>F-03</td>
+<td>Medium</td>
+<td><code>trigger_forecast_now</code>, <code>stop_streaming</code> 구현 있지만 UI 버튼 없음 — dead code</td>
+</tr>
+<tr>
+<td>F-04</td>
+<td>Medium</td>
+<td><code>r2_display</code> var 이름이 R² Score이지만 실제로는 NRMSE (CV-RMSE) 값을 표시 — 라벨과 값 불일치 (<code>"NRMSE"</code> 카드 제목이지만 var name은 r2_display)</td>
+</tr>
+<tr>
+<td>F-05</td>
+<td>Low</td>
+<td><code>countdown_seconds</code> 항상 600으로 초기화됨 — start_countdown_monitor가 on_load에서 시작되지만 is_streaming=False이므로 루프 즉시 종료. 카운트다운이 실제로 동작하지 않을 가능성 있음</td>
+</tr>
+<tr>
+<td>F-06</td>
+<td>Low</td>
+<td><code>colspan="66"</code> 하드코딩 (MAPE 행) — 데이터 포인트 수에 따라 잘못된 colspan이 될 수 있음</td>
+</tr>
+<tr>
+<td>F-07</td>
+<td>Low</td>
+<td>데이터 테이블 <code>height=400px</code> 고정 — 화면 크기에 따른 반응형 없음</td>
+</tr>
+</tbody>
+</table>
+<h2 id="110">1.10 테스트 시나리오</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>시나리오</th>
+<th>전제 조건</th>
+<th>예상 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-01</td>
+<td>페이지 로드 시 모델 자동 선택</td>
+<td>배포된 모델 1개 이상</td>
+<td>첫 번째 모델 자동 선택, rolling_window_data 로드, 메트릭 카드 표시</td>
+</tr>
+<tr>
+<td>T-02</td>
+<td>모델 드롭다운에서 다른 모델 선택</td>
+<td>배포된 모델 2개 이상</td>
+<td>chart_data/메트릭 카드 해당 모델 데이터로 갱신</td>
+</tr>
+<tr>
+<td>T-03</td>
+<td>Y축 스케일 토글: 0 기준 → 자동 스케일</td>
+<td>데이터 로드 완료</td>
+<td>Y축 min이 0에서 data_min-5%로 변경, 차트 재렌더</td>
+</tr>
+<tr>
+<td>T-04</td>
+<td>T0 ReferenceArea 확인</td>
+<td>데이터 로드 완료</td>
+<td>zone='present' 포인트 기준 red dashed line 표시</td>
+</tr>
+<tr>
+<td>T-05</td>
+<td>테이블 가로 스크롤</td>
+<td>데이터 포인트 30개 이상</td>
+<td>overflow-x scroll 동작, sticky 첫 컬럼 유지</td>
+</tr>
+<tr>
+<td>T-06</td>
+<td>T0 컬럼 하이라이트</td>
+<td>데이터 로드 완료</td>
+<td>T0 컬럼 yellow bg + red border</td>
+</tr>
+<tr>
+<td>T-07</td>
+<td>formula_display_section 조건부 표시</td>
+<td>cached_rmse=0 (신규)</td>
+<td>formula section 미표시</td>
+</tr>
+<tr>
+<td>T-08</td>
+<td>formula_display_section 조건부 표시</td>
+<td>cached_rmse&gt;0</td>
+<td>formula section 4-step 표시</td>
+</tr>
+<tr>
+<td>T-09</td>
+<td>배포 모델 없음 상태</td>
+<td>DB에 deployed 모델 0개</td>
+<td>empty state 표시 ("예측 데이터가 없습니다")</td>
+</tr>
+<tr>
+<td>T-10</td>
+<td>데이터 새로고침 버튼</td>
+<td>모델 선택 완료</td>
+<td>spinner 표시 후 chart_data 최신화</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="2-model-performance">2. /model-performance — 모델 성능 모니터링</h1>
+<h2 id="21">2.1 기본 정보</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>모듈 경로</td>
+<td><code>ksys_app/pages/model_performance.py</code></td>
+</tr>
+<tr>
+<td>State 경로</td>
+<td><code>ksys_app/states/model_performance_state.py</code></td>
+</tr>
+<tr>
+<td>LoC (page)</td>
+<td>262줄</td>
+</tr>
+<tr>
+<td>LoC (state)</td>
+<td>~800줄</td>
+</tr>
+<tr>
+<td>@rx.page route</td>
+<td><code>/model-performance</code></td>
+</tr>
+<tr>
+<td>page title</td>
+<td><code>모델 성능 - KSYS</code></td>
+</tr>
+<tr>
+<td>on_load</td>
+<td><code>M.on_mount</code> (→ <code>load_available_sensors</code>)</td>
+</tr>
+<tr>
+<td>State 클래스</td>
+<td><code>ModelPerformanceState</code> (alias: <code>M</code>)</td>
+</tr>
+<tr>
+<td>상위 컴포넌트</td>
+<td><code>shell()</code></td>
+</tr>
+<tr>
+<td>외부 컴포넌트</td>
+<td><code>performance_charts.py</code>, <code>algorithm_comparison_chart.py</code>, <code>pipeline_detail_card.py</code></td>
+</tr>
+<tr>
+<td>등록 상태</td>
+<td>활성</td>
+</tr>
+</tbody>
+</table>
+<h2 id="22">2.2 화면 레이아웃</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────────┐
+│  SIDEBAR (280px)  │                   MAIN CONTENT (rx.container size=&quot;4&quot;)       │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ PAGE HEADER: 모델 성능 모니터링  [icon:chart-no-axes]  │  │
+│                   │  │  subtitle: ML 모델 배포 관리 및 성능 비교              │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ─── cond: error_message != &quot;&quot; ──                           │
+│                   │  [callout: red triangle-alert  M.error_message]              │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ CONTROL PANEL (hstack)                                │  │
+│                   │  │  [센서:] Select(available_sensors, M.set_selected_sensor) │
+│                   │  │  | divider |                                           │  │
+│                   │  │  [새로고침] Button (M.refresh_data, loading=M.is_loading)  │
+│                   │  │  &lt;spacer&gt;                                              │  │
+│                   │  │  [업데이트: HH:MM:SS] badge (green, cond: last_update!=&quot;&quot;) │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ─── divider ──────────────────────────────────────────────  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ SECTION 1: 알고리즘 성능 비교 (rx.card)              │  │
+│                   │  │  header: trophy icon + &quot;알고리즘 성능 비교&quot;           │  │
+│                   │  │  badge: &quot;Prophet / Auto-ARIMA / XGBoost&quot;             │  │
+│                   │  │  callout (info): Training Wizard 훈련 설명           │  │
+│                   │  │  algorithm_comparison_chart(M) ← 외부 컴포넌트       │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  best_algorithm_card(M) ← 외부 컴포넌트                     │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ SECTION 2: 배포된 모델 정보                          │  │
+│                   │  │  deployed_model_info_card(M) ← 외부 컴포넌트         │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ SECTION 3: 저장된 모델 목록 (rx.card)               │  │
+│                   │  │  header: layers icon + N 모델 badge                  │  │
+│                   │  │  callout (info): 배포 버튼 설명                      │  │
+│                   │  │  saved_models_table(M) ← 외부 컴포넌트 (배포/해제/삭제) │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ─── cond: pipeline_display_models.length() &gt; 0 ──────────  │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ SECTION 4: ML 파이프라인 비교 (rx.card)             │  │
+│                   │  │  header: settings icon + N개 모델 badge             │  │
+│                   │  │  responsive grid (1/2/3 cols):                      │  │
+│                   │  │    foreach(pipeline_display_models, pipeline_detail_card) │
+│                   │  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>레이아웃 row 수:</strong> 7개 주요 섹션 (header + error + control + sec1 + best_algo + sec2 + sec3 + sec4_conditional)</p>
+<h2 id="23">2.3 컴포넌트 명세 표</h2>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>위치</th>
+<th>타입</th>
+<th>State binding</th>
+<th>Event</th>
+<th>라벨/설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Page Header</td>
+<td>최상단</td>
+<td><code>page_header()</code></td>
+<td>—</td>
+<td>—</td>
+<td>"모델 성능 모니터링"</td>
+</tr>
+<tr>
+<td>Error Callout</td>
+<td>header 아래</td>
+<td><code>rx.callout</code> (cond)</td>
+<td><code>M.error_message</code></td>
+<td>—</td>
+<td>red, triangle-alert</td>
+</tr>
+<tr>
+<td>센서 Select</td>
+<td>control panel</td>
+<td><code>rx.select.root</code></td>
+<td><code>M.available_sensors</code>, <code>M.selected_sensor</code></td>
+<td><code>M.set_selected_sensor</code></td>
+<td>"센서 선택"</td>
+</tr>
+<tr>
+<td>새로고침 Button</td>
+<td>control panel</td>
+<td><code>rx.button</code></td>
+<td><code>M.is_loading</code> (loading)</td>
+<td><code>M.refresh_data</code></td>
+<td>"새로고침", variant=soft, color=purple</td>
+</tr>
+<tr>
+<td>업데이트 Badge</td>
+<td>control panel</td>
+<td><code>rx.badge</code> (cond)</td>
+<td><code>M.last_update</code></td>
+<td>—</td>
+<td>green soft</td>
+</tr>
+<tr>
+<td>알고리즘 비교 차트</td>
+<td>sec 1</td>
+<td><code>algorithm_comparison_chart(M)</code></td>
+<td><code>M.algorithm_comparison_data</code></td>
+<td>—</td>
+<td>외부 컴포넌트</td>
+</tr>
+<tr>
+<td>Best Algorithm Card</td>
+<td>sec 1 하단</td>
+<td><code>best_algorithm_card(M)</code></td>
+<td>—</td>
+<td>—</td>
+<td>외부 컴포넌트</td>
+</tr>
+<tr>
+<td>배포 모델 카드</td>
+<td>sec 2</td>
+<td><code>deployed_model_info_card(M)</code></td>
+<td><code>M.deployed_model_info</code></td>
+<td><code>M.undeploy_current_model</code></td>
+<td>외부 컴포넌트</td>
+</tr>
+<tr>
+<td>저장된 모델 테이블</td>
+<td>sec 3</td>
+<td><code>saved_models_table(M)</code></td>
+<td><code>M.saved_models</code></td>
+<td>배포/해제/삭제</td>
+<td>외부 컴포넌트</td>
+</tr>
+<tr>
+<td>파이프라인 카드 그리드</td>
+<td>sec 4</td>
+<td><code>foreach</code> → <code>pipeline_detail_card</code></td>
+<td><code>M.pipeline_display_models</code></td>
+<td>—</td>
+<td>조건부 (&gt;0개일 때)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="24-state">2.4 State 변수 매핑</h2>
+<table>
+<thead>
+<tr>
+<th>State 변수</th>
+<th>타입</th>
+<th>초기값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>available_sensors</code></td>
+<td><code>List[str]</code></td>
+<td><code>[]</code></td>
+<td>활성 모델 가진 센서 목록</td>
+</tr>
+<tr>
+<td><code>selected_sensor</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>선택된 센서 (auto-select 첫 번째)</td>
+</tr>
+<tr>
+<td><code>time_range</code></td>
+<td><code>str</code></td>
+<td><code>"7d"</code></td>
+<td>조회 기간 ('7d','30d','90d')</td>
+</tr>
+<tr>
+<td><code>selected_model_type</code></td>
+<td><code>str</code></td>
+<td><code>"all"</code></td>
+<td>모델 타입 필터</td>
+</tr>
+<tr>
+<td><code>performance_history</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>모델 이력 데이터</td>
+</tr>
+<tr>
+<td><code>drift_history</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>드리프트 이력</td>
+</tr>
+<tr>
+<td><code>model_comparison</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>모델 타입별 평균 비교</td>
+</tr>
+<tr>
+<td><code>saved_models</code></td>
+<td><code>List[Dict]</code></td>
+<td><code>[]</code></td>
+<td>저장된 모델 목록 (최신 1개/타입 + 배포중)</td>
+</tr>
+<tr>
+<td><code>selected_model_id</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>액션 대상 모델 ID</td>
+</tr>
+<tr>
+<td><code>is_loading</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>로딩 중 여부</td>
+</tr>
+<tr>
+<td><code>error_message</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>에러 메시지</td>
+</tr>
+<tr>
+<td><code>last_update</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>마지막 업데이트 시각</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Computed Vars:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>deployed_model_info</code></td>
+<td>saved_models에서 is_deployed=True 첫 번째 항목</td>
+</tr>
+<tr>
+<td><code>has_deployed_model</code></td>
+<td>bool</td>
+</tr>
+<tr>
+<td><code>algorithm_comparison_data</code></td>
+<td>Prophet/Auto-ARIMA/XGBoost 3개 알고리즘 MAPE 비교</td>
+</tr>
+<tr>
+<td><code>chart_data</code></td>
+<td>performance_history를 날짜별 집계</td>
+</tr>
+<tr>
+<td><code>needs_retraining</code></td>
+<td>drift_count&gt;3 또는 MAE 20% 이상 증가 시 True</td>
+</tr>
+<tr>
+<td><code>best_model_type</code></td>
+<td>model_comparison에서 avg_mae 최소 모델</td>
+</tr>
+<tr>
+<td><code>recommended_models</code></td>
+<td>ModelRecommender 기반 accuracy/speed/balanced 3가지</td>
+</tr>
+<tr>
+<td><code>pipeline_display_models</code></td>
+<td>(ModelPerformanceState 파생 — 정확한 var명 외부 컴포넌트에 있음)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="25-event-handler">2.5 Event Handler 매핑</h2>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>트리거</th>
+<th>비동기?</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>on_mount</code></td>
+<td>on_load</td>
+<td>sync</td>
+<td>→ <code>load_available_sensors</code> 반환</td>
+</tr>
+<tr>
+<td><code>load_available_sensors</code></td>
+<td>on_mount</td>
+<td>background</td>
+<td>DB에서 센서 목록 + auto-select 첫 번째</td>
+</tr>
+<tr>
+<td><code>load_all_saved_models</code></td>
+<td>센서 선택 후</td>
+<td>background</td>
+<td>타입별 최신 1개 + 모든 배포 중 모델 로드</td>
+</tr>
+<tr>
+<td><code>load_performance_data</code></td>
+<td>센서/기간 변경 시</td>
+<td>background</td>
+<td>이력/드리프트/비교 데이터 로드</td>
+</tr>
+<tr>
+<td><code>set_selected_sensor</code></td>
+<td>센서 Select</td>
+<td>sync</td>
+<td>→ [load_all_saved_models, load_performance_data]</td>
+</tr>
+<tr>
+<td><code>refresh_data</code></td>
+<td>새로고침 버튼</td>
+<td>sync</td>
+<td>→ [load_all_saved_models, load_performance_data]</td>
+</tr>
+<tr>
+<td><code>deploy_model(model_id)</code></td>
+<td>배포 버튼</td>
+<td>background</td>
+<td>기존 배포 해제 → 새 모델 배포 (단일 센서 1개만 배포)</td>
+</tr>
+<tr>
+<td><code>undeploy_model(model_id)</code></td>
+<td>해제 버튼</td>
+<td>background</td>
+<td>is_deployed=False, deployed_at=None</td>
+</tr>
+<tr>
+<td><code>undeploy_current_model</code></td>
+<td>배포 모델 카드 해제 버튼</td>
+<td>sync</td>
+<td>deployed_model_info에서 id 추출 → undeploy_model</td>
+</tr>
+<tr>
+<td><code>delete_model(model_id)</code></td>
+<td>삭제 버튼</td>
+<td>background</td>
+<td>Prediction FK 먼저 삭제 → ModelRegistry 삭제</td>
+</tr>
+</tbody>
+</table>
+<h2 id="26-row">2.6 모델 Row 액션 상세</h2>
+<p>저장된 모델 테이블 (<code>saved_models_table</code> 외부 컴포넌트)의 각 row에는 3가지 액션:</p>
+<table>
+<thead>
+<tr>
+<th>버튼</th>
+<th>조건 표시</th>
+<th>Event</th>
+<th>후처리</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>배포</td>
+<td>is_deployed=False</td>
+<td><code>deploy_model(model_id)</code></td>
+<td>기존 배포 모델 자동 해제 후 신규 배포 (DB 원자적)</td>
+</tr>
+<tr>
+<td>배포 해제</td>
+<td>is_deployed=True</td>
+<td><code>undeploy_model(model_id)</code></td>
+<td>is_deployed=False</td>
+</tr>
+<tr>
+<td>삭제</td>
+<td>항상</td>
+<td><code>delete_model(model_id)</code></td>
+<td>Predictions 먼저 삭제 (FK) → ModelRegistry 삭제</td>
+</tr>
+</tbody>
+</table>
+<p><strong>모델 비교 view:</strong> 전용 비교 화면 없음. Section 1(알고리즘 비교 차트)과 Section 4(파이프라인 카드 그리드)가 비교 기능 수행. Section 4는 <code>pipeline_display_models.length() &gt; 0</code> 시에만 표시.</p>
+<h2 id="27-ui">2.7 상태별 UI</h2>
+<table>
+<thead>
+<tr>
+<th>상태</th>
+<th>표시 내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Loading</td>
+<td>새로고침 버튼 spinner 표시</td>
+</tr>
+<tr>
+<td>Error</td>
+<td>빨간 callout에 error_message 표시</td>
+</tr>
+<tr>
+<td>No sensors</td>
+<td>available_sensors=[] → Select 비어있음, 데이터 없음</td>
+</tr>
+<tr>
+<td>No deployed model</td>
+<td>deployed_model_info_card 내부 처리 (외부 컴포넌트)</td>
+</tr>
+<tr>
+<td>No pipeline models</td>
+<td>Section 4 숨김</td>
+</tr>
+</tbody>
+</table>
+<h2 id="28">2.8 알려진 결함</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MP-01</td>
+<td>High</td>
+<td>모델 삭제 시 확인 다이얼로그 없음 — 클릭 즉시 삭제 실행</td>
+</tr>
+<tr>
+<td>MP-02</td>
+<td>Medium</td>
+<td><code>time_range</code> / <code>selected_model_type</code> 필터 UI 컨트롤이 page 파일에 없음 — state에는 있지만 렌더링 안 됨</td>
+</tr>
+<tr>
+<td>MP-03</td>
+<td>Medium</td>
+<td><code>needs_retraining</code> 계산은 있지만 UI에 경고 표시 없음</td>
+</tr>
+<tr>
+<td>MP-04</td>
+<td>Low</td>
+<td><code>chart_data</code> (performance trend chart)가 <code>performance_charts.py</code>에는 있지만 model_performance.py 페이지에서 직접 import하지 않음 — 트렌드 차트가 현재 페이지에 포함되지 않음</td>
+</tr>
+<tr>
+<td>MP-05</td>
+<td>Low</td>
+<td><code>load_all_saved_models</code>에서 타입별 최신 1개만 유지 — 같은 타입의 이전 버전들은 보이지 않음 (이전 버전 조회 불가)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="29-responsive">2.9 Responsive 추정</h2>
+<table>
+<thead>
+<tr>
+<th>섹션</th>
+<th>Mobile</th>
+<th>Tablet</th>
+<th>Desktop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Control Panel</td>
+<td>wrap 허용</td>
+<td>hstack</td>
+<td>hstack</td>
+</tr>
+<tr>
+<td>Pipeline 카드 그리드</td>
+<td>1열</td>
+<td>2열</td>
+<td>3열</td>
+</tr>
+<tr>
+<td>그 외 섹션</td>
+<td>full width</td>
+<td>full width</td>
+<td>full width</td>
+</tr>
+</tbody>
+</table>
+<h2 id="210">2.10 테스트 시나리오</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>시나리오</th>
+<th>전제 조건</th>
+<th>예상 결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-01</td>
+<td>페이지 로드 센서 자동 선택</td>
+<td>활성 모델 있는 센서 2개 이상</td>
+<td>첫 번째 센서 자동 선택, 모델 목록 로드</td>
+</tr>
+<tr>
+<td>T-02</td>
+<td>미배포 모델 배포 버튼 클릭</td>
+<td>저장된 모델 2개 (1개 배포중)</td>
+<td>기존 배포 해제 → 새 모델 배포, 행 상태 갱신</td>
+</tr>
+<tr>
+<td>T-03</td>
+<td>배포 중 모델 해제</td>
+<td>배포 중 모델 있음</td>
+<td>is_deployed=False, 행에서 "배포" 버튼 복원</td>
+</tr>
+<tr>
+<td>T-04</td>
+<td>모델 삭제</td>
+<td>미배포 모델 있음</td>
+<td>즉시 삭제 (confirm 없음 — MP-01 결함)</td>
+</tr>
+<tr>
+<td>T-05</td>
+<td>에러 케이스 — DB 연결 실패</td>
+<td>DB 오프라인</td>
+<td>빨간 callout에 에러 메시지</td>
+</tr>
+<tr>
+<td>T-06</td>
+<td>새로고침 버튼 클릭</td>
+<td>데이터 로드 완료</td>
+<td>is_loading=True spinner → 완료 후 last_update badge 갱신</td>
+</tr>
+<tr>
+<td>T-07</td>
+<td>알고리즘 비교 차트 표시</td>
+<td>3개 알고리즘 각 1개 이상 훈련</td>
+<td>algorithm_comparison_data 3개 bar 표시</td>
+</tr>
+<tr>
+<td>T-08</td>
+<td>파이프라인 비교 섹션 (sec 4)</td>
+<td>pipeline_display_models &gt; 0</td>
+<td>카드 그리드 1~3열 표시</td>
+</tr>
+<tr>
+<td>T-09</td>
+<td>파이프라인 비교 섹션 없음</td>
+<td>pipeline_display_models = 0</td>
+<td>sec 4 숨김</td>
+</tr>
+<tr>
+<td>T-10</td>
+<td>센서 변경</td>
+<td>센서 2개</td>
+<td>해당 센서 모델 데이터로 전체 갱신</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="3-training-wizard">3. /training-wizard — 학습 마법사</h1>
+<h2 id="31">3.1 기본 정보</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>모듈 경로</td>
+<td><code>ksys_app/pages/training_wizard/__init__.py</code></td>
+</tr>
+<tr>
+<td>Step 파일들</td>
+<td><code>step_1_sensor.py</code> ~ <code>step_6_results.py</code></td>
+</tr>
+<tr>
+<td>결과 서브컴포넌트</td>
+<td><code>results/</code> 디렉토리 (14개 섹션 컴포넌트)</td>
+</tr>
+<tr>
+<td>State 경로</td>
+<td><code>ksys_app/states/training_wizard_state.py</code> (extends TrainingState)</td>
+</tr>
+<tr>
+<td>Base State 경로</td>
+<td><code>ksys_app/states/training_state/state.py</code></td>
+</tr>
+<tr>
+<td>LoC (wizard state)</td>
+<td>650줄 + TrainingState 1,095줄 = 총 1,745줄</td>
+</tr>
+<tr>
+<td>@rx.page route</td>
+<td><code>/training-wizard</code></td>
+</tr>
+<tr>
+<td>on_load</td>
+<td><code>TrainingWizardState.initialize_wizard</code></td>
+</tr>
+<tr>
+<td>State 클래스</td>
+<td><code>TrainingWizardState</code> (inherits <code>TrainingState</code>)</td>
+</tr>
+<tr>
+<td>상위 컴포넌트</td>
+<td><code>shell()</code></td>
+</tr>
+<tr>
+<td>등록 상태</td>
+<td>활성</td>
+</tr>
+</tbody>
+</table>
+<h2 id="32-wizard">3.2 Wizard 전체 레이아웃</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────────────────────────┐
+│  SIDEBAR (280px)  │                   MAIN CONTENT (rx.container size=&quot;4&quot;)       │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ WIZARD HEADER (wizard_header)                         │  │
+│                   │  │  [icon:wand-sparkles] ML Training Wizard              │  │
+│                   │  │  &quot;Follow the steps to train your model&quot;               │  │
+│                   │  │  Progress: [1]→[2]→[3]→[4]→[5]→[6]                   │  │
+│                   │  │  (current step: purple solid, future: soft gray)      │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  error_display() — cond: error_message != &quot;&quot;               │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ STEP CONTENT AREA (cond 체인, wizard_step 기반)       │  │
+│                   │  │  step == 1: step_1_sensor()                          │  │
+│                   │  │  step == 2: step_2_model()                           │  │
+│                   │  │  step == 3: step_3_features()                        │  │
+│                   │  │  step == 4: step_4_params()                          │  │
+│                   │  │  step == 5: step_5_training()                        │  │
+│                   │  │  step == 6: step_6_results()                         │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+│                   │                                                              │
+│                   │  ┌───────────────────────────────────────────────────────┐  │
+│                   │  │ NAVIGATION (wizard_navigation)                        │  │
+│                   │  │  [← Previous] (cond: step &gt; 1)  &lt;spacer&gt;  [Next →]  │  │
+│                   │  │  Next disabled when: ~can_proceed                    │  │
+│                   │  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<h2 id="33-progress-bar">3.3 Progress Bar 디자인</h2>
+<pre><code>[1 Sensor] → [2 Model] → [3 Features] → [4 Params] → [5 Train] → [6 Results]
+  purple         gray        gray           gray        gray         gray
+                (step &gt;= N이면 purple solid)
+</code></pre>
+<ul>
+<li>구현: <code>wizard_step &gt;= N</code> 조건으로 <code>rx.badge</code> color_scheme 전환</li>
+<li>chevron-right 아이콘으로 단계 사이 연결</li>
+<li><code>wrap="wrap"</code> — 모바일에서 줄바꿈 가능</li>
+</ul>
+<h2 id="34-step-navigation">3.4 Step 간 Navigation 로직</h2>
+<pre><code class="language-python"># next_step()
+if can_proceed and wizard_step &lt; 6:
+    wizard_step += 1
+    if wizard_step == 6 and not training_complete:
+        wizard_step = 5  # Step 6는 training 완료 후에만 진입 가능
+
+# previous_step()
+if wizard_step &gt; 1:
+    if wizard_step == 6:
+        wizard_step = 4  # 결과에서 이전은 파라미터(4)로 (Step5 스킵)
+    else:
+        wizard_step -= 1
+</code></pre>
+<p><strong>can_proceed 조건:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>can_proceed 조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>bool(selected_tag)</code> — 센서 선택 필수</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>bool(selected_model)</code> — 모델 선택 필수</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>skip_feature_engineering OR (selected_feature_config AND feature_config_loaded)</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>True</code> (파라미터는 기본값 있음)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>training_complete</code> — 학습 완료 후에만</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>True</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="35-pickle-cache">3.5 Pickle Cache 동작</h2>
+<pre><code>TrainingState.start_training() 완료
+  → _cache_training_result(selected_tag, result, best_model)
+  → 모듈 레벨 dict에 저장 (Python process 메모리)
+
+TrainingState.save_model()
+  → _get_cached_model(selected_tag)
+  → pickle.dumps(trained_model)  [asyncio.to_thread 비동기 실행]
+  → PostgreSQL model_registry.model_pickle (BYTEA)
+</code></pre>
+<p><strong>메모리 휘발 시나리오:</strong>
+- Docker 컨테이너 restart → 모듈 레벨 cache 소멸
+- <code>save_model</code> 클릭 전에 restart 시 → <code>_get_cached_model</code> = None → "metadata only" 저장 (모델 객체 없이)
+- 이 경우 해당 모델은 ForecastScheduler에서 로드 불가 → 배포해도 예측 실패
+- <strong>Wizard 재시작 필요</strong>: reset_wizard() 후 처음부터 다시 학습</p>
+<hr />
+<h2 id="step-1">Step 1: 센서 선택</h2>
+<h3 id="s11">S1.1 레이아웃</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ rx.card (size=&quot;3&quot;)                                          │
+│  [icon:gauge] Step 1: Select Sensor                        │
+│               &quot;Choose the sensor tag...&quot;                    │
+│  ─────────────────────────────────────────────────────────  │
+│  [callout:info purple] 센서 선택 설명                       │
+│  ─────────────────────────────────────────────────────────  │
+│  센서 태그:                                                 │
+│  [Select dropdown ── available_tags ──────────────────────] │
+│                                                             │
+│  [cond: selected_tag != &quot;&quot;]                                 │
+│  [callout:green check] Selected: {selected_tag}            │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="s12">S1.2 컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>타입</th>
+<th>State binding</th>
+<th>Event</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>아이콘 헤더</td>
+<td><code>rx.hstack</code> + <code>rx.icon("gauge")</code></td>
+<td>—</td>
+<td>—</td>
+<td>purple</td>
+</tr>
+<tr>
+<td>설명 callout</td>
+<td><code>rx.callout</code></td>
+<td>—</td>
+<td>—</td>
+<td>info, purple, size=1</td>
+</tr>
+<tr>
+<td>센서 Select</td>
+<td><code>rx.select</code></td>
+<td><code>available_tags</code>, <code>selected_tag</code></td>
+<td><code>set_selected_tag</code></td>
+<td>width=100%, size=3</td>
+</tr>
+<tr>
+<td>선택 확인 callout</td>
+<td><code>rx.callout</code> (cond)</td>
+<td><code>selected_tag</code></td>
+<td>—</td>
+<td>green, circle-check</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s13-validation-gate">S1.3 Validation Gate</h3>
+<ul>
+<li><code>can_proceed</code> = <code>bool(selected_tag)</code> → Next 버튼 활성화</li>
+<li><code>set_selected_tag</code> 호출 시: feature_config 초기화 + <code>filter_configs_for_tag</code> 백그라운드 실행</li>
+</ul>
+<h3 id="s14-component-count-6">S1.4 Component Count: 6개 주요 컴포넌트</h3>
+<hr />
+<h2 id="step-2">Step 2: 모델 선택</h2>
+<h3 id="s21">S2.1 레이아웃</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ rx.card (size=&quot;3&quot;)                                          │
+│  [icon:brain-circuit] Step 2: Select Model                 │
+│                        &quot;Choose the forecasting algorithm&quot;   │
+│  ─────────────────────────────────────────────────────────  │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌─────────────┐ │
+│  │ Auto ARIMA       │ │ Prophet          │ │ XGBoost     │ │
+│  │ seasonal support │ │ Facebook tool    │ │ Gradient    │ │
+│  │ ✓ seasonal       │ │ ✓ missing data   │ │ boosting    │ │
+│  │ ✓ auto tuning    │ │ ✓ trends         │ │ ✓ accuracy  │ │
+│  │ [Select Button]  │ │ [Select Button]  │ │ ⚠ features  │ │
+│  │ (green border    │ │ (blue border     │ │ [Select]    │ │
+│  │  if selected)    │ │  if selected)    │ │ (purple     │ │
+│  └──────────────────┘ └──────────────────┘ └─────────────┘ │
+│  columns: responsive(1/2/3)                                │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="s22">S2.2 컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>타입</th>
+<th>State binding</th>
+<th>Event</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auto ARIMA 카드</td>
+<td><code>rx.box</code></td>
+<td><code>selected_model == "auto_arima"</code></td>
+<td><code>set_selected_model("auto_arima")</code></td>
+<td>선택 시 green border</td>
+</tr>
+<tr>
+<td>Prophet 카드</td>
+<td><code>rx.box</code></td>
+<td><code>selected_model == "prophet"</code></td>
+<td><code>set_selected_model("prophet")</code></td>
+<td>선택 시 blue border</td>
+</tr>
+<tr>
+<td>XGBoost 카드</td>
+<td><code>rx.box</code></td>
+<td><code>selected_model == "xgboost"</code></td>
+<td><code>set_selected_model("xgboost")</code></td>
+<td>선택 시 purple border</td>
+</tr>
+<tr>
+<td>Select 버튼 (x3)</td>
+<td><code>rx.button</code></td>
+<td><code>selected_model</code> (variant: solid/soft)</td>
+<td>각 모델명</td>
+<td>color_scheme=purple</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s23">S2.3 모델 선택 시 자동 동작</h3>
+<pre><code class="language-python">set_selected_model(&quot;auto_arima&quot;)  → skip_feature_engineering = True, feature_config 초기화
+set_selected_model(&quot;prophet&quot;)     → skip_feature_engineering = False  (feature 권장)
+set_selected_model(&quot;xgboost&quot;)     → skip_feature_engineering = False  (feature 필수)
+</code></pre>
+<h3 id="s24-component-count-15-3-model-cards-5-elements-each">S2.4 Component Count: 15개 (3 model cards × 5 elements each)</h3>
+<hr />
+<h2 id="step-3-feature-config">Step 3: Feature Config</h2>
+<h3 id="s31">S3.1 레이아웃</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ rx.card (size=&quot;3&quot;)                                          │
+│  [icon:wrench] Step 3: Configure Features                  │
+│                dynamic subtitle (ARIMA vs others)          │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│  [cond: selected_model == &quot;auto_arima&quot;]                    │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ ☑ Use Pure Auto-ARIMA (no external features)         │  │
+│  │   (purple bg, checkbox 크기=3)                        │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [cond: ~skip_feature_engineering]                         │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ [Create New Configuration] Button                    │  │
+│  │                                                       │  │
+│  │ [cond: show_feature_creator]                         │  │
+│  │ ┌────────────────────────────────────────────────┐  │  │
+│  │ │ Create Feature Configuration                   │  │  │
+│  │ │  Config Name: [input] + validation msg         │  │  │
+│  │ │  Rolling Window Features:                      │  │  │
+│  │ │  [☐ 30min(3p)] [☐ 3h(18p)] [☐ 12h(72p)] [☐ 24h(144p)] │
+│  │ │  [Cancel]              [Create Configuration]  │  │  │
+│  │ └────────────────────────────────────────────────┘  │  │
+│  │                                                       │  │
+│  │ [cond: available_feature_configs.length() &gt; 0]       │  │
+│  │  Or Load Existing:                                   │  │
+│  │  [Select feature config...──────────────────────]    │  │
+│  │                                                       │  │
+│  │ [cond: feature_config_loaded]                        │  │
+│  │ ┌────────────────────────────────────────────────┐  │  │
+│  │ │ Loaded Features                                │  │  │
+│  │ │  [N] Rolling Window Features                   │  │  │
+│  │ └────────────────────────────────────────────────┘  │  │
+│  └──────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="s32">S3.2 컴포넌트 명세</h3>
+<table>
+<thead>
+<tr>
+<th>Element</th>
+<th>조건 표시</th>
+<th>State binding</th>
+<th>Event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pure ARIMA Checkbox</td>
+<td><code>selected_model == "auto_arima"</code></td>
+<td><code>skip_feature_engineering</code></td>
+<td><code>toggle_skip_features</code></td>
+</tr>
+<tr>
+<td>Create Config 버튼</td>
+<td><code>~skip_feature_engineering</code></td>
+<td>—</td>
+<td><code>toggle_feature_creator</code></td>
+</tr>
+<tr>
+<td>Config Name Input</td>
+<td><code>show_feature_creator</code></td>
+<td><code>new_config_name</code></td>
+<td><code>set_new_config_name</code> (background, duplicate check)</td>
+</tr>
+<tr>
+<td>Config Name 검증 메시지</td>
+<td><code>new_config_name != ""</code></td>
+<td><code>config_name_validation_message</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Rolling 체크박스 (4개)</td>
+<td><code>show_feature_creator</code></td>
+<td><code>selected_rolling_features</code></td>
+<td><code>toggle_rolling_feature(window)</code></td>
+</tr>
+<tr>
+<td>Cancel 버튼</td>
+<td><code>show_feature_creator</code></td>
+<td>—</td>
+<td><code>toggle_feature_creator</code></td>
+</tr>
+<tr>
+<td>Create Configuration 버튼</td>
+<td><code>show_feature_creator</code></td>
+<td><code>~can_create_config</code> (disabled)</td>
+<td><code>create_feature_config</code></td>
+</tr>
+<tr>
+<td>Load Existing Select</td>
+<td><code>available_feature_configs &gt; 0</code></td>
+<td><code>available_feature_configs</code></td>
+<td><code>load_feature_config</code></td>
+</tr>
+<tr>
+<td>Loaded Features 표시</td>
+<td><code>feature_config_loaded</code></td>
+<td><code>feature_counts['rolling']</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s33-validation-rules">S3.3 Validation Rules</h3>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>규칙</th>
+<th>메시지</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Config Name</td>
+<td>비어 있지 않음</td>
+<td>(아무 메시지 없음)</td>
+</tr>
+<tr>
+<td>Config Name</td>
+<td>DB에 중복 없음</td>
+<td><code>"⚠️ Configuration name '...' already exists"</code></td>
+</tr>
+<tr>
+<td>Config Name</td>
+<td>사용 가능</td>
+<td><code>"✅ Name '...' is available"</code></td>
+</tr>
+<tr>
+<td>Create 버튼</td>
+<td><code>new_config_name AND NOT config_name_exists</code></td>
+<td>disabled</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s34-can_proceed">S3.4 can_proceed 조건</h3>
+<p><code>skip_feature_engineering == True</code> OR (<code>selected_feature_config != ""</code> AND <code>feature_config_loaded == True</code>)</p>
+<h3 id="s35-component-count-12">S3.5 Component Count: 12개 주요 컴포넌트 (조건부 포함)</h3>
+<hr />
+<h2 id="step-4">Step 4: 학습 파라미터</h2>
+<h3 id="s41">S4.1 레이아웃</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ rx.card (size=&quot;3&quot;)                                          │
+│  [icon:settings] Step 4: Set Training Parameters           │
+│  ─────────────────────────────────────────────────────────  │
+│  Data Configuration                                         │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌────────────┐ │
+│  │ Training Days    │ │ Forecast Interval│ │ Forecast   │ │
+│  │ [number input]   │ │ (minutes)        │ │ Horizon(h) │ │
+│  │ 1-30             │ │ [number input]   │ │ [number]   │ │
+│  │                  │ │ 1-60             │ │ 1-24       │ │
+│  └──────────────────┘ └──────────────────┘ └────────────┘ │
+│                                                             │
+│  [cond: selected_model == &quot;auto_arima&quot;]                    │
+│  AutoARIMA Parameters                                       │
+│    Seasonal Period: [number 1-288] + info callout          │
+│                                                             │
+│  Preprocessing                                              │
+│    [switch] Enable data preprocessing                      │
+│    [cond: enable_preprocessing]                            │
+│      ✓ Interpolate / ✓ Remove outliers                     │
+│      Outlier Threshold: [number 1-5 step=0.5]             │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ VALIDATION FEASIBILITY CHECK (callout)              │   │
+│  │  severity: success(green)/warning(orange)/error(red)│   │
+│  │  message: &quot;✅ Valid (N folds, M periods/fold)&quot;       │   │
+│  │         OR &quot;⚠️ Tight fit!&quot; OR &quot;❌ Need N more days&quot;  │   │
+│  │  detail: test_size/folds/required/estimated         │   │
+│  └─────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="s42">S4.2 폼 필드 명세</h3>
+<table>
+<thead>
+<tr>
+<th>필드</th>
+<th>타입</th>
+<th>Binding</th>
+<th>Min/Max/Default</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Training Days</td>
+<td>number input</td>
+<td><code>training_days</code> / <code>set_training_days</code></td>
+<td>1~30 / 30</td>
+<td>학습 데이터 일수</td>
+</tr>
+<tr>
+<td>Forecast Interval</td>
+<td>number input</td>
+<td><code>forecast_interval_minutes</code> / <code>set_forecast_interval_minutes</code></td>
+<td>1~60 / 10</td>
+<td>예측 간격 (분)</td>
+</tr>
+<tr>
+<td>Forecast Horizon</td>
+<td>number input</td>
+<td><code>forecast_horizon_hours</code> / <code>set_forecast_horizon_hours</code></td>
+<td>1~24 / 6</td>
+<td>예측 기간 (시간)</td>
+</tr>
+<tr>
+<td>Seasonal Period</td>
+<td>number input (ARIMA only)</td>
+<td><code>season_length</code> / <code>set_season_length</code></td>
+<td>1~288 / 1</td>
+<td>1=비계절, 144=일간(10분 data)</td>
+</tr>
+<tr>
+<td>Enable Preprocessing</td>
+<td>switch</td>
+<td><code>enable_preprocessing</code> / <code>set_enable_preprocessing</code></td>
+<td>— / True</td>
+<td>전처리 활성화</td>
+</tr>
+<tr>
+<td>Outlier Threshold</td>
+<td>number input (cond)</td>
+<td><code>outlier_threshold</code> / <code>set_outlier_threshold</code></td>
+<td>1~5, step=0.5 / 3.0</td>
+<td>Z-score 임계값</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s43-validation-feasibility">S4.3 Validation Feasibility 계산 로직</h3>
+<pre><code>test_size = (forecast_horizon_hours * 60) / forecast_interval_minutes
+estimated_samples = (training_days * 24 * 60) / forecast_interval_minutes
+max_n_splits = (estimated_samples // test_size) - 1
+n_splits = max(3, min(max_n_splits, 10))
+min_required = (n_splits + 1) * test_size
+shortage = min_required - estimated_samples
+
+shortage &gt; 0          → error (데이터 부족)
+0 &lt; -shortage &lt; 100   → warning (Tight fit)
+-shortage &gt;= 100      → success
+</code></pre>
+<h3 id="s44-component-count-14-grid-3-arima-section-preprocessing-section-feasibility-callout">S4.4 Component Count: 14개 (grid 3 + ARIMA section + preprocessing section + feasibility callout)</h3>
+<hr />
+<h2 id="step-5">Step 5: 학습 실행</h2>
+<h3 id="s51">S5.1 레이아웃</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│ rx.card (size=&quot;3&quot;)                                          │
+│  [icon:rocket] Step 5: Ready to Train                      │
+│  ─────────────────────────────────────────────────────────  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Configuration Summary (purple bg card)               │  │
+│  │  Sensor | Model | Feature Config | Training Days |   │  │
+│  │  Forecast Config (forecast_summary: &quot;Xm 단위 Yh...&quot;)  │  │
+│  │  grid: responsive(1/3/5)                             │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [cond: is_training]                                       │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Training in Progress... (green bg card)              │  │
+│  │  [===progress bar===] (training_progress, max=100)   │  │
+│  │  {training_status} (gray text)                       │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                             │
+│  [cond: ~validation_feasibility.is_valid]                  │
+│  [callout: red] validation error message + Step 4 안내     │
+│                                                             │
+│  [cond: ~is_training AND ~training_complete]               │
+│  [Start Training] Button (purple, full width)             │
+│  disabled: ~validation_feasibility.is_valid              │
+│  on_click: [start_wizard_training, monitor_training_completion] │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3 id="s52-progress-training_status">S5.2 학습 Progress 단계 (training_status 메시지)</h3>
+<table>
+<thead>
+<tr>
+<th>진행률</th>
+<th>training_status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0%</td>
+<td>"Initializing..."</td>
+</tr>
+<tr>
+<td>10%</td>
+<td>"Loading feature configuration..." / "Using Pure Auto-ARIMA..."</td>
+</tr>
+<tr>
+<td>20%</td>
+<td>"Building pipeline..."</td>
+</tr>
+<tr>
+<td>30%</td>
+<td>"Configuring preprocessing..."</td>
+</tr>
+<tr>
+<td>40%</td>
+<td>"Configuring features..."</td>
+</tr>
+<tr>
+<td>50%</td>
+<td>f"Adding {selected_model} model..."</td>
+</tr>
+<tr>
+<td>60%</td>
+<td>"Configuring validation..."</td>
+</tr>
+<tr>
+<td>70%</td>
+<td>"Training model (this may take a few minutes)..."</td>
+</tr>
+<tr>
+<td>90%</td>
+<td>"Extracting model diagnostics..."</td>
+</tr>
+<tr>
+<td>90%+</td>
+<td>"Loading evaluation metrics..." / "Generating forecast with confidence intervals..."</td>
+</tr>
+<tr>
+<td>100%</td>
+<td>"Training complete!"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s53-cancellation">S5.3 Cancellation 가능 여부</h3>
+<p><strong>불가능.</strong> <code>start_training</code>은 <code>@rx.event(background=True)</code> — 백그라운드 코루틴으로 실행.
+UI에 취소 버튼 없음. 학습 중 브라우저를 닫아도 서버 사이드 코루틴은 계속 실행됨.
+컨테이너 재시작이 유일한 강제 중단 방법.</p>
+<h3 id="s54-long-running-task-start_training-ui">S5.4 Long-running Task (start_training) UI</h3>
+<pre><code>is_training=True
+  → &quot;Training in Progress...&quot; 카드 표시
+  → rx.progress(value=training_progress, max=100)  ← 0→100 fill
+  → training_status 텍스트 (단계별 상태 메시지)
+  → Start Training 버튼 숨김 (cond: ~is_training)
+
+학습 완료
+  → training_complete=True, is_training=False
+  → monitor_training_completion() 감지
+  → wizard_step = 6 (자동 이동)
+</code></pre>
+<h3 id="s55-component-count-10">S5.5 Component Count: 10개 주요 컴포넌트</h3>
+<hr />
+<h2 id="step-6-save_model">Step 6: 결과 검토 + save_model</h2>
+<h3 id="s61">S6.1 레이아웃 (결과 섹션 체인)</h3>
+<pre><code>vstack (spacing=&quot;5&quot;)
+├── Heading &quot;Step 6: Training Results&quot;
+├── Text &quot;Your model has been trained successfully!&quot;
+│
+├── data_summary_section()
+│     [raw/processed samples, 데이터 기간, training_duration, best_model]
+│
+├── preprocessing_section()
+│     [outliers_removed, interpolated_gaps, preprocessing_steps]
+│
+├── feature_engineering_section()
+│     [features_created, original/final features count]
+│
+├── model_selection_info_section()
+│     [selected model + parameters]
+│
+├── model_diagnostics_section()
+│     [cond: has_model_diagnostics (AutoARIMA only)]
+│     [ARIMA string, AIC, BIC, AICc, sigma², residuals mean/std]
+│
+├── evaluation_metrics_section()
+│     [cond: has_evaluation_metrics]
+│     [MAE, MAPE, RMSE, SMAPE, MASE, n_windows, n_predictions]
+│
+├── fold_results_section()
+│     [fold-by-fold walk-forward validation results table]
+│
+├── residuals_diagnostics_section()
+│     [ACF chart, PACF chart, Q-Q plot, Histogram]
+│
+├── validation_chart_section()
+│     [actual vs predicted Recharts line chart]
+│
+├── comparison_table_section()
+│     [actual/predicted/error/error_pct table rows]
+│
+├── forecast_chart_section()
+│     [forecast + CI (historical + future combined chart)]
+│
+├── matplotlib_forecast_plot_section()
+│     [Matplotlib 스타일 forecast 이미지 (if available)]
+│
+├── performance_summary_section()
+│     [Best Model badge + Validation MAPE badge]
+│
+├── saved_data_section()
+│     [cond: show_saved_data] model_registry 정보 + training_evaluation rows
+│
+└── action_buttons_section()
+      [Save Model] (disabled: model_saved, on_click: save_model)
+      [Train Another Model] (on_click: reset_wizard)
+      [성능 비교 보기] (cond: model_saved, on_click: navigate_to_performance)
+</code></pre>
+<h3 id="s62-save_model">S6.2 save_model 동작 흐름</h3>
+<pre><code>click [Save Model]
+  → TrainingState.save_model() (@rx.event background=True)
+  → is_loading = True
+
+  (1) current_time = datetime.now() [단 1회 캡처]
+  (2) model_name = f&quot;{model}_{tag}_{YYYYMMDD_HHMMSS}&quot;
+  (3) _get_cached_model(selected_tag) → pickle bytes (asyncio.to_thread)
+  (4) version = f&quot;1.0.{YYYYMMDDHHMMSS}&quot;
+  (5) data_start/end → datetime 파싱
+  (6) pipeline_config dict 구성
+      forecast_config: {interval, horizon, horizons[], total_steps}
+      metrics: {validation_data, mape, mae, rmse, ...}
+      training_info: {data_start, end, samples, duration, ...}
+      hyperparameters: {training_days, feature_config_id, ...}
+  (7) ModelRegistry INSERT (BYTEA pickle, metrics)
+  (8) session.flush() → model_entry.model_id 획득
+  (9) training_evaluation BULK INSERT (N개 horizon 레코드, 1 round-trip)
+       evaluation_time = current_time
+       target_time = current_time + timedelta(minutes=horizon_minutes)
+       actual_value = 0 (placeholder)
+  (10) session.commit()
+  (11) 저장 확인 쿼리 → saved_model_info / saved_predictions 업데이트
+  (12) show_saved_data = True
+  (13) rx.toast.success() 표시
+  → is_loading = False
+</code></pre>
+<h3 id="s63-save_model">S6.3 save_model 후 버튼 상태 변화</h3>
+<table>
+<thead>
+<tr>
+<th>버튼</th>
+<th>저장 전</th>
+<th>저장 후</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save Model</td>
+<td>활성</td>
+<td>disabled (model_saved=True)</td>
+</tr>
+<tr>
+<td>Train Another Model</td>
+<td>활성</td>
+<td>활성</td>
+</tr>
+<tr>
+<td>성능 비교 보기</td>
+<td>숨김 (rx.fragment)</td>
+<td>표시 (navigate_to_performance)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s64-navigate_to_performance">S6.4 navigate_to_performance</h3>
+<pre><code class="language-python">rx.redirect(f&quot;/model-performance?sensor={selected_tag}&quot;)
+</code></pre>
+<h3 id="s65">S6.5 결과 서브섹션 컴포넌트 수</h3>
+<table>
+<thead>
+<tr>
+<th>섹션</th>
+<th>파일</th>
+<th>주요 컴포넌트 수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>data_summary</td>
+<td><code>results/data_summary.py</code></td>
+<td>~10 (preprocessing/feature 포함)</td>
+</tr>
+<tr>
+<td>model_selection_info</td>
+<td><code>results/model_selection_info.py</code></td>
+<td>~5</td>
+</tr>
+<tr>
+<td>model_diagnostics</td>
+<td><code>results/model_diagnostics.py</code></td>
+<td>~8 (ARIMA only)</td>
+</tr>
+<tr>
+<td>evaluation_metrics</td>
+<td><code>results/evaluation_metrics.py</code></td>
+<td>~8</td>
+</tr>
+<tr>
+<td>fold_results</td>
+<td><code>results/fold_results.py</code></td>
+<td>~6 (table)</td>
+</tr>
+<tr>
+<td>residuals_diagnostics</td>
+<td><code>results/residuals_diagnostics.py</code></td>
+<td>~12 (4 charts: ACF/PACF/QQ/Hist)</td>
+</tr>
+<tr>
+<td>validation_charts</td>
+<td><code>results/validation_charts.py</code></td>
+<td>~15 (3 charts + table)</td>
+</tr>
+<tr>
+<td>performance_summary</td>
+<td><code>results/performance_summary.py</code></td>
+<td>~6</td>
+</tr>
+<tr>
+<td><strong>총합</strong></td>
+<td></td>
+<td><strong>~70개</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="training-wizard-state">Training Wizard 공통 State 변수 매핑</h2>
+<h3 id="trainingwizardstate-wizard">TrainingWizardState (wizard 전용)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>초기값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>wizard_step</code></td>
+<td><code>int</code></td>
+<td><code>1</code></td>
+<td>현재 wizard 단계 (1-6)</td>
+</tr>
+<tr>
+<td><code>show_forecast_dialog</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>예측 시각화 다이얼로그 (현재 미사용)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="trainingstate-base-wizard">TrainingState (base, wizard에서 상속)</h3>
+<table>
+<thead>
+<tr>
+<th>변수</th>
+<th>타입</th>
+<th>초기값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>selected_tag</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>선택된 센서 태그</td>
+</tr>
+<tr>
+<td><code>available_tags</code></td>
+<td><code>list[str]</code></td>
+<td><code>[]</code></td>
+<td>DB에서 로드한 태그 목록</td>
+</tr>
+<tr>
+<td><code>selected_model</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>auto_arima / prophet / xgboost</td>
+</tr>
+<tr>
+<td><code>training_days</code></td>
+<td><code>int</code></td>
+<td><code>30</code></td>
+<td>학습 데이터 일수</td>
+</tr>
+<tr>
+<td><code>forecast_interval_minutes</code></td>
+<td><code>int</code></td>
+<td><code>10</code></td>
+<td>예측 간격 (분)</td>
+</tr>
+<tr>
+<td><code>forecast_horizon_hours</code></td>
+<td><code>int</code></td>
+<td><code>6</code></td>
+<td>예측 기간 (시간)</td>
+</tr>
+<tr>
+<td><code>season_length</code></td>
+<td><code>int</code></td>
+<td><code>1</code></td>
+<td>AutoARIMA 계절 주기</td>
+</tr>
+<tr>
+<td><code>enable_preprocessing</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>전처리 활성화</td>
+</tr>
+<tr>
+<td><code>outlier_threshold</code></td>
+<td><code>float</code></td>
+<td><code>3.0</code></td>
+<td>Z-score 임계값</td>
+</tr>
+<tr>
+<td><code>skip_feature_engineering</code></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Pure ARIMA 모드</td>
+</tr>
+<tr>
+<td><code>is_training</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>학습 중 여부</td>
+</tr>
+<tr>
+<td><code>training_progress</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>학습 진행률 (0-100)</td>
+</tr>
+<tr>
+<td><code>training_status</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>학습 상태 메시지</td>
+</tr>
+<tr>
+<td><code>training_complete</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>학습 완료 여부</td>
+</tr>
+<tr>
+<td><code>result_metadata</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>학습 결과 메타데이터</td>
+</tr>
+<tr>
+<td><code>evaluation_metrics</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>MAE/MAPE/RMSE/SMAPE/MASE</td>
+</tr>
+<tr>
+<td><code>fold_results</code></td>
+<td><code>list[dict]</code></td>
+<td><code>[]</code></td>
+<td>fold별 검증 결과</td>
+</tr>
+<tr>
+<td><code>model_diagnostics</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>ARIMA 파라미터/AIC/BIC</td>
+</tr>
+<tr>
+<td><code>residuals_analysis</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>ACF/PACF/QQ/Histogram</td>
+</tr>
+<tr>
+<td><code>forecast_with_intervals</code></td>
+<td><code>list</code></td>
+<td><code>[]</code></td>
+<td>CI 포함 예측 데이터</td>
+</tr>
+<tr>
+<td><code>historical_data</code></td>
+<td><code>list</code></td>
+<td><code>[]</code></td>
+<td>차트용 과거 48 포인트</td>
+</tr>
+<tr>
+<td><code>saved_model_info</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>저장된 모델 정보</td>
+</tr>
+<tr>
+<td><code>saved_predictions</code></td>
+<td><code>list</code></td>
+<td><code>[]</code></td>
+<td>저장된 evaluation 데이터</td>
+</tr>
+<tr>
+<td><code>show_saved_data</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>저장 데이터 표시 토글</td>
+</tr>
+<tr>
+<td><code>is_loading</code></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>save_model 중</td>
+</tr>
+<tr>
+<td><code>trained_model_id</code></td>
+<td><code>int</code></td>
+<td><code>0</code></td>
+<td>저장된 모델 ID</td>
+</tr>
+<tr>
+<td><code>error_message</code></td>
+<td><code>str</code></td>
+<td><code>""</code></td>
+<td>에러 메시지</td>
+</tr>
+</tbody>
+</table>
+<h2 id="training-wizard-event-handler">Training Wizard Event Handler 매핑 (전체)</h2>
+<table>
+<thead>
+<tr>
+<th>Handler</th>
+<th>위치</th>
+<th>트리거</th>
+<th>비동기?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>initialize_wizard</code></td>
+<td>Wizard</td>
+<td>on_load</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>next_step</code></td>
+<td>Wizard</td>
+<td>Next 버튼</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>previous_step</code></td>
+<td>Wizard</td>
+<td>Previous 버튼</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>reset_wizard</code></td>
+<td>Wizard</td>
+<td>Train Another Model</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>monitor_training_completion</code></td>
+<td>Wizard</td>
+<td>Start Training on_click</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>set_selected_tag</code></td>
+<td>Base</td>
+<td>Step 1 Select</td>
+<td>sync → background</td>
+</tr>
+<tr>
+<td><code>filter_configs_for_tag</code></td>
+<td>Base</td>
+<td>set_selected_tag 내부</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>set_selected_model</code></td>
+<td>Base</td>
+<td>Step 2 Select 버튼</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>toggle_skip_features</code></td>
+<td>Base</td>
+<td>Pure ARIMA checkbox</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>toggle_feature_creator</code></td>
+<td>Base</td>
+<td>Create Config 버튼</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_new_config_name</code></td>
+<td>Base</td>
+<td>Config Name input</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>toggle_rolling_feature</code></td>
+<td>Base</td>
+<td>롤링 체크박스</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>create_feature_config</code></td>
+<td>Base</td>
+<td>Create Configuration</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>load_feature_config</code></td>
+<td>Base</td>
+<td>Load Existing Select</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>set_training_days</code></td>
+<td>Base</td>
+<td>Step 4 input</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_forecast_interval_minutes</code></td>
+<td>Base</td>
+<td>Step 4 input</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_forecast_horizon_hours</code></td>
+<td>Base</td>
+<td>Step 4 input</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_season_length</code></td>
+<td>Base</td>
+<td>Step 4 input</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_enable_preprocessing</code></td>
+<td>Base</td>
+<td>Step 4 switch</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>set_outlier_threshold</code></td>
+<td>Base</td>
+<td>Step 4 input</td>
+<td>async</td>
+</tr>
+<tr>
+<td><code>start_training</code></td>
+<td>Base</td>
+<td>monitor_training_completion →</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>save_model</code></td>
+<td>Base</td>
+<td>Step 6 Save Model 버튼</td>
+<td>background</td>
+</tr>
+<tr>
+<td><code>navigate_to_performance</code></td>
+<td>Wizard</td>
+<td>Step 6 성능 비교 버튼</td>
+<td>sync</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="training-wizard">Training Wizard 전체 알려진 결함</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>심각도</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>W-01</td>
+<td>Critical</td>
+<td>학습 중 취소 버튼 없음 — 학습 실패 시 is_training stuck (monitor_training_completion: <code>not is_training and not training_complete</code> 조건이 training error 발생 시 루프 종료하지만, UI는 여전히 "진행 중" 보임 가능성)</td>
+</tr>
+<tr>
+<td>W-02</td>
+<td>High</td>
+<td>Pickle cache 휘발 — 컨테이너 restart 후 save_model 클릭 시 "metadata only" 저장. 해당 모델 배포 시 ForecastScheduler에서 deserialize 불가</td>
+</tr>
+<tr>
+<td>W-03</td>
+<td>High</td>
+<td>Step 6 결과에서 Previous 클릭 시 Step 4로 이동 (Step 5 건너뜀) — 의도적이나 사용자 혼란</td>
+</tr>
+<tr>
+<td>W-04</td>
+<td>Medium</td>
+<td><code>show_forecast_dialog</code> state var와 <code>open_forecast_dialog</code> handler 구현 있지만 Step 6 결과 화면에 트리거 버튼 없음</td>
+</tr>
+<tr>
+<td>W-05</td>
+<td>Medium</td>
+<td><code>validation_feasibility</code> computed var에서 <code>test_size</code> 계산이 <code>int()</code> 트런케이션 — <code>(6 * 60) / 10 = 36.0</code> → 정확하나 비정수 interval이면 floor 처리</td>
+</tr>
+<tr>
+<td>W-06</td>
+<td>Low</td>
+<td><code>selected_rolling_features</code>의 <code>toggle_rolling_feature</code> 체크박스 UI에 <code>checked=</code> prop binding 없음 — 화면에서 체크 상태가 state를 반영하지 않을 수 있음</td>
+</tr>
+<tr>
+<td>W-07</td>
+<td>Low</td>
+<td>Step 3 rolling feature 체크박스 labels에 <code>value=</code> prop 사용 — checkbox value prop 시맨틱이 아닌 직접 lambda로 window string 전달</td>
+</tr>
+<tr>
+<td>W-08</td>
+<td>Low</td>
+<td><code>save_model</code>의 training_evaluation INSERT에서 <code>actual_value=0</code> placeholder → ForecastScheduler가 실측값 업데이트하지 않으면 0이 남아 성능 지표 오염</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="appendix-a-3">Appendix A: 3 페이지 주요 지표 요약</h2>
+<table>
+<thead>
+<tr>
+<th>페이지</th>
+<th>LoC (page)</th>
+<th>LoC (state)</th>
+<th>레이아웃 rows</th>
+<th>컴포넌트 수</th>
+<th>가장 복잡한 부분</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>/forecast</td>
+<td>958</td>
+<td>1,669</td>
+<td>11</td>
+<td>~45</td>
+<td>ComposedChart + 7-row 가로 스크롤 테이블 + countdown monitor 백그라운드 루프</td>
+</tr>
+<tr>
+<td>/model-performance</td>
+<td>262</td>
+<td>~800</td>
+<td>8</td>
+<td>~25 (+ 외부 컴포넌트)</td>
+<td>deploy/undeploy/delete 3 액션 + 외부 컴포넌트 4개</td>
+</tr>
+<tr>
+<td>/training-wizard</td>
+<td>93 (index) + 각 step</td>
+<td>1,745</td>
+<td>wizard 3 + step content</td>
+<td>Step 6 ~70</td>
+<td>Step 6 결과 (14개 서브섹션) + save_model 파이프라인</td>
+</tr>
+</tbody>
+</table>
+<p><strong>가장 복잡한 페이지:</strong> Training Wizard Step 6 + TrainingState.save_model (10단계 파이프라인, pickle 직렬화, bulk insert, 결과 검증)</p>
+<h2 id="appendix-b-training-wizard-step-component-count">Appendix B: Training Wizard Step별 Component Count 요약</h2>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>주요 컴포넌트 수</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Step 1</td>
+<td>6</td>
+<td>선택 확인 callout 조건부 포함</td>
+</tr>
+<tr>
+<td>Step 2</td>
+<td>15</td>
+<td>3 model cards × 5 elements</td>
+</tr>
+<tr>
+<td>Step 3</td>
+<td>12</td>
+<td>조건부 feature creator 포함</td>
+</tr>
+<tr>
+<td>Step 4</td>
+<td>14</td>
+<td>ARIMA 섹션 + feasibility callout</td>
+</tr>
+<tr>
+<td>Step 5</td>
+<td>10</td>
+<td>progress bar + config summary</td>
+</tr>
+<tr>
+<td>Step 6</td>
+<td>~70</td>
+<td>14개 결과 서브섹션</td>
+</tr>
+<tr>
+<td>Header/Nav</td>
+<td>8</td>
+<td>wizard_header + wizard_navigation</td>
+</tr>
+<tr>
+<td><strong>합계</strong></td>
+<td><strong>~135</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>END OF SPEC 09 — ML/AI Domain Screen Design Specification</em></p>
+</body></html>

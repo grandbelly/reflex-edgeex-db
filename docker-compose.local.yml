@@ -1,0 +1,116 @@
+# Local refactor-validation compose.
+# Reuses the already-running ksys-dev-db (started via docker-compose.dev.yml).
+# Skips cloudflared + data-injector — local validation only.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d --build
+#   docker compose -f docker-compose.local.yml logs -f forecast-scheduler
+#   docker compose -f docker-compose.local.yml down
+
+services:
+  reflex-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ksys-local-reflex-app
+    ports:
+      # Canonical RPI deployment ports. Zombies on 14001 were cleared once we
+      # killed the orphan uvicorn child workers that inherited the listener FD.
+      - "${FRONTEND_PORT:-14000}:14000"
+      - "${BACKEND_PORT:-14001}:14001"
+    environment:
+      - DOCKER_ENV=true
+      - DB_TARGET=pgai
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - POSTGRES_CONNECTION_STRING=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - APP_ENV=development
+      - TZ=${TZ:-Asia/Seoul}
+      - VERSION_TYPE=${VERSION_TYPE:-FULL}
+      - ENABLE_AI_FEATURES=${ENABLE_AI_FEATURES:-true}
+      # In-app scheduler off — the dedicated forecast-scheduler container handles it.
+      - DISABLE_INAPP_SCHEDULER=true
+      # API_URL is baked into the frontend bundle by `reflex export` / prod build.
+      - API_URL=${API_URL:-http://localhost:14001}
+    volumes:
+      - ./ksys_app:/app/ksys_app
+      - ./rxconfig.py:/app/rxconfig.py
+      - ./logs:/app/logs
+    networks:
+      - dev_network
+    restart: unless-stopped
+    # init: true wraps the entrypoint in tini so PID 1 reaps zombies and
+    # forwards SIGTERM properly. stop_grace_period gives uvicorn time to
+    # close listeners before SIGKILL — otherwise host TCP sockets leak.
+    init: true
+    stop_grace_period: 30s
+    command:
+      - reflex
+      - run
+      - --env
+      - prod
+      - --backend-host
+      - 0.0.0.0
+      - --frontend-port
+      - "14000"
+      - --backend-port
+      - "14001"
+      - --loglevel
+      - info
+
+  data-injector:
+    build:
+      context: .
+      dockerfile: Dockerfile.data-injector
+    container_name: ksys-local-data-injector
+    environment:
+      - DB_HOST=ksys-dev-db
+      - DB_PORT=5432
+      - TZ=${TZ:-Asia/Seoul}
+    networks:
+      - dev_network
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 15s
+
+  forecast-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.scheduler
+    container_name: ksys-local-forecast-scheduler
+    environment:
+      - DOCKER_ENV=true
+      - DB_TARGET=pgai
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - POSTGRES_CONNECTION_STRING=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - TZ=${TZ:-Asia/Seoul}
+    volumes:
+      - ./ksys_app:/app/ksys_app
+      - ./saved_models:/app/saved_models
+      - ./logs:/app/logs
+    networks:
+      - dev_network
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+
+  timeseries-pipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile.pipeline
+    container_name: ksys-local-timeseries-pipeline
+    environment:
+      - TS_DSN=${TS_DSN_LOCAL:?TS_DSN_LOCAL is required}
+      - CSV_PATH=/app/all_sensors.csv
+      - TZ=${TZ:-Asia/Seoul}
+    volumes:
+      - ./all_sensors.csv:/app/all_sensors.csv
+    networks:
+      - dev_network
+    restart: unless-stopped
+    init: true
+
+networks:
+  dev_network:
+    # Reuse the network already created by docker-compose.dev.yml
+    name: reflex-rpi-local-deployment-poongdo_default
+    external: true

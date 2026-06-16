@@ -4,6 +4,7 @@ from ..components.layout import shell
 from ..states.alarm_hist_state import AlarmHistState
 
 
+@rx.page(route="/alarms_hist_new", title="알람 이력 (개선)")
 def alarms_hist_page() -> rx.Component:
     """Alarm history page with filtering and search."""
     return shell(

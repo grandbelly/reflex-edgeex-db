@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RPI Refactor Stage 5-7 + Reflex MCP Integration — Plan</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+    line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto;
+  }
+  h1 { font-size: 34px; border-bottom: 2px solid #30363d; padding-bottom: 14px; margin-bottom: 8px;
+       background: linear-gradient(135deg, #a371f7 0%, #79c0ff 100%);
+       -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: #8b949e; font-size: 15px; margin-bottom: 28px; }
+  h2 { font-size: 24px; color: #a371f7; margin-top: 44px; border-left: 4px solid #a371f7; padding-left: 14px; }
+  h3 { font-size: 18px; color: #ffa657; margin-top: 28px; }
+  h4 { font-size: 15px; color: #a5d6ff; margin-top: 20px; margin-bottom: 8px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 7px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #30363d; font-size: 13px; }
+  pre code { background: transparent; color: #e6edf3; padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #a371f7; font-weight: 600; }
+  tr:nth-child(even) { background: #0d1117; }
+  tr:nth-child(odd) { background: #131923; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128 0%, #161b22 100%); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 28px; font-weight: 700; color: #79c0ff; }
+  .kpi .l { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .kpi.green .v { color: #3fb950; }
+  .kpi.red .v { color: #f85149; }
+  .kpi.orange .v { color: #ffa657; }
+  .kpi.purple .v { color: #a371f7; }
+
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; margin-right: 6px; }
+  .tag-done { background: #2ea043; color: #fff; }
+  .tag-partial { background: #d29922; color: #fff; }
+  .tag-skip { background: #6e7681; color: #fff; }
+  .tag-next { background: #1f6feb; color: #fff; }
+  .tag-new { background: #a371f7; color: #fff; }
+  .tag-opt { background: #ff7b72; color: #fff; }
+
+  .callout { background: #1c2128; border-left: 4px solid #d29922; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; }
+  .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .callout.purple { border-left-color: #a371f7; background: #1b1530; }
+
+  .stage { background: #161b22; border: 1px solid #30363d; border-left: 5px solid #79c0ff;
+           border-radius: 8px; padding: 18px 22px; margin: 14px 0; }
+  .stage.s5 { border-left-color: #79c0ff; }
+  .stage.s6 { border-left-color: #a371f7; }
+  .stage.s7 { border-left-color: #2ea043; }
+  .stage.s8 { border-left-color: #ff7b72; }
+  .stage.deep { border-left-color: #d29922; }
+  .stage.verify { border-left-color: #f85149; }
+
+  .commit { background: #0a0f17; padding: 6px 12px; border-radius: 4px; font-family: ui-monospace, "SF Mono", monospace;
+            color: #79c0ff; font-size: 12.5px; display: inline-block; margin-right: 8px; }
+
+  .good { color: #3fb950; font-weight: 700; }
+  .bad { color: #f85149; font-weight: 700; }
+  .warn { color: #d29922; font-weight: 700; }
+  .meta { color: #8b949e; font-size: 13px; }
+
+  .prompt {
+    background: #0a1f33; border: 1px solid #1f6feb; border-radius: 8px;
+    padding: 14px 18px; margin: 12px 0; font-family: ui-monospace, "SF Mono", monospace; font-size: 13px;
+    color: #e6edf3; white-space: pre-wrap; word-break: break-word; line-height: 1.6;
+  }
+  .prompt::before {
+    content: "▶ Claude Code Prompt"; display: block; font-family: -apple-system, "Noto Sans KR", sans-serif;
+    color: #79c0ff; font-weight: 600; font-size: 12px; margin-bottom: 8px; letter-spacing: 0.5px;
+  }
+
+  .ac-block {
+    background: #0e2417; border-left: 3px solid #3fb950; padding: 8px 14px;
+    border-radius: 4px; margin-top: 10px; font-size: 13px;
+  }
+  .ac-block strong { color: #3fb950; }
+
+  .hr { border: none; border-top: 1px dashed #30363d; margin: 36px 0; }
+  ul li, ol li { margin-bottom: 6px; }
+  hr { border: none; border-top: 1px dashed #30363d; margin: 36px 0; }
+
+  .layer {
+    background: #1b1530; border: 1px solid #a371f7; border-radius: 8px; padding: 14px 18px; margin: 10px 0;
+  }
+  .layer h4 { color: #d2a8ff; margin-top: 0; }
+</style>
+</head>
+<body>
+
+<h1>🗺️ RPI Refactor Stage 5-7 + Reflex MCP Integration</h1>
+<p class="subtitle">
+  Feature <code>rpi-stage5-7-mcp-integration</code> · 2026-05-19 작성 · branch <code>refactor/rpi-baseline-sync</code><br>
+  이전 세션 (Stage 1-4 partial) 후속 작업 + Reflex + AI MCP 프레임워크 통합 검토<br>
+  ksys_app (Reflex 0.8.16 + TimescaleDB + statsforecast) · target: Raspberry Pi 4/5 (ARM64, 4GB RAM)
+</p>
+
+<div class="callout purple">
+<strong>이 문서의 용도:</strong> 로컬 Claude Code(다음 세션)에게 그대로 던질 수 있는 <strong>prompt 모음 + 실행 계획서</strong>.
+각 Stage 마다 <span class="tag tag-next">Prompt</span> 박스가 실제 지시문이고, 그 외 메타 정보는 Claude가 컨텍스트로 활용.
+</div>
+
+<h2>📊 현재 상태 (2026-05-19 fb005ea 시점)</h2>
+
+<div class="kpi-grid">
+  <div class="kpi green"><div class="v">14</div><div class="l">commits on branch</div></div>
+  <div class="kpi green"><div class="v">-51%</div><div class="l">.py 파일 (521→253)</div></div>
+  <div class="kpi green"><div class="v">-82%</div><div class="l">ksys_app.py 진입점</div></div>
+  <div class="kpi orange"><div class="v">3</div><div class="l">남은 1000+ LoC</div></div>
+  <div class="kpi red"><div class="v">미검증</div><div class="l">Docker build</div></div>
+  <div class="kpi red"><div class="v">미측정</div><div class="l">RPI 실서버 효율</div></div>
+  <div class="kpi"><div class="v">0</div><div class="l">MCP 통합 여부</div></div>
+  <div class="kpi purple"><div class="v">5</div><div class="l">우선순위 작업</div></div>
+</div>
+
+<h3>완료 (참고만)</h3>
+<table>
+<tr><th>Stage</th><th>commit</th><th>결과</th></tr>
+<tr><td>Baseline Sync</td><td><code class="commit">e397d8f</code></td><td>RPI snapshot import (+81,391 줄)</td></tr>
+<tr><td>Stage 1 — 잡초 제거</td><td><code class="commit">7618aa2</code></td><td>285 파일 삭제 (-89,601 줄)</td></tr>
+<tr><td>Stage 2 — 죽은 페이지</td><td><code class="commit">4bf9cf9</code> + <code class="commit">4c0203b</code></td><td>18 파일 삭제 (-5,926 줄)</td></tr>
+<tr><td>Stage 3 — @rx.page 통일</td><td><code class="commit">663aee6</code> + <code class="commit">ec3ba96</code></td><td>라우트 등록 1패턴, /forecast 라우트 정리</td></tr>
+<tr><td>Stage 3.5 — 죽은 함수 제거</td><td><code class="commit">b52ec6b</code></td><td>ksys_app.py -870 줄 (-82%)</td></tr>
+<tr><td>Stage 4 Sprint 1-4</td><td><code class="commit">907a1b4</code> ~ <code class="commit">d77988f</code></td><td>4개 monolith 분해 + 1개 삭제 (PARTIAL)</td></tr>
+</table>
+
+<h3>미완료 (이번 plan의 대상)</h3>
+<ul>
+  <li><strong>Verify-0</strong>: Docker build / reflex run 부팅 검증 (14 commits 누적분)</li>
+  <li><strong>Stage 4 Deep</strong>: <code>forecast_player_state/state.py (1,668L)</code>, <code>dashboard/state.py (1,638L)</code>, <code>training_state/state.py (1,077L)</code> — helper extraction 미실시</li>
+  <li><strong>Stage 5</strong>: RPI 효율 튜닝 (G4) — asyncpg pool, AutoARIMA 캐시, lazy page import, TimescaleDB chunk, ARM64 이미지</li>
+  <li><strong>Stage 6</strong>: 공통 패턴 추출 (G5) — repositories/, views/charts/, BaseState</li>
+  <li><strong>Stage 7</strong>: 품질 gate (G6) — ruff + mypy + vulture + pre-commit</li>
+  <li><strong>Stage 8 (NEW)</strong>: Reflex + AI MCP 프레임워크 통합 검토 — 별도 제안서 기반</li>
+</ul>
+
+<hr>
+
+<h2>🎯 Executive Summary</h2>
+
+<table>
+  <tr><th>Feature</th><th>시작일</th><th>예상 완료일</th><th>기간</th></tr>
+  <tr><td><code>rpi-stage5-7-mcp-integration</code></td><td>2026-05-20</td><td>2026-06-10</td><td>약 11 영업일 (선택 작업 포함)</td></tr>
+</table>
+
+<h3>Value Delivered (4 Perspectives)</h3>
+<table>
+  <tr><th>관점</th><th>내용</th></tr>
+  <tr>
+    <td><strong>Problem</strong><br>(해결할 문제)</td>
+    <td>
+      Stage 1-4 partial 까지 51% LoC 정리 했지만:
+      <ul>
+        <li>Docker build 검증 안 됐어 — 14 commits 누적 후 실서버에서 실제 부팅되는지 불명</li>
+        <li>1,000+ LoC 파일 3개 (Reflex State 클래스 본체) 그대로 — G3 미달성</li>
+        <li>RPI 실측 데이터 0건 — 부팅 시간 / idle 메모리 / forecast 응답시간 baseline 없음</li>
+        <li>품질 gate (ruff/mypy/vulture) 없음 — header import 중복 등 누적 부채</li>
+        <li>최신 Reflex 0.8.16 문법을 AI 코딩 어시스턴트가 모름 — 환각 코드 위험</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Solution</strong><br>(해결 방법)</td>
+    <td>
+      1) Verify-0 으로 부팅 검증 → 2) Stage 4 deep helper extraction → 3) Stage 5 RPI 실측+튜닝 →
+      4) Stage 6 공통 패턴 추출 → 5) Stage 7 품질 gate → 6) <strong>Stage 8 (NEW)</strong> Reflex MCP 서버 연동
+      (개발 어시스턴트 환각 제거 + 옵션 outbound MCP 클라이언트).
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Function UX Effect</strong><br>(기능·UX 효과)</td>
+    <td>
+      운영 UX 변화 = <strong>0 (regression 0 목표)</strong>. RPI 부팅 시간 / forecast 응답 시간 단축이
+      간접 UX 향상. MCP 통합은 운영자 UX엔 영향 0, 개발자(나/Claude) UX만 향상.
+    </td>
+  </tr>
+  <tr>
+    <td><strong>Core Value</strong><br>(핵심 가치)</td>
+    <td>
+      <strong>SSOT 베이스라인 위에 운영 안정성 + 개발 생산성 두 축 동시에 쌓기.</strong>
+      Stage 5-7 은 RPI 운영 안정성, Stage 8 은 미래 신규 기능 개발 속도. 1년 vibe-coding 사이클 종지부.
+    </td>
+  </tr>
+</table>
+
+<hr>
+
+<h2>🚦 작업 순서 (우선순위)</h2>
+
+<table>
+<tr><th>#</th><th>이름</th><th>tag</th><th>예상</th><th>blocker</th><th>의존성</th></tr>
+<tr><td>0</td><td>Docker build / reflex run 검증</td><td><span class="tag tag-next">VERIFY</span></td><td>10–30분</td><td>Docker Desktop ON</td><td>없음</td></tr>
+<tr><td>1</td><td>Stage 4 Deep — 3개 State helper extraction</td><td><span class="tag tag-partial">DEEP</span></td><td>1.5일</td><td>Verify-0 통과</td><td>0</td></tr>
+<tr><td>2</td><td>Stage 5 — RPI 효율 튜닝 + 실측</td><td><span class="tag tag-next">RPI</span></td><td>3일</td><td>RPI 실서버 SSH 접근</td><td>0,1</td></tr>
+<tr><td>3</td><td>Stage 6 — 공통 패턴 추출</td><td><span class="tag tag-next">SHARED</span></td><td>3일</td><td>Stage 5 안정 baseline</td><td>2</td></tr>
+<tr><td>4</td><td>Stage 7 — 품질 gate (ruff/mypy/vulture)</td><td><span class="tag tag-next">QA</span></td><td>2일</td><td>Stage 6 완료</td><td>3</td></tr>
+<tr><td>5</td><td>Stage 8 — Reflex MCP 통합 (선택)</td><td><span class="tag tag-new">MCP</span></td><td>1.5일</td><td>Reflex 0.8.16 + MCP SDK</td><td>독립 (병렬 가능)</td></tr>
+</table>
+
+<hr>
+
+<h2>🔧 Verify-0 — Docker Build 검증</h2>
+
+<div class="stage verify">
+<h3><span class="tag tag-next">VERIFY-0</span> 14 commits 누적 후 부팅 확인</h3>
+<p class="meta">전제: Docker Desktop ON. Windows 호스트에서 reflex run 금지 (좀비 LISTEN 발생 — memory 참조).</p>
+
+<div class="prompt">⚠️ 검증 환경: 풍도 로컬 (Windows + Docker Desktop). RPI 실서버 아님.
+풍도 컨테이너명은 `ksys-local-*` 패턴. RPI 컨테이너명 `rpi-finished-*` 은 Stage 5 에서만 사용.
+
+작업 디렉토리: 현재 cwd 그대로 사용 (worktree 든 sync 마운트든 같은 데이터)
+
+순서:
+1. `git status` 로 작업 상태 확인 (uncommitted 작업 보호)
+2. `git log --oneline -1` 로 HEAD 가 어떤 commit 인지 보고
+3. `docker ps` 실행 — Docker Desktop OFF 면 즉시 stop, 사용자에게 한 줄 알림 후 종료
+4. `docker compose -f docker-compose.local.yml build reflex-app` (timeout 600초)
+5. 빌드 성공 시 `docker compose -f docker-compose.local.yml up -d` 로 풍도 3개 서비스 기동
+   (ksys-local-reflex-app / ksys-local-data-injector / ksys-local-forecast-scheduler)
+6. 60초 대기 후 `docker ps --format "table {{.Names}}\t{{.Status}}"` 로 3개 컨테이너 Up 확인
+7. `docker logs ksys-local-reflex-app --tail 100` 으로 Reflex 부팅 로그 확인
+   - "Compiled" / "App running" / "Listening" 메시지 있으면 PASS
+   - ImportError / SyntaxError / Traceback 있으면 FAIL — 모듈명 + 라인 출력
+8. PASS 인 경우 라우트 자동 발견:
+   `grep -oP "(?<=route=\")[^\"]+" ksys_app/pages/*.py` 으로 모든 등록 라우트 추출
+   (또는 `ksys_app/ksys_app.py` 의 `from .pages import (...)` 블록 + 각 page 의 `@rx.page(route=...)`)
+9. 발견된 모든 라우트에 대해 HTTP 200 / 3xx 확인 (curl 한 줄 loop)
+10. 결과를 `reports/verify_2026-05-20.html` 로 저장
+    - PASS/FAIL 표 + 라우트별 status code + 실패 시 traceback
+
+규칙:
+- 호스트 Python 으로 `reflex run` 절대 금지 (memory: feedback_no_host_reflex_zombie)
+- 실패 시 임의 수정 X — 결과만 보고, 사용자가 다음 지시
+- Docker 데이터 볼륨 (postgres-data 등) 절대 삭제 금지 (운영 데이터)
+- Stop 시 `docker compose down` 만 (--volumes 옵션 절대 X)</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong>
+<ul>
+<li>모든 컨테이너 Up 상태 30초 이상 유지</li>
+<li>14개 라우트 HTTP 200 (또는 정상 redirect 3xx)</li>
+<li><code>reports/verify_2026-05-20.html</code> 생성</li>
+<li>실패 시 traceback + 모듈명 명시</li>
+</ul>
+</div>
+</div>
+
+<hr>
+
+<h2>🧬 Stage 4 Deep — State Helper Extraction</h2>
+
+<div class="callout info">
+<strong>Why deep:</strong> Sprint 1/3b 는 패키지화만 하고 helper extraction 못 함. state.py 가 여전히 1,000+ LoC.
+Reflex 단일 <code>rx.State</code> 상속 제약은 <strong>피할 수 없지만</strong>, 각 <code>@rx.event</code> 메서드 본문에서
+DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
+</div>
+
+<div class="stage deep">
+<h3><span class="tag tag-partial">DEEP-1</span> training_state — 가장 작아서 PoC</h3>
+<p>현재: <code>ksys_app/states/training_state/state.py</code> 1,077 LoC</p>
+
+<div class="prompt">파일: `ksys_app/states/training_state/state.py` (1,077 LoC)
+
+작업:
+1. 파일을 처음부터 끝까지 읽고 모든 `@rx.event` 메서드 목록을 만들어 보여줘
+2. 각 메서드 본문에서 다음 패턴을 분리할 수 있는지 분석:
+   - DB 쿼리 (asyncpg / SQLAlchemy 호출) → `queries.py` async 함수로
+   - 데이터 가공 / View prep (dict 변환, 차트 데이터 만들기 등) → `view_helpers.py` pure 함수로
+   - 비즈니스 검증 로직 → `validators.py` pure 함수로
+   - 남는 부분 (`self.*` mutation, event chaining) → state.py 에 유지
+3. 분석 결과를 다음 형식 표로 출력:
+   | 메서드 | LoC | 추출 가능 | 추출 대상 파일 | 위험도 |
+
+4. 사용자에게 분석 결과 보여주고 진행 여부 물어봐 (자동 진행 X)
+
+규칙:
+- 절대 grep 만으로 판단 금지 — 메서드 본문 직접 읽어
+- Reflex State 메서드 시그니처 (self, async/sync) 보존
+- `self.var = ...` 만 남기고 계산은 외부 함수에서 받기
+- 외부 함수는 input/output 명확히 (state 인스턴스 안 받기, 필요 데이터만 인자로)
+- 작업 전 git status clean 확인, branch 는 refactor/rpi-baseline-sync 유지
+
+다음 진행 명령 받으면:
+5. 새 파일 (queries.py / view_helpers.py / validators.py) 생성
+6. state.py 의 해당 부분을 함수 호출로 교체
+7. `python -m py_compile ksys_app/states/training_state/state.py` 로 syntax 검증
+8. atomic commit: `refactor(stage-4 deep-1): extract training_state helpers (-N LoC)`</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> training_state/state.py ≤ 600 LoC, 외부 import 7곳 그대로 동작, Docker build 통과
+</div>
+</div>
+
+<div class="stage deep">
+<h3><span class="tag tag-partial">DEEP-2</span> dashboard — 가장 영향 큰 곳</h3>
+<p>현재: <code>ksys_app/states/dashboard/state.py</code> 1,638 LoC. Sprint 3b 에서 utils 13개만 분리됨.</p>
+
+<div class="prompt">DEEP-1 동일 패턴으로 dashboard 진행:
+
+파일: `ksys_app/states/dashboard/state.py` (1,638 LoC)
+이미 있는 파일: `ksys_app/states/dashboard/utils.py` (214L, 13개 pure utility)
+
+작업:
+1. state.py 의 모든 `@rx.event` 와 `@rx.var` 목록 추출
+2. DB 쿼리 부분 → `queries.py` 신규 생성
+3. 차트/카드 데이터 가공 → `utils.py` 에 함수 추가 또는 `views.py` 신규
+4. 분석 결과 표 → 사용자 컨펌 → 적용 → atomic commit
+
+추가 규칙:
+- DashboardState 의 computed var (@rx.var) 는 신중히 — 의존 var 와의 chain 깨지면 UI 한 번에 망가짐
+- 추출 후 dashboard 페이지 (/) 가 docker logs 에서 ERROR 없이 렌더되는지 확인
+- commit 메시지: `refactor(stage-4 deep-2): extract dashboard helpers (-N LoC)`</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> dashboard/state.py ≤ 900 LoC, / 라우트 200 + 화면 렌더 OK
+</div>
+</div>
+
+<div class="stage deep">
+<h3><span class="tag tag-partial">DEEP-3</span> forecast_player_state — 가장 크고 복잡</h3>
+<p>현재: <code>ksys_app/states/forecast_player_state/state.py</code> 1,668 LoC</p>
+
+<div class="prompt">DEEP-1, DEEP-2 패턴과 동일하게:
+
+파일: `ksys_app/states/forecast_player_state/state.py` (1,668 LoC)
+
+추가 고려사항:
+- forecast (statsforecast AutoARIMA) 호출 부분은 무거움 — Stage 5 의 AutoARIMA disk cache 와 충돌 안 되도록 분리 인터페이스만 만들어두기
+- 차트 데이터 변환 코드 분리하면 향후 views/charts/ 공통 패턴 (Stage 6) 으로 이동 후보
+- `forecast_player.py` 페이지가 이 state 의 거의 모든 var 를 쓰니까 var 이름 보존
+
+산출물:
+- ksys_app/states/forecast_player_state/queries.py
+- ksys_app/states/forecast_player_state/view_helpers.py
+- ksys_app/states/forecast_player_state/forecast_runners.py (statsforecast 호출 wrapper)
+- state.py ≤ 900 LoC
+
+commit: `refactor(stage-4 deep-3): extract forecast_player_state helpers (-N LoC)`</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> /forecast 라우트 정상 동작, forecast 실행 시 ERROR 없음
+</div>
+</div>
+
+<hr>
+
+<h2>⚡ Stage 5 — RPI 효율 튜닝</h2>
+
+<div class="callout danger">
+<strong>전제 조건:</strong> RPI 실서버 (<code>ssh tion@192.168.0.80</code>) 접근 가능 + Verify-0 통과한 코드가 있는 상태.
+RPI 측정은 절대 로컬 풍도에서 추정하지 말고 실서버에서 직접 측정.
+</div>
+
+<div class="stage s5">
+<h3><span class="tag tag-next">S5-1</span> Baseline 측정 (RPI 실서버)</h3>
+
+<div class="prompt">RPI 실서버 측정용 스크립트와 SSH 호출 sequence:
+
+SSH 접속: `ssh tion@192.168.0.80`
+앱 경로: `/home/tion/deployment/20251030-rpi-finished/`
+
+작업:
+1. 풍도 로컬 → RPI 로 현재 refactor/rpi-baseline-sync 브랜치 동기화
+   `git push origin refactor/rpi-baseline-sync` (먼저 푸시)
+   RPI 쪽: `cd /home/tion/deployment/20251030-rpi-finished && git fetch && git checkout refactor/rpi-baseline-sync`
+   (또는 원격 미설정이면 scp 로 ksys_app/ 전체)
+
+2. 재배포:
+   `docker compose down && docker compose build && docker compose up -d`
+   3분 대기
+
+3. baseline 측정 (스크립트 작성해서 실서버에서 실행):
+   - 부팅 시간: `docker logs rpi-finished-reflex-app | grep -i "compiled\|listening"` 의 첫 메시지 시각 - 컨테이너 시작 시각
+   - idle 메모리: `docker stats --no-stream rpi-finished-reflex-app` 의 MEM USAGE
+   - DB 연결 수: `docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp -c "SELECT count(*) FROM pg_stat_activity;"`
+   - forecast 응답 시간: curl 로 /forecast 페이지 + actual forecast trigger API → wall clock
+   - SD I/O: `iostat -x 1 5` (mmcblk0 의 %util 평균)
+
+4. 결과를 표로 정리해서 `reports/rpi_baseline_2026-05-22.html` 로 저장
+   (RPI 에서 생성 → scp 로 로컬에 가져오기)
+
+규칙:
+- ssh 명령은 한 줄씩 실행, 결과 확인 후 다음 단계
+- 절대 RPI 의 다른 컨테이너 (다른 프로젝트) 건드리지 마
+- `docker compose down -v` 처럼 볼륨 지우는 명령 금지 (TimescaleDB 운영 데이터 소실 위험)</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> baseline HTML 리포트 생성 + 5개 측정값 확보
+</div>
+</div>
+
+<div class="stage s5">
+<h3><span class="tag tag-next">S5-2</span> asyncpg pool 튜닝</h3>
+
+<div class="prompt">현재 ksys_app 의 DB 접속 방식 분석:
+
+조사 대상:
+1. `grep -rn "asyncpg\|create_engine\|sessionmaker" ksys_app/` 으로 DB 연결 코드 위치 파악
+2. 현재 pool 설정 (min_size / max_size / max_inactive_connection_lifetime) 확인
+3. 동시 연결 수 측정 (S5-1 에서 측정한 값 참고)
+
+조정:
+- RPI 4GB 환경: min_size=2, max_size=10 권장 (현재 default 면 너무 큼)
+- statement_cache_size 줄이기
+- max_inactive_connection_lifetime 짧게 (재연결 통한 메모리 회수)
+
+작업 순서:
+1. 분석 결과 보고 (어디서 pool 만드는지, 현재 값)
+2. 사용자 컨펌
+3. 코드 수정 + atomic commit `perf(stage-5): tune asyncpg pool for RPI (max_size=10)`
+4. RPI 에 재배포 후 S5-1 메트릭 재측정
+5. 비교 표 생성</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> idle 메모리 baseline 대비 -15% 이상 또는 변화 없음 (regression X)
+</div>
+</div>
+
+<div class="stage s5">
+<h3><span class="tag tag-next">S5-3</span> AutoARIMA disk cache + lazy import + TimescaleDB chunk</h3>
+
+<div class="prompt">3가지를 단일 sprint 로 묶어서:
+
+A. AutoARIMA disk cache:
+- 현재 forecast 매 호출마다 fit 다시 함 (statsforecast 동작)
+- 모델을 pickle 로 `saved_models/<sensor_id>_<window>.pkl` 저장
+- 마지막 학습 시점 + 데이터 길이 기록 → 일정 비율 신규 데이터 누적되면 재학습
+- 캐시 hit 시 응답 < 1초 기대
+
+B. Reflex lazy page import 검토:
+- 현재 ksys_app.py 에서 `from .pages import (alarms, communication, dashboard, ...)` 일괄 import
+- Reflex 0.8.16 docs 확인 (Reflex MCP 공식 서버 활용 가능 — Stage 8 참고)
+- 가능하면 페이지별 dynamic import, 안 되면 그대로 두기 (regression 위험)
+
+C. TimescaleDB chunk_time_interval:
+- 현재 chunk 간격 확인: `SELECT * FROM timescaledb_information.dimensions;`
+- 1일 → 7일로 늘리기 (SD I/O 감소)
+- ALTER TABLE 만으로 적용 가능 (기존 chunk 영향 없음)
+
+작업:
+1. A, B, C 각각 진단 결과 보고
+2. 사용자 컨펌 후 commit 3개 분리:
+   - `perf(stage-5): autoarima disk cache for forecast`
+   - `perf(stage-5): reflex lazy page import (or skip if not supported)`
+   - `perf(stage-5): timescaledb chunk_time_interval 7d`
+3. RPI 재배포 + S5-1 메트릭 재측정
+4. before/after 비교 표 → `reports/rpi_stage5_2026-05-25.html`</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> forecast 응답 ≤ 5초 (AC7), idle 메모리 baseline × 0.7 이하 (AC6)
+</div>
+</div>
+
+<hr>
+
+<h2>🧱 Stage 6 — 공통 패턴 추출</h2>
+
+<div class="stage s6">
+<h3><span class="tag tag-next">S6-1</span> repositories/ 도입</h3>
+
+<div class="prompt">현재 ksys_app/queries/ 폴더와 state.py 안의 DB 쿼리를 분석해서 통합 repositories 패턴 만들기.
+
+조사:
+1. `ls ksys_app/queries/` 의 모든 파일 (Stage 2b 후 남은 것들)
+2. Stage 4 deep extraction 으로 생긴 queries.py 들
+3. state.py 안에 남아있는 inline 쿼리
+
+설계:
+- `ksys_app/repositories/sensor_repo.py` — 센서/태그 관련 모든 쿼리
+- `ksys_app/repositories/forecast_repo.py` — forecast 관련
+- `ksys_app/repositories/alarm_repo.py` — 알람 관련
+- 각 repo 는 async function 모음, asyncpg connection 인자로 받음
+- State 메서드에서 `await sensor_repo.get_latest(conn, sensor_id)` 식으로 호출
+
+작업:
+1. 현황 표 작성
+2. 마이그레이션 plan 보여주고 컨펌
+3. 단계별 commit (repo 단위)
+4. 기존 queries/ 의 어떤 함수가 어디로 갔는지 mapping 표 → docs/02-design/features/rpi-stage5-7-mcp-integration.design.html 에 기록</div>
+</div>
+
+<div class="stage s6">
+<h3><span class="tag tag-next">S6-2</span> views/charts/ 공통 컴포넌트</h3>
+
+<div class="prompt">현재 차트 그리는 코드 grep:
+`grep -rn "rx.recharts\|rx.line_chart\|rx.bar_chart" ksys_app/pages/ ksys_app/views/`
+
+중복된 차트 패턴 추출:
+- 시계열 차트 (forecast, trend, dashboard 에서 모두 사용)
+- 알람 분포 차트
+- 게이지 / 카드 차트
+
+산출물:
+- `ksys_app/views/charts/timeseries.py` — `timeseries_chart(data, x_key, y_keys, height=300)` 같은 함수
+- `ksys_app/views/charts/alarm_distribution.py`
+- `ksys_app/views/charts/gauge.py`
+
+규칙:
+- Reflex rx.Component 반환
+- 데이터는 인자로만 받기 (State 직접 참조 X)
+- 색상 / 폰트는 같은 디자인 토큰 사용 (Stage 8 MCP 통합 후 적용 가능)</div>
+</div>
+
+<div class="stage s6">
+<h3><span class="tag tag-next">S6-3</span> BaseState 도입 검토</h3>
+
+<div class="prompt">현재 ksys_app/states/ 폴더의 각 State 클래스가 공통으로 갖는 패턴 분석:
+- loading flag
+- error message
+- last_updated timestamp
+- on_load / on_unload 이벤트
+
+설계:
+- `ksys_app/states/base.py` 의 BaseState(rx.State) 가 위 공통 var/event 제공
+- 각 State 가 BaseState 상속
+
+⚠️ Reflex 제약 확인:
+- Reflex State 다중 상속 불가
+- BaseState 도입 시 모든 State 가 자동 BaseState 가 됨 → side effect 검토
+
+작업:
+1. PoC 1개 (training_state) 로 먼저 시도
+2. 문제 없으면 dashboard / forecast_player_state 적용
+3. 문제 있으면 Mixin 대안 또는 skip
+4. 결과 보고 → 다음 단계 진행 여부 사용자가 결정</div>
+</div>
+
+<hr>
+
+<h2>✅ Stage 7 — 품질 Gate</h2>
+
+<div class="stage s7">
+<h3><span class="tag tag-next">S7-1</span> ruff 도입</h3>
+
+<div class="prompt">작업:
+1. `pyproject.toml` 또는 `ruff.toml` 에 ruff 설정
+   - line-length = 120
+   - target-version = py311
+   - extend-select = ["I", "B", "F", "E", "W", "UP"]  (import sort + bugbear + pyflakes 등)
+   - ignore = ["E501"] (line too long 은 일단 제외)
+
+2. `pip install ruff` (개발 환경)
+3. `ruff check ksys_app/` 실행 → 에러 개수 보고
+4. `ruff check --fix --unsafe-fixes ksys_app/` 로 auto-fix
+5. 남은 수동 수정 사항 보고
+6. commit: `chore(stage-7): introduce ruff lint config`
+
+추가:
+- Sprint 2 의 pipeline 분해에서 9개 파일에 중복된 imports 헤더가 있음 — ruff I 룰로 자동 정리됨</div>
+</div>
+
+<div class="stage s7">
+<h3><span class="tag tag-next">S7-2</span> vulture 로 dead code 한 번 더</h3>
+
+<div class="prompt">목표: `ai_engine/` 19개 파일 등 남은 dead code 검출.
+
+작업:
+1. `pip install vulture`
+2. `vulture ksys_app/ --min-confidence 80` 실행
+3. 보고된 죽은 코드 목록 검토 (false positive 많음 — Reflex 동적 var 등)
+4. 확실히 죽은 것만 골라서 삭제 (각각 git grep 으로 더블 체크)
+5. commit: `chore(stage-7): vulture dead code sweep (-N LoC)`</div>
+</div>
+
+<div class="stage s7">
+<h3><span class="tag tag-next">S7-3</span> mypy + pre-commit</h3>
+
+<div class="prompt">작업:
+1. `mypy.ini` 설정 — Reflex 타입 stub 부족하므로 처음엔 `ignore_missing_imports = True`
+2. `mypy ksys_app/` 실행, 에러 개수만 보고 (전부 고치지는 말 것 — incremental)
+3. `pre-commit` 설치 + `.pre-commit-config.yaml` 작성:
+   - ruff (check + format)
+   - mypy (errors-only, fail on new errors)
+   - trailing-whitespace
+4. `pre-commit install`
+5. CI 미설정이므로 로컬 hook 만, 추후 GitHub Actions 추가
+6. commit: `chore(stage-7): pre-commit hook with ruff + mypy`</div>
+</div>
+
+<hr>
+
+<h2>🔌 Stage 8 — Reflex + AI MCP 통합 (NEW)</h2>
+
+<div class="callout purple">
+<strong>출처:</strong> <code>reports/reflex_mcp_development_framework.html</code> 제안서.
+2개 Pillar — (1) Inbound: AI 어시스턴트가 Reflex MCP 서버를 참조해 환각 없는 코드 작성,
+(2) Outbound: Reflex 앱 자체가 MCP 클라이언트로 외부 도구 호출.
+<br><br>
+<strong>이 프로젝트 적용 우선순위:</strong> Pillar 1 (개발자 UX) 만 즉시 도입.
+Pillar 2 (운영 앱이 MCP 호출) 는 사용처가 명확해질 때까지 보류.
+</div>
+
+<div class="stage s8">
+<h3><span class="tag tag-new">S8-1</span> Reflex 공식 MCP 서버 연동 (Inbound)</h3>
+
+<div class="prompt">목표: 로컬 Claude Code (이 세션 운영자) 가 Reflex 0.8.16 컴포넌트/API 를 정확히 알고 코드 작성.
+
+작업:
+1. Claude Code 의 `~/.claude.json` 또는 프로젝트 `.claude/settings.json` 에 MCP 서버 추가:
+   `claude mcp add reflex-docs --transport http https://build.reflex.dev/mcp`
+   (URL 은 공식 제안서 기준 — 실제 동작 여부 확인 필요)
+
+2. 연동 확인:
+   `claude mcp list` 로 reflex-docs 가 보이는지
+   샘플 쿼리: "rx.box props 알려줘" → MCP 응답 받는지
+
+3. 프로젝트별 SKILL.md 또는 CLAUDE.md 업데이트:
+   ```
+   ## Reflex Coding Convention
+   - 이 프로젝트는 Reflex 0.8.16 사용
+   - 컴포넌트 API 모를 때 reflex-docs MCP 조회
+   - rx.page() 라우트 등록만 사용 (app.add_page 금지 — Stage 3 통일)
+   - State 클래스는 @rx.var / @rx.event 데코레이터 사용
+   ```
+
+4. 결과 검증: 새 컴포넌트 1개 (예: settings page placeholder) 만들 때 Claude 가 환각 없이 0.8.16 문법으로 작성하는지 확인
+
+5. commit: `chore(stage-8): add reflex-docs MCP for AI-assisted dev`
+
+⚠️ 주의:
+- 공식 MCP URL 이 실제 다른 곳일 수 있음 — 시도 실패하면 reflex.dev 문서 재확인
+- 사내망 / cloudflared 환경에서 HTTPS MCP 접근 가능한지 사전 확인</div>
+
+<div class="ac-block">
+<strong>Acceptance:</strong> `claude mcp list` 에 reflex-docs 등록 + 샘플 쿼리 응답 받음
+</div>
+</div>
+
+<div class="stage s8">
+<h3><span class="tag tag-opt">S8-2</span> SKILL.md 사내 컴포넌트 규칙 정의 (선택)</h3>
+
+<div class="prompt">목표: ksys_app 내부 컨벤션 (BaseState, repositories, charts) 을 SKILL.md 로 문서화 → Claude Code 가 이 프로젝트 컨텍스트에 맞게 코드 생성.
+
+산출물:
+- `.claude/skills/ksys-conventions/SKILL.md`
+  - 라우트 등록 규칙 (@rx.page only)
+  - State 분리 패턴 (state.py vs queries.py vs view_helpers.py)
+  - 차트 컴포넌트 사용법 (views/charts/timeseries 등)
+  - RPI 제약 (메모리 / SD I/O / 좀비 LISTEN 금지)
+  - 좀비 방지 규칙 (Windows 호스트 reflex run 금지)
+
+전제: Stage 6 완료 후 (실제 패턴이 굳어진 다음)
+
+commit: `docs(stage-8): SKILL.md for ksys conventions`</div>
+</div>
+
+<div class="stage s8">
+<h3><span class="tag tag-opt">S8-3</span> Outbound MCP Client (보류 / 명세만)</h3>
+
+<div class="prompt">⚠️ 이 단계는 사용처가 명확해질 때까지 보류.
+
+만약 운영 사용자가 "자연어로 센서 조회" / "알람 분석을 GPT 에 물어보기" 같은 요청이 들어오면:
+
+1. ksys_app/state/mcp_client.py 신규
+2. Anthropic MCP Python SDK 또는 OpenAI Function Calling 사용
+3. State 의 async event handler 에서 MCP 호출 → 결과 var 업데이트 → UI 자동 갱신
+
+지금은 명세만 docs/02-design 에 남기고 구현 안 함.</div>
+</div>
+
+<hr>
+
+<h2>📐 Architecture — Stage 5-8 통합 후</h2>
+
+<div class="layer">
+<h4>Layer 1: Pages (라우트 진입점, @rx.page 데코레이터)</h4>
+<p>14개 페이지 — 모두 얇은 layout + state 바인딩. 비즈니스 로직 0.</p>
+</div>
+
+<div class="layer">
+<h4>Layer 2: States (Reflex State 클래스, 얇아진 본체)</h4>
+<p>self.* mutation + event chaining 만. 무거운 로직은 repositories / view_helpers 호출.</p>
+</div>
+
+<div class="layer">
+<h4>Layer 3: Repositories (DB 접근 async function)</h4>
+<p>sensor_repo, forecast_repo, alarm_repo — asyncpg connection 인자, return type 명시.</p>
+</div>
+
+<div class="layer">
+<h4>Layer 4: Views (재사용 가능 UI 컴포넌트)</h4>
+<p>views/charts/, views/cards/, views/forms/. 데이터 인자로만 받음.</p>
+</div>
+
+<div class="layer">
+<h4>Layer 5: Utils & Cache</h4>
+<p>AutoARIMA disk cache, helper math, datetime utils.</p>
+</div>
+
+<div class="layer">
+<h4>Layer 6: MCP Integration (Stage 8)</h4>
+<p>Inbound: Reflex docs MCP — 개발자 UX. Outbound: 선택적, 보류.</p>
+</div>
+
+<hr>
+
+<h2>📋 Acceptance Criteria (전체)</h2>
+
+<table>
+<tr><th>AC</th><th>목표</th><th>측정 방법</th><th>달성 기준</th></tr>
+<tr><td>AC1</td><td>Docker build PASS</td><td>Verify-0</td><td>14 라우트 200</td></tr>
+<tr><td>AC2</td><td>1,000+ LoC = 0</td><td>`wc -l ksys_app/states/*/state.py`</td><td>3 → 0</td></tr>
+<tr><td>AC3</td><td>RPI idle 메모리</td><td>docker stats</td><td>baseline × 0.7 이하</td></tr>
+<tr><td>AC4</td><td>forecast 응답</td><td>curl wall clock</td><td>≤ 5초</td></tr>
+<tr><td>AC5</td><td>RPI 부팅</td><td>docker logs timestamp</td><td>baseline × 0.5 이하</td></tr>
+<tr><td>AC6</td><td>ruff check exit 0</td><td>`ruff check ksys_app/`</td><td>0 errors</td></tr>
+<tr><td>AC7</td><td>repositories/ 패턴 적용</td><td>코드 리뷰</td><td>state.py 안 inline SQL = 0</td></tr>
+<tr><td>AC8</td><td>views/charts 공통 컴포넌트</td><td>코드 리뷰</td><td>중복 차트 0</td></tr>
+<tr><td>AC9</td><td>Reflex MCP 등록</td><td>`claude mcp list`</td><td>reflex-docs 보임</td></tr>
+<tr><td>AC10</td><td>좀비 LISTEN = 0</td><td>netstat after stop</td><td>유지 (Stage 1 fix 유지)</td></tr>
+</table>
+
+<hr>
+
+<h2>⚠️ Risks</h2>
+
+<table>
+<tr><th>#</th><th>Risk</th><th>영향</th><th>완화</th></tr>
+<tr><td>R1</td><td>Docker build 실패 (14 commits 누적)</td><td>전체 plan 중단</td><td>Verify-0 최우선, 실패 시 atomic revert</td></tr>
+<tr><td>R2</td><td>Reflex State helper extraction 시 var chain 깨짐</td><td>UI 렌더 망가짐</td><td>DEEP-1 (가장 작은) PoC 부터, atomic commit</td></tr>
+<tr><td>R3</td><td>RPI 실서버 접근 불가</td><td>Stage 5 측정 불가</td><td>baseline 측정만 우선, 튜닝은 측정 후 결정</td></tr>
+<tr><td>R4</td><td>statsforecast AutoARIMA cache invalidation 버그</td><td>오래된 forecast 표시</td><td>마지막 학습 시점 + 데이터 길이 기록, 일정 비율 신규 데이터 시 재학습</td></tr>
+<tr><td>R5</td><td>BaseState 도입 시 Reflex 다중 상속 제약</td><td>Stage 6 한 항목 무산</td><td>PoC 1개로 검증, 실패 시 skip</td></tr>
+<tr><td>R6</td><td>Reflex MCP 공식 URL 다름 / 사내망 접근 불가</td><td>Stage 8 무산</td><td>Inbound MCP 도입 실패해도 SKILL.md 만으로 부분 대안 가능</td></tr>
+<tr><td>R7</td><td>Windows 호스트에서 실수로 reflex run → 좀비 LISTEN</td><td>14000 포트 점유 + 재부팅 필요</td><td>memory: feedback_no_host_reflex_zombie 준수 — Docker 만</td></tr>
+</table>
+
+<hr>
+
+<h2>❓ Open Questions</h2>
+
+<ol>
+<li><strong>Reflex 0.8.16 MCP 서버 URL 정확?</strong> — <code>https://build.reflex.dev/mcp</code> 가 실제로 동작하는가? Stage 8 S8-1 에서 확인.</li>
+<li><strong>Reflex native lazy page import 지원?</strong> — Stage 5 S5-3 에서 PoC 필요. 안 되면 skip.</li>
+<li><strong>ai_engine/ 19개 파일 dead 검증</strong> — Stage 7 S7-2 vulture sweep 에서 결정.</li>
+<li><strong><code>pipeline_v2_hybrid</code> 이름 정리 (이전 Plan OQ4-1)</strong> — <code>ml/pipeline/</code>로 rename? Stage 6 와 함께 결정.</li>
+<li><strong>RPI 실서버 git 원격 설정?</strong> — Stage 5 동기화 방식 (git push/pull vs scp). 사용자 결정 필요.</li>
+<li><strong>TimescaleDB chunk 변경 시 운영 데이터 유실 위험?</strong> — chunk_time_interval 만 변경하면 기존 chunk 영향 X, 그러나 확인 필요.</li>
+<li><strong>BaseState 통합 시 backward compat?</strong> — 기존 State import 경로 유지 필수.</li>
+<li><strong>Stage 8 Outbound MCP 의 실 use case</strong> — 자연어 sensor 조회가 운영 가치 있는가? 보류 결정 vs 적극 개발.</li>
+</ol>
+
+<hr>
+
+<h2>📁 Deliverables 폴더 구조</h2>
+
+<pre><code>docs/
+├── 01-plan/features/
+│   ├── rpi-refactor-stage2-7.plan.md          (이전 — Stage 1-4 partial 다룸)
+│   └── rpi-stage5-7-mcp-integration.plan.html (이 문서)
+├── 02-design/features/
+│   ├── rpi-refactor-stage2-7.design.md        (이전)
+│   └── rpi-stage5-7-mcp-integration.design.html (예정 — DEEP-1 시작 전 작성)
+└── 04-report/features/
+    ├── rpi-refactor-stage2-7.report.md        (이전 + reports/rpi_refactor_session_report_2026-05-19.html)
+    └── rpi-stage5-7-mcp-integration.report.html (예정 — Stage 7 완료 후)
+
+reports/
+├── rpi_refactor_session_report_2026-05-19.html (참조 input)
+├── reflex_mcp_development_framework.html       (참조 input)
+├── verify_2026-05-20.html                      (예정 — Verify-0)
+├── rpi_baseline_2026-05-22.html                (예정 — Stage 5-1)
+├── rpi_stage5_2026-05-25.html                  (예정 — Stage 5 완료 후)
+└── stage7_quality_2026-06-08.html              (예정 — Stage 7 완료 후)</code></pre>
+
+<hr>
+
+<h2>🧭 다음 세션 — Claude Code 시작 명령</h2>
+
+<div class="callout purple">
+새 세션 열면 첫 메시지에 이걸 던지면 됨:
+</div>
+
+<div class="prompt">이 plan 문서를 먼저 읽어:
+`docs/01-plan/features/rpi-stage5-7-mcp-integration.plan.html`
+
+그리고 이전 세션 리포트:
+`reports/rpi_refactor_session_report_2026-05-19.html`
+
+읽고 나면 우선순위 0번 (Verify-0 Docker build 검증) 부터 시작.
+plan 문서의 ▶ Claude Code Prompt 박스 안 지시문을 그대로 따라가.
+
+규칙:
+- 호스트 Python 으로 reflex run 절대 금지 (Docker 만)
+- Stage 별 atomic commit
+- 각 Acceptance 통과 못 하면 다음 Stage 진행 X
+- 실패 / 막히면 사용자에게 보고하고 멈춤 (자동 재시도 X)
+- 모든 결과 리포트는 HTML 로 (memory: feedback_pdca_html_output)
+- 브랜치: refactor/rpi-baseline-sync 유지</div>
+
+<hr>
+
+<h2>📚 References</h2>
+
+<ul>
+<li><strong>입력 리포트:</strong> <code>reports/rpi_refactor_session_report_2026-05-19.html</code> (Stage 1-4 partial 완료)</li>
+<li><strong>MCP 프레임워크:</strong> <code>reports/reflex_mcp_development_framework.html</code> (Stage 8 출처)</li>
+<li><strong>이전 Plan:</strong> <code>docs/01-plan/features/rpi-refactor-stage2-7.plan.md</code> (Stage 2-7 12.5일 roadmap)</li>
+<li><strong>이전 Design:</strong> <code>docs/02-design/features/rpi-refactor-stage2-7.design.md</code> (Stage 4 monolith split)</li>
+<li><strong>이전 Report:</strong> <code>docs/04-report/features/rpi-refactor-stage2-7.report.md</code> (261 lines)</li>
+<li><strong>RPI 실서버:</strong> <code>ssh tion@192.168.0.80</code> · 앱 경로 <code>/home/tion/deployment/20251030-rpi-finished/</code></li>
+<li><strong>풍도 로컬:</strong> <code>C:\sync\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo</code></li>
+<li><strong>운영 컨테이너:</strong> <code>rpi-finished-reflex-app</code> · <code>rpi-finished-pgai-db</code> · 포트 14000</li>
+<li><strong>현재 브랜치:</strong> <code>refactor/rpi-baseline-sync</code> (14 commits ahead of master)</li>
+<li><strong>Memory:</strong> <code>~/.claude/projects/&lt;this&gt;/memory/feedback_no_host_reflex_zombie.md</code> / <code>feedback_pdca_html_output.md</code></li>
+</ul>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 18px; border-top: 1px solid #30363d;">
+Generated 2026-05-19 by Claude Opus 4.7 · PDCA Plan (HTML) · Stage 5-7 + MCP integration roadmap · 다음 세션 prompt 작성 도구
+</p>
+
+</body>
+</html>

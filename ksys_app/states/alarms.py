@@ -10,6 +10,7 @@ from reflex.utils import console
 
 from ksys_app.db_orm import get_async_session
 from ksys_app.services.alarm_service import AlarmService
+from ksys_app.utils.decorators import event_with_error
 
 
 class AlarmsState(rx.State):
@@ -578,31 +579,30 @@ class AlarmsState(rx.State):
             async with self:
                 self.error_message = str(e)
 
+    # Day-7 PoC: @event_with_error replaces the generic try/except boilerplate
+    # that appears 101× across 24 state files. On exception, the decorator
+    # logs via console.error and sets self.error_message — same semantics as
+    # the original block, 8 fewer lines per method.
     @rx.event(background=True)
+    @event_with_error
     async def acknowledge_alarm(self, event_id: str):
         """Acknowledge an alarm"""
         console.info(f"Acknowledging alarm: {event_id}")
 
-        try:
-            async with get_async_session() as session:
-                service = AlarmService(session)
-                success = await service.acknowledge_alarm(event_id, "user")
+        async with get_async_session() as session:
+            service = AlarmService(session)
+            success = await service.acknowledge_alarm(event_id, "user")
 
-            if success:
-                # Update local state
-                async with self:
-                    for alarm in self.alarms:
-                        if alarm.get("event_id") == event_id:
-                            alarm["acknowledged"] = True
-                            alarm["acknowledged_by"] = "user"
-                            break
-                    yield  # Update UI
-
-                console.info(f"Successfully acknowledged alarm {event_id}")
-            else:
-                console.error(f"Failed to acknowledge alarm {event_id}")
-
-        except Exception as e:
-            console.error(f"Acknowledge alarm failed: {e}")
+        if success:
+            # Update local state
             async with self:
-                self.error_message = str(e)
+                for alarm in self.alarms:
+                    if alarm.get("event_id") == event_id:
+                        alarm["acknowledged"] = True
+                        alarm["acknowledged_by"] = "user"
+                        break
+                yield  # Update UI
+
+            console.info(f"Successfully acknowledged alarm {event_id}")
+        else:
+            console.error(f"Failed to acknowledge alarm {event_id}")

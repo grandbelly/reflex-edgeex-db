@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Verify Deep-1 — training_state Stage 4-1 사실 검증</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+         background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+         line-height: 1.65; max-width: 1280px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 32px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+  h2 { font-size: 22px; color: #79c0ff; margin-top: 40px;
+       border-left: 4px solid #79c0ff; padding-left: 12px; }
+  h3 { font-size: 17px; color: #ffa657; margin-top: 24px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; border: 1px solid #30363d;
+        overflow-x: auto; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #79c0ff; }
+  tr:nth-child(odd) { background: #131923; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+              gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128, #161b22); border: 1px solid #30363d;
+         border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 28px; font-weight: 700; }
+  .kpi .l { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .kpi.good .v { color: #3fb950; }
+  .kpi.bad .v { color: #f85149; }
+  .kpi.warn .v { color: #d29922; }
+  .callout { border-left: 4px solid #d29922; background: #2a1f08; padding: 14px 18px;
+             margin: 16px 0; border-radius: 6px; }
+  .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; }
+  .good { color: #3fb950; font-weight: 600; }
+  .warn { color: #d29922; font-weight: 600; }
+  .bad { color: #f85149; font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px;
+         font-weight: 700; margin-right: 4px; }
+  .tag-pass { background: #0e2417; color: #3fb950; border: 1px solid #3fb950; }
+  .tag-fail { background: #2b1414; color: #f85149; border: 1px solid #f85149; }
+  .tag-warn { background: #2a1f08; color: #d29922; border: 1px solid #d29922; }
+</style>
+</head>
+<body>
+
+<h1>🔍 Verify Deep-1 — training_state Stage 4-1 사실 검증</h1>
+<p class="meta">대상: <code>reports/deep1_analysis_2026-05-20.html</code> (commit <code>b6c1944</code>) · 검증 일시 2026-05-20 · 도구: Read / Grep / awk · 코드 변경 없음 (read-only)</p>
+
+<div class="callout danger">
+<strong>한 줄 결론:</strong> deep-1 리포트의 LoC 수치 (1077, 337, 309, 7+5+8)는 정확. 그러나 <strong>3가지 중요한 사실 오류</strong> 발견:
+(1) <code>start_training</code>의 self.* mutation·yield 개수가 보고된 것의 1.5~1.8배,
+(2) "외부 import 7곳"은 직전 refactor의 다른 대상에 대한 숫자 — 실제로는 <strong>1곳</strong>(<code>TrainingWizardState</code> 상속),
+(3) <strong>상속 구조 누락</strong> — <code>TrainingWizardState(TrainingState)</code> 때문에 메서드를 모듈로 떼면 자식 클래스가 깨짐.
+결과적으로 <strong>"state.py ~600L" 목표는 B-A-B-A 경로로 도달 불가</strong> (실측 floor ≈ 830L).
+</div>
+
+<h2>📊 Executive Summary</h2>
+
+<table>
+<tr><th>관점</th><th>내용</th></tr>
+<tr><td><strong>Problem</strong></td><td>deep-1 리포트의 추천(B-A-B-A)을 그대로 prompt에 박은 상태였으나, 사용자가 검증 불가능성을 지적. 실제 코드로 fact-check 안 함.</td></tr>
+<tr><td><strong>Solution</strong></td><td>state.py 1077L 직접 읽기 + grep 으로 외부 의존성 매핑 + awk 으로 self.*/yield 실측. 12개 사실 검증.</td></tr>
+<tr><td><strong>Function UX Effect</strong></td><td>리포트가 맞은 부분(9건) 과 틀린 부분(3건) 을 분리. B-A-B-A 경로의 산수가 안 맞음을 수치로 입증. 다음 결정에 필요한 데이터 확보.</td></tr>
+<tr><td><strong>Core Value</strong></td><td>다음 단계 결정이 추측이 아니라 실측 기반. 사용자가 검증 가능. "시늉" 모드 종료.</td></tr>
+</table>
+
+<div class="kpi-grid">
+  <div class="kpi good">
+    <div class="v">9/12</div>
+    <div class="l">리포트 정확 항목</div>
+  </div>
+  <div class="kpi bad">
+    <div class="v">3/12</div>
+    <div class="l">리포트 오류 항목</div>
+  </div>
+  <div class="kpi bad">
+    <div class="v">~830L</div>
+    <div class="l">B 경로 후 state.py 실측 추정<br><span class="meta">(목표 600L 대비 +230)</span></div>
+  </div>
+  <div class="kpi warn">
+    <div class="v">1</div>
+    <div class="l">실제 외부 import<br><span class="meta">(보고된 7 → 실제 1)</span></div>
+  </div>
+</div>
+
+<h2>1. 사실 검증 매트릭스</h2>
+
+<table>
+<tr><th>#</th><th>리포트 주장</th><th>실측</th><th>검증</th><th>근거</th></tr>
+<tr>
+  <td>1</td><td>state.py 1,077 LoC</td><td>1,077</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td><code>wc -l ksys_app/states/training_state/state.py</code></td>
+</tr>
+<tr>
+  <td>2</td><td>@rx.event 7개</td><td>7 (lines 119, 155, 190, 252, 302, 363, 712)</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td><code>grep -n "@rx.event" state.py</code></td>
+</tr>
+<tr>
+  <td>3</td><td>@rx.var 5개</td><td>5 (lines 85, 105, 114, 238, 247)</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td>grep 결과 직접 확인</td>
+</tr>
+<tr>
+  <td>4</td><td>8 simple setters</td><td>7 in bottom block (lines 1034–1072) + 1~2 elsewhere</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td>대략 일치 (count 정의 차이 ±1)</td>
+</tr>
+<tr>
+  <td>5</td><td>start_training 337 LoC</td><td>338 (lines 363–700)</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td><code>awk 'NR>=363 && NR<=700' | wc -l</code></td>
+</tr>
+<tr>
+  <td>6</td><td>start_training ~30 self.* mutations</td>
+  <td><span class="bad">45 (실측)</span></td>
+  <td><span class="tag tag-fail">FAIL</span></td>
+  <td><code>grep -c -E "^\s+self\.[a-zA-Z_]+\s*="</code> · 보고치의 <strong>1.5×</strong></td>
+</tr>
+<tr>
+  <td>7</td><td>start_training ~12 yields</td>
+  <td><span class="bad">22 (실측)</span></td>
+  <td><span class="tag tag-fail">FAIL</span></td>
+  <td><code>grep -c "yield"</code> · 보고치의 <strong>1.83×</strong> — yield 흐름이 보고된 것보다 더 dense</td>
+</tr>
+<tr>
+  <td>8</td><td>save_model 309 LoC</td><td>311 (lines 712–1022)</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td>2L 오차 (closing line 포함 차이)</td>
+</tr>
+<tr>
+  <td>9</td><td>save_model SQLAlchemy ORM + pickle + bulk insert</td>
+  <td>13 ORM markers 확인 (session./model_entry/.commit/select)</td>
+  <td><span class="tag tag-pass">PASS</span></td>
+  <td>grep 카운트</td>
+</tr>
+<tr>
+  <td>10</td><td><strong>"외부 import 7곳"</strong></td>
+  <td><span class="bad">실제 1곳</span>: <code>ksys_app/states/training_wizard_state.py:8</code></td>
+  <td><span class="tag tag-fail">FAIL</span></td>
+  <td>나머지 6는 docs/reports/prompts 텍스트 매칭 또는 직전 refactor 단계 기록. <code>training_wizard_state_plotly_backup.py</code>는 백업.</td>
+</tr>
+<tr>
+  <td>11</td><td>4 새 모듈로 분리 시 state.py ~600L 도달</td>
+  <td><span class="bad">~830L 추정</span></td>
+  <td><span class="tag tag-fail">FAIL</span></td>
+  <td>실측 기반 계산 (아래 §3 참고)</td>
+</tr>
+<tr>
+  <td>12</td><td>(리포트 미언급) 상속 구조</td>
+  <td><span class="bad">TrainingWizardState(TrainingState)</span> 존재 — 메서드를 클래스 외부로 빼면 상속 깨짐</td>
+  <td><span class="tag tag-warn">MISSED</span></td>
+  <td><code>training_wizard_state.py:13</code>, <code>:227 (return TrainingState.start_training)</code></td>
+</tr>
+</table>
+
+<h2>2. 외부 의존성 실측</h2>
+
+<p class="meta"><code>TrainingState</code> 또는 <code>training_state</code> 패키지를 참조하는 <strong>실제 .py 파일</strong>:</p>
+
+<table>
+<tr><th>파일</th><th>line</th><th>참조</th><th>영향</th></tr>
+<tr>
+  <td><code>training_wizard_state.py</code></td><td>8</td>
+  <td><code>from .training_state import TrainingState</code></td>
+  <td>상속 base 클래스</td>
+</tr>
+<tr>
+  <td><code>training_wizard_state.py</code></td><td>13</td>
+  <td><code>class TrainingWizardState(TrainingState):</code></td>
+  <td><strong>모든 메서드/var/setter 상속</strong></td>
+</tr>
+<tr>
+  <td><code>training_wizard_state.py</code></td><td>227</td>
+  <td><code>return TrainingState.start_training</code></td>
+  <td>Reflex event chain — 메서드 reference로 호출</td>
+</tr>
+<tr>
+  <td><code>training_state/__init__.py</code></td><td>9</td>
+  <td><code>from .state import TrainingState</code></td>
+  <td>패키지 re-export</td>
+</tr>
+<tr>
+  <td><code>training_wizard_state_plotly_backup.py</code></td><td>-</td><td>(백업 파일)</td><td>운영 영향 없음</td>
+</tr>
+</table>
+
+<div class="callout danger">
+<strong>핵심 함의:</strong> <code>TrainingState</code>의 모든 메서드는 <code>TrainingWizardState</code>가 상속함.
+메서드 본문을 <code>queries.py</code> 같은 외부 모듈에 pure function으로 옮기면 — <strong>자식 클래스(<code>TrainingWizardState</code>)는 그 메서드를 잃음</strong>.
+따라서 추출 패턴은:
+<pre><code># queries.py
+async def list_configs_for_tag(tag_name: str) -> list[str]:
+    async with get_async_session() as session:
+        return [c['config_name'] for c in await FeatureConfigService(session).list_configs(tag_name=tag_name)]
+
+# state.py — 메서드 자체는 클래스에 남아야 상속됨
+@rx.event(background=True)
+async def filter_configs_for_tag(self):
+    try:
+        configs = await list_configs_for_tag(self.selected_tag)
+        async with self:
+            self.available_feature_configs = configs
+            yield
+    except Exception as e:
+        console.error(f"Filter configs failed: {e}")
+</code></pre>
+즉 <strong>wrapper 메서드는 state.py에 남고, body의 pure 부분만 이동</strong>. 메서드당 절약은 deep-1 리포트가 추정한 것보다 작음.
+</div>
+
+<h2>3. ~600L 목표 실측 계산</h2>
+
+<p class="meta">B 경로(LOW+MED + HIGH 부분 추출) 적용 후 state.py 잔여 LoC 추정:</p>
+
+<table>
+<tr><th>구간</th><th>현재 LoC</th><th>추출 후</th><th>비고</th></tr>
+<tr><td>1. 헤더 + state 변수 (lines 1–84)</td><td>84</td><td>84</td><td>변경 없음</td></tr>
+<tr><td>2. @rx.var × 5</td><td>~40</td><td>~40</td><td>state.py 잔류 (Reflex constraint)</td></tr>
+<tr><td>3. @rx.event × 5 (initialize/filter_configs/load_feature_config/set_new_config_name/create_feature_config)</td><td>171</td><td>~136</td><td>각 ~7L 절약 (wrapper 유지 필수)</td></tr>
+<tr><td>4. 기타 setter/toggle/sync 메서드 (15개)</td><td>~95</td><td>~80</td><td>대부분 이미 짧음 — 절약 여지 작음</td></tr>
+<tr><td>5. <code>start_training</code> (HIGH partial)</td><td>338</td><td>~238</td><td>pipeline_builder로 100L 이동 가정. 45 mutations + 22 yields는 잔류 필수.</td></tr>
+<tr><td>6. <code>save_model</code> (HIGH partial)</td><td>311</td><td>~261</td><td>view_helpers로 50L 이동 가정. ORM session 호출 잔류.</td></tr>
+<tr><td>7. 7 bottom setters (1034–1072)</td><td>43</td><td>43</td><td>변경 없음 — 이미 pure</td></tr>
+<tr><td><strong>합계</strong></td><td><strong>1,082</strong>*</td><td><strong>~832</strong></td><td>*overlap/주석/빈 줄 차이로 wc -l 1077과 ±5L 차</td></tr>
+</table>
+
+<div class="callout warn">
+<strong>B 경로 후 state.py 추정: ~830L.</strong> 목표 600L 대비 <span class="bad">+230L 초과</span>.
+원인: (a) Reflex constraint상 모든 <code>@rx.event</code>는 wrapper로 클래스에 남아야 함, (b) start_training의 yield 흐름 22회·mutation 45회는 모두 state.py 잔류 필수, (c) save_model의 ORM session 패턴 잔류 필수.
+즉 deep-1 리포트의 "AC-1 통과 가능"은 <strong>산수 오류</strong>.
+</div>
+
+<h2>4. 그러면 어떻게 할 것인가</h2>
+
+<p>세 가지 현실적 옵션:</p>
+
+<table>
+<tr><th>옵션</th><th>state.py 목표 LoC</th><th>방법</th><th>risk</th><th>가치</th></tr>
+<tr>
+  <td><strong>O1. 목표 하향 + B 그대로</strong></td>
+  <td>~830L</td>
+  <td>B-A-B-A 그대로 진행. AC-1을 ≤850L로 수정. 다른 AC(2/3/4)는 그대로.</td>
+  <td>낮음</td>
+  <td><span class="warn">중</span> — 변화는 있지만 dramatic하지 않음</td>
+</tr>
+<tr>
+  <td><strong>O2. 적극 추출 (C 경로 변형)</strong></td>
+  <td>~600L 가능</td>
+  <td>start_training을 작은 메서드 여러 개로 쪼개기 (예: <code>_step_load_data</code>, <code>_step_preprocess</code>, <code>_step_fit</code>, <code>_step_evaluate</code>) — 각각 state 메서드로 남기지만 길이 단축. progress_callback 패턴 + 메서드 분리 둘 다 적용.</td>
+  <td>높음</td>
+  <td><span class="good">상</span> — 진짜 600L 달성. 단 regression 위험 큼.</td>
+</tr>
+<tr>
+  <td><strong>O3. 추출 보류, scope 재정의</strong></td>
+  <td>(미적용)</td>
+  <td>Stage 4-1은 LOW+MED만 추출 (queries.py + validators.py). start_training/save_model은 Stage 4-2 별도 작업으로 분리. AC-1 목표는 ~900L (소폭 개선) 로 낮춤.</td>
+  <td>매우 낮음</td>
+  <td><span class="warn">중하</span> — 진척은 작지만 안전하게 baseline 구축</td>
+</tr>
+</table>
+
+<h3>추가로 검토할 점</h3>
+
+<ul>
+  <li><strong>TrainingWizardState 영향:</strong> 어느 옵션을 가도 wrapper 메서드는 state.py에 남아야 함. 자식 클래스가 override할 수 있는 표면이 줄어들지 않게 주의.</li>
+  <li><strong>save_model의 SQLAlchemy session:</strong> 10개의 self.* mutation + 13개의 ORM marker. session 객체를 외부 함수에 넘기면 transaction boundary가 흐려짐. 차라리 query helper만 외부로, ORM write는 state.py 잔류 권장.</li>
+  <li><strong>start_training의 yield 22회:</strong> 단순 progress_callback으로는 yield 시점 보존 어려움. 각 단계가 generator처럼 진행상황을 emit. callback 대신 sub-method 분해(O2)가 더 자연스러울 수 있음.</li>
+</ul>
+
+<h2>5. 사용자에게 다시 물어볼 것</h2>
+
+<ol>
+  <li><strong>AC-1 (≤600L) 목표를 유지해야 하나?</strong> 유지하려면 O2 (적극 추출). 완화 OK면 O1 또는 O3.</li>
+  <li><strong>start_training/save_model을 이번 Stage에서 건드릴 것인가, 다음 Stage로 미룰 것인가?</strong> O3 vs O1/O2 선택.</li>
+  <li><strong>TrainingWizardState 호환성</strong>을 어떻게 보장할 것인가? 자동 테스트가 없으므로 docker build + /training-wizard route 200 + 수동 클릭 외엔 검증 수단 없음. acceptable?</li>
+</ol>
+
+<h2>📌 Addendum — 어느 트리가 최신인가 (사용자 지적 후 재확인)</h2>
+
+<div class="callout danger">
+<strong>처음 분석 시 실수:</strong> <code>ksys_app/ksys_app_clean/</code>을 "이름이 clean이니까 dead일 거"라고 추정했음. git log 안 보고 결론. 사용자 지적("최신 파일인지 확인하라고 했자나") 후 재확인.
+</div>
+
+<h3>ksys_app_clean 디렉터리의 진실</h3>
+<table>
+<tr><th>시간순</th><th>이벤트</th></tr>
+<tr><td>① 직전 어느 시점</td><td>master에서 <code>refactor(stage-1): delete ksys_app_clean/ + 18 dead files</code> commit (7618aa2)으로 의도적 삭제</td></tr>
+<tr><td>② 2026-05-19 16:24</td>
+<td><code>sync: import RPI baseline (2025-11-29~12-05)</code> commit (e397d8f) — robocopy /E 로 RPI 서버에서 베이스라인 import. RPI에는 ksys_app_clean이 살아있었고 commit 메시지에 명시: <em>"ksys_app/ksys_app_clean/ (274 dup files, 268/274 MD5 identical)"</em></td></tr>
+<tr><td>③ 사이 어느 시점</td><td>누군가 ksys_app_clean의 .py 파일들을 .backup 확장자로 변환 (현재 .py 0개, .backup 7개만 남음)</td></tr>
+<tr><td>④ 현재</td><td>git-tracked 상태로 workspace에 존재. import 0건. stage-1 cleanup 원래 의도와 충돌.</td></tr>
+</table>
+
+<h3>실제 백업/dead 파일 정확한 분류</h3>
+<table>
+<tr><th>분류</th><th>예시</th><th>제거 방법</th></tr>
+<tr>
+  <td><strong>A. git tracked</strong></td>
+  <td><code>ksys_app/ksys_app_clean/</code> (디렉터리),<br><code>docker-compose.yml.backup-20251027171921</code></td>
+  <td><code>git rm -r</code> 필요</td>
+</tr>
+<tr>
+  <td><strong>B. untracked but visible in git status</strong></td>
+  <td>8개 파일: <code>ksys_app.py.backup_20250918_211659</code>, <code>communication_new_backup.py</code>, <code>training_wizard_plotly_backup.py</code>, <code>trend_enhanced.py.bak</code>, <code>trend_enhanced_v2.py.disabled</code>, <code>trend_improved.py.bak</code>, <code>dashboard_realtime_OLD.py</code>, <code>training_wizard_state_plotly_backup.py</code></td>
+  <td>그냥 <code>rm</code> 만 (git 액션 불필요)</td>
+</tr>
+<tr>
+  <td><strong>C. gitignore'd backup files</strong></td>
+  <td>~15개: <code>pipeline_v2_hybrid.py.backup</code>, <code>alarms.py.backup</code>, <code>training_wizard.py.backup</code> 등</td>
+  <td>그냥 <code>rm</code> 만. (.gitignore의 backup ruleset이 이미 무시 중)</td>
+</tr>
+</table>
+
+<h3>진짜 작업 대상 vs dead 트리 명확화</h3>
+<table>
+<tr><th>트리/파일</th><th>상태</th><th>판정</th></tr>
+<tr><td><code>ksys_app/states/training_state/state.py</code> (1077L, May 19 수정)</td><td>유일 버전. TrainingWizardState가 상속. 다른 트리에 동명 파일 없음.</td><td><span class="good">LIVE — 진짜 Stage 4-1 대상</span></td></tr>
+<tr><td><code>ksys_app/ml/pipeline_v2_hybrid/</code> (디렉터리, 11-module 패키지)</td><td>직전 sprint-2에서 monolith를 분리한 결과. 활발히 사용 중.</td><td><span class="good">LIVE</span></td></tr>
+<tr><td><code>ksys_app/ksys_app_clean/</code> (7 .backup 파일만)</td><td>RPI sync 부작용으로 다시 들어옴. stage-1에서 이미 한 번 삭제됐던 트리.</td><td><span class="bad">DEAD</span></td></tr>
+<tr><td><code>ksys_app/ml/pipeline_v2_hybrid.py.backup</code></td><td>monolith 분리 전 원본 백업</td><td><span class="bad">DEAD</span></td></tr>
+</table>
+
+<p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">
+verify-deep1 executed 2026-05-20 + addendum 2026-05-21 · read-only · 0 code modifications · <strong>FACT-CHECK COMPLETE — quality-focused cleanup plan ready</strong>
+</p>
+
+</body>
+</html>

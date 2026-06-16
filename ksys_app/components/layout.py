@@ -27,7 +27,7 @@ AI_MENU = [
     {"type": "header", "name": "AI 예측 모델"},
     {"icon": "graduation-cap", "name": "모델 훈련", "path": "/training-wizard", "desc": "AI 모델 학습"},
     {"icon": "chart-no-axes-column", "name": "성능 비교", "path": "/model-performance", "desc": "모델 성능 분석"},
-    {"icon": "play", "name": "예측 플레이어", "path": "/forecast-player-fixed", "desc": "실시간 예측 모니터링"},
+    {"icon": "play", "name": "예측 플레이어", "path": "/forecast", "desc": "실시간 예측 모니터링"},
     {"type": "divider"},
     {"type": "header", "name": "설정", "hidden": True},  # 설정 헤더도 숨김
     {"icon": "eye", "name": "태그 뷰어", "path": "/viewer-tag", "desc": "화면별 태그 제어", "hidden": True},  # URL 직접 접근은 가능

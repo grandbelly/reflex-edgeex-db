@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기능 검증 리포트 — KSys 전체 화면 + DB 정상화 (2026-06-04)</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#c9d1d9;--muted:#8b949e;
+        --ok:#3fb950;--warn:#d29922;--bad:#f85149;--accent:#58a6ff}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:-apple-system,"Segoe UI","Malgun Gothic",sans-serif;line-height:1.6;margin:0;padding:0 0 80px}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px}
+  h1{font-size:25px;border-bottom:2px solid var(--accent);padding-bottom:12px}
+  h2{font-size:19px;margin-top:36px;border-left:4px solid var(--accent);padding-left:12px}
+  .meta{color:var(--muted);font-size:13px}
+  code{background:#1f2630;padding:2px 6px;border-radius:4px;font-size:13px;color:#79c0ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#1f2630}
+  .b{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .ok{background:#12361f;color:var(--ok)} .warn{background:#3a2d0a;color:var(--warn)} .bad{background:#3d1414;color:var(--bad)}
+  .callout{border-radius:8px;padding:12px 16px;margin:14px 0}
+  .callout.good{background:#0d1f12;border:1px solid #238636}
+  .callout.bad{background:#2b1414;border:1px solid #9e2a1a}
+  .callout.warn{background:#2b2410;border:1px solid #9e7a1a}
+  .kpi-grid{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:110px;text-align:center}
+  .kpi .v{font-size:24px;font-weight:700} .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+  .kpi.ok .v{color:var(--ok)} .kpi.warn .v{color:var(--warn)} .kpi.bad .v{color:var(--bad)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🧪 기능 검증 리포트 — KSys 전체 화면 + DB 정상화</h1>
+<p class="meta">생성 2026-06-04 · 방법: 코드 기준 DB 정상화 → 100태그 데이터 → Playwright 전 화면 실제 동작 검증 (localhost:14000, prod 컨테이너) · 원칙: <strong>최적화 이전에 기능 정상동작 확인</strong></p>
+
+<div class="callout good">
+<strong>핵심 성과:</strong> 기능검증이 <strong>완전히 마비된 대시보드</strong>를 즉시 잡아냈습니다 — <code>influx_qc_rule.unit</code> 컬럼 누락(풀백업 부분복원)으로 센서 쿼리가 트랜잭션 연쇄실패 → "0 센서". 코드 최적화부터 했으면 <strong>안 돌아가는 화면을 빠르게 만들 뻔</strong>. 스키마 정상화 후 100센서 라이브 동작.
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi ok"><div class="v">6</div><div class="l">정상 화면</div></div>
+  <div class="kpi warn"><div class="v">3</div><div class="l">부분/빈상태</div></div>
+  <div class="kpi ok"><div class="v">4</div><div class="l">DB 정상화 완료</div></div>
+  <div class="kpi bad"><div class="v">3</div><div class="l">알려진 이슈</div></div>
+</div>
+
+<h2>① DB 정상화 (Layer 0) — 코드 기준</h2>
+<table>
+<tr><th>정상화</th><th>근본원인</th><th>조치</th><th>검증</th></tr>
+<tr><td>continuous aggregate 6.5h 지연</td><td>풀백업 복원이 cagg watermark desync</td><td><code>refresh_continuous_aggregate(force=>true)</code></td><td><span class="b ok">✓</span> agg_1m/10m/1h 현재화</td></tr>
+<tr><td>viewer_tag 누락</td><td>010 마이그레이션 미적용(구버전 복원)</td><td><code>010_viewer_tag.sql</code> 적용</td><td><span class="b ok">✓</span> 테이블+화면뷰 4개</td></tr>
+<tr><td>influx_tag/qc_rule/viewer_tag 0행</td><td>태그 미등록</td><td>생성기 100태그 등록 (commit bac78e6)</td><td><span class="b ok">✓</span> 각 100행</td></tr>
+<tr><td><code>qc_rule.unit</code>/<code>influx_tag.meta</code> 누락</td><td>스키마 드리프트(부분복원)</td><td><code>011_normalize_qc_rule_unit.sql</code> (commit 25ea246)</td><td><span class="b ok">✓</span> 대시보드 복구</td></tr>
+</table>
+
+<h2>② 100태그 데이터 생성기 확장</h2>
+<p><code>inject_virtual_data.py</code>: 5→100 태그 (5 실제 + 95 합성 10카테고리). 태그 등록(influx_tag/qc_rule/viewer_tag) + 라이브 주입(범위 약간 초과로 warning/critical 발생) + COPY 백필. <strong>쓰기 성능: 144k행/1.7초(~85k행/s)</strong>. qc_rule 임계값 자동도출 → <strong>알람 status 실제 발생(critical 18/warning 16)</strong>.</p>
+
+<h2>③ 전 화면 기능 검증 (Playwright)</h2>
+<table>
+<tr><th>화면</th><th>판정</th><th>증거</th></tr>
+<tr><td><code>/</code> 대시보드</td><td><span class="b ok">정상 (복구)</span></td><td>🔴 q.unit 누락으로 0센서였음 → 수정 후 <strong>100센서 / Normal 75·Warning 15·Critical 10 라이브</strong>, 카드 100개</td></tr>
+<tr><td><code>/alarms</code></td><td><span class="b ok">정상</span></td><td>100 테이블행, TOTAL 100/NORMAL 71/WARNING 16/CRITICAL 13, Active/History 탭</td></tr>
+<tr><td><code>/forecast</code> 예측플레이어</td><td><span class="b ok">정상</span></td><td>MAPE 27.29% / 예측정확도 72.7% (prediction_performance 4764행)</td></tr>
+<tr><td><code>/comm</code> 통신상태</td><td><span class="b ok">정상</span></td><td>통신성공률 9.48%, 레코드 290/예상3060, 기간선택 동작</td></tr>
+<tr><td><code>/viewer-tag</code></td><td><span class="b ok">정상 (복구)</span></td><td>🔴 viewer_tag 테이블 없어 깨졌던 화면 → 010 적용 후 <strong>100태그×4토글=400</strong> 정상</td></tr>
+<tr><td><code>/ai</code></td><td><span class="b warn">렌더O/기능△</span></td><td>챗 UI 렌더(get_rag_response 인자버그 기수정 9b662c4). 단 <code>ai_knowledge_base</code> 테이블 누락 → RAG 실응답 불가</td></tr>
+<tr><td><code>/trend</code></td><td><span class="b warn">부분</span></td><td>UI/컨트롤 정상, 단 차트 "No data" — 백필 히스토리가 cagg에 미반영(아래 이슈1)</td></tr>
+<tr><td><code>/model-performance</code></td><td><span class="b warn">빈상태</span></td><td>UI 셸 정상(Prophet/ARIMA/XGBoost 비교), 단 "결과 없습니다" — model_registry 1개·훈련평가 없음</td></tr>
+<tr><td><code>/training-wizard</code></td><td><span class="b warn">셸</span></td><td>6단계 위저드 렌더, Step1 센서목록 상호작용 필요(미확인)</td></tr>
+</table>
+<p class="meta">미검증: /alarms_rt·/alarms_hist·/scada-alarms·/scada-alarm-comparison (알람 변형, /alarms와 동류 추정)</p>
+
+<h2>④ 알려진 이슈 (후속)</h2>
+<div class="callout bad">
+<strong>이슈1 — COPY 백필이 continuous aggregate에 materialize 안 됨.</strong> COND_003 원본 1460행(백필+라이브) 중 agg_1m엔 라이브 8버킷만, 백필 1440점 누락. 압축청크 아님(0 compressed). <code>refresh_continuous_aggregate(force=>true)</code>도 COPY 데이터 미반영 — TimescaleDB COPY+cagg invalidation 엣지케이스. <strong>→ 트렌드 히스토리 막힘.</strong> 대안: 백필을 정상 INSERT 경로로 or cagg 재생성.
+</div>
+<div class="callout warn">
+<strong>이슈2 — <code>ai_knowledge_base</code> 테이블 누락.</strong> 코드는 SELECT/INSERT만, DDL 없음. 단 풀백업 덤프(ecoanp_full_backup_20251019.dump)에 정의 존재 → 추출/복원 가능. /ai RAG 실응답에 필요.
+</div>
+<div class="callout warn">
+<strong>이슈3 — <code>influx_latest</code> VIEW @100태그 통계쿼리 204ms</strong> (5태그 6ms, 초선형). 매 10초 호출. 010이 influx_latest를 influx_hist DISTINCT ON 스캔 뷰로 재정의 → 스케일서 비용. <strong>Layer 3 최적화 타깃</strong> (기능검증 후). 참고: influx_latest_old 하이퍼테이블 존재 = 과거 materialized latest 가능성.
+</div>
+
+<h2>⑤ 종합 판정</h2>
+<div class="callout good">
+<strong>전체 앱 기능: 핵심 도메인(대시보드·알람·예측·통신·태그뷰) 정상 동작 확인.</strong> ML(model-performance/training)은 셸 정상이나 훈련 데이터 부재로 빈상태. 트렌드는 cagg 백필 이슈로 히스토리 막힘. AI는 RAG 백엔드(ai_knowledge_base) 미완. <strong>대시보드 마비라는 치명결함을 기능검증으로 발견·복구한 것이 최대 성과</strong> — 최적화는 이 기반 위에서.
+</div>
+
+<p class="meta" style="text-align:center;margin-top:40px;padding-top:16px;border-top:1px solid var(--border)">
+기능검증 2026-06-04 · DB 정상화 4 + 화면 9 검증 · commits bac78e6·25ea246 · 다음: 이슈1-3 해결 + ML 데이터 + 잔여 알람화면
+</p>
+
+</div>
+</body>
+</html>

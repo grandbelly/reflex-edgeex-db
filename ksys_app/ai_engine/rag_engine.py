@@ -638,6 +638,15 @@ async def initialize_rag_engine():
     await rag_engine.initialize()
 
 
-async def get_rag_response(query: str) -> str:
-    """RAG 기반 응답 생성"""
+async def get_rag_response(query: str, context: str | None = None) -> str:
+    """RAG 기반 응답 생성.
+
+    Args:
+        query: 사용자 질문
+        context: ai_state._prepare_context() 가 만든 보조 컨텍스트(센서/시스템 요약) 문자열.
+                 선택적. RAGEngine.generate_response 가 build_context() 로 자체 컨텍스트
+                 (sensor_tags/current_data/qc_rules/relevant_knowledge)를 구성하므로 필수는
+                 query 뿐. 호출부(ai_state.py:133)와의 시그니처 호환을 위해 받는다.
+                 NOTE: context 를 LLM 프롬프트에 직접 주입하는 것은 AI 품질개선 후속 작업.
+    """
     return await rag_engine.generate_response(query)

@@ -1,0 +1,74 @@
+# Secrets — must NEVER end up in Docker image
+.env
+.env.*
+!.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Tooling sandboxes (per-session, not project state)
+.claude/
+.bkit/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+
+# Reflex build artifacts
+.web/
+.states/
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Docs + reports (rebuild context, no need in image)
+reports/
+docs/
+*.md
+HANDOFF.md
+README.md
+CLAUDE.md
+
+# Logs + data exports (large, runtime)
+logs/
+*.log
+backup/
+certification_data/
+all_sensors*.csv
+*.dump
+*.dump.gz
+*.sql.gz
+
+# Backup/deprecated files (Day 1 PM cleanup target)
+*.backup
+*.backup-*
+*.backup_*
+*.bak
+*.disabled
+*_backup.py
+*_OLD.py
+ksys_app/ksys_app_clean/
+
+# Agentic pipeline runtime artifacts
+agentic-runs/
+graphify-out/
+
+# Prompts (session scratchpad, not runtime)
+prompts/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~

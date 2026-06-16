@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>풍도 풀스택 정상화 진행 상태 — 2026-05-19</title>
+<style>
+:root {
+  --bg: #0e1117; --panel: #161b22; --line: #30363d; --fg: #e6edf3;
+  --muted: #8b949e; --ok: #3fb950; --warn: #d29922; --err: #f85149;
+  --accent: #2f81f7; --kbd: #1f2328;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", "Apple SD Gothic Neo", sans-serif; margin: 0; padding: 24px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1 { margin: 0 0 4px 0; font-size: 26px; }
+.sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+h2 { margin: 36px 0 12px 0; font-size: 18px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+h3 { margin: 18px 0 8px 0; font-size: 15px; color: var(--muted); font-weight: 500; }
+.row { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+.card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.card .value { font-size: 22px; margin-top: 4px; font-weight: 600; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; line-height: 1.5; }
+.badge.ok { background: rgba(63,185,80,.15); color: var(--ok); border: 1px solid rgba(63,185,80,.4); }
+.badge.warn { background: rgba(210,153,34,.15); color: var(--warn); border: 1px solid rgba(210,153,34,.4); }
+.badge.err { background: rgba(248,81,73,.15); color: var(--err); border: 1px solid rgba(248,81,73,.4); }
+.badge.info { background: rgba(47,129,247,.15); color: var(--accent); border: 1px solid rgba(47,129,247,.4); }
+table { width: 100%; border-collapse: collapse; margin: 8px 0 18px 0; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; background: var(--panel); }
+tr:hover td { background: rgba(255,255,255,.02); }
+code, .kbd { background: var(--kbd); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+pre { background: var(--kbd); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; overflow-x: auto; font-size: 12px; line-height: 1.4; }
+ul, ol { margin: 8px 0 14px 22px; padding: 0; }
+li { margin-bottom: 4px; }
+.legend { display: inline-flex; gap: 12px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+.note { background: rgba(47,129,247,.08); border-left: 3px solid var(--accent); padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 14px 0; font-size: 13px; }
+.section-anchor { color: var(--accent); text-decoration: none; font-size: 12px; margin-left: 6px; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
+.kbd-row { font-family: "SF Mono", Consolas, monospace; font-size: 12px; }
+.dim { color: var(--muted); }
+.tab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.subtle { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>풍도 풀스택 정상화 — 진행 상태 리포트</h1>
+<div class="sub">생성: 2026-05-19 01:04 KST · 대상: <code>C:\Users\Ipeop\SynologyDrive_강민구대표\SynologyDrive\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo</code></div>
+
+<!-- ============== 1. KPI Cards ============== -->
+<h2>1. 풀스택 컴포넌트 현황</h2>
+<div class="row">
+  <div class="card"><div class="label">DB (TimescaleDB)</div><div class="value">Running <span class="badge ok">UP 4h+</span></div><div class="subtle">ksys-dev-db · :5432 · ecoanp DB</div></div>
+  <div class="card"><div class="label">Data Injector</div><div class="value">Running <span class="badge ok">5-min cycle</span></div><div class="subtle">ksys-local-data-injector · 5 sensors fresh values</div></div>
+  <div class="card"><div class="label">Forecast Scheduler</div><div class="value">Running <span class="badge ok">x:00/x:10</span></div><div class="subtle">ksys-local-forecast-scheduler · refactor live</div></div>
+  <div class="card"><div class="label">Reflex Backend</div><div class="value">Listen :14002 <span class="badge ok">UP</span></div><div class="subtle">host venv-ksys, uvicorn worker</div></div>
+  <div class="card"><div class="label">Reflex Frontend</div><div class="value">Listen :14000 <span class="badge ok">UP</span></div><div class="subtle">host vite/node 24</div></div>
+  <div class="card"><div class="label">Deployed Model</div><div class="value">1 row <span class="badge ok">AutoARIMA</span></div><div class="subtle">model_id=1 INLET_PRESSURE 12.5 KB pickle</div></div>
+</div>
+
+<div class="note">
+브라우저 진입 URL: <code>http://localhost:14000</code> — 호스트 좀비 포트 14001은 우회하여 backend는 14002에 묶여 있음. <code>API_URL=http://localhost:14002</code> 환경변수로 프런트엔드가 backend 위치를 알도록 강제.
+</div>
+
+<!-- ============== 2. Phase 0 Verified ============== -->
+<h2>2. 검증된 refactor 코드 경로 (Stage 4 직후)</h2>
+<table>
+<thead><tr><th>검증 항목</th><th>증거</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td>Bob H2/H3 — <code>_invoke_predict</code></td><td><code>model.predict(5) for AUTO_ARIMA took 9.8ms</code> · event loop unblocked</td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Bob H3 — pickle.loads timeout</td><td><code>Loaded model from PostgreSQL BYTEA (12560 bytes, 1342.1ms)</code></td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Charlie H4 — 10-min canonical</td><td><code>forecast_time = 2026-05-19 00:00</code> (정확히 10-min boundary)</td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Charlie H7 — per-model 격리</td><td>첫 시도 ON CONFLICT 에러 → cycle 안 죽고 outcome=error 깔끔 격리</td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Charlie H7 — 구조화 로그</td><td><code>model_result model_id=1 tag=INLET_PRESSURE duration_ms=1608 outcome=ok</code></td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Charlie H7 — gather 합산</td><td><code>ForecastScheduler completed at ... ok=1 timeout=0 error=0 skipped=0 / N=1</code></td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>Alice H5 — DB timeout 환경변수</td><td>scheduler 컨테이너 <code>DB_COMMAND_TIMEOUT=30</code> 적용</td><td><span class="badge ok">PASS</span></td></tr>
+<tr><td>predictions 테이블 행 적재</td><td>5 rows (60/120/360/720/1440 분 horizons)</td><td><span class="badge ok">PASS</span></td></tr>
+</tbody>
+</table>
+
+<!-- ============== 3. Just-fixed Errors ============== -->
+<h2>3. 이번 턴에서 수정한 broken paths</h2>
+<table>
+<thead><tr><th>#</th><th>증상</th><th>원인</th><th>수정</th><th>상태</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><code>Failed to parse pipeline_config: the JSON object must be str, bytes or bytearray, not dict</code></td><td>asyncpg jsonb가 이미 dict 반환하는데 <code>json.loads()</code>를 다시 호출하던 refactor 코드의 잠재 버그</td><td><code>forecast_scheduler.py:604-612</code>: bytes/str/dict 세 케이스 가드 추가</td><td><span class="badge ok">FIXED</span></td></tr>
+<tr><td>2</td><td><code>forecast_player_cache: there is no unique or exclusion constraint matching the ON CONFLICT specification</code></td><td>DB 스키마에 <code>(model_id, forecast_time)</code> unique index 누락</td><td><code>CREATE UNIQUE INDEX forecast_player_cache_model_forecast_idx</code></td><td><span class="badge ok">FIXED</span></td></tr>
+<tr><td>3</td><td>Host Reflex의 in-app scheduler가 <code>No module named 'statsforecast'</code>로 실패 + Docker scheduler와 중복 발화</td><td>SchedulerState가 페이지 on_load에서 강제 boot. Host venv에 statsforecast 없고 컨테이너 scheduler와 더블 실행.</td><td><code>scheduler_state.py</code>: <code>DISABLE_INAPP_SCHEDULER=true</code> 환경변수 게이트 + <code>run_reflex_host.ps1</code>에 세팅</td><td><span class="badge ok">FIXED</span></td></tr>
+<tr><td>4</td><td>predictions / influx_hist 테이블 ON CONFLICT 제약 누락 (앞 phase에서 수정)</td><td>dev DB 복원 시 hypertable unique index 미반영</td><td>2 CREATE UNIQUE INDEX 추가</td><td><span class="badge ok">FIXED</span></td></tr>
+</tbody>
+</table>
+
+<!-- ============== 4. Spaghetti Inventory ============== -->
+<h2>4. 스파게티 패턴 인벤토리</h2>
+
+<div class="legend"><span class="dot warn"></span>중복 / 버전 fork &nbsp;&nbsp;<span class="dot err"></span>거대 단일 파일 &nbsp;&nbsp;<span class="dot ok"></span>이미 정상</div>
+
+<h3>페이지 (37 파일)</h3>
+<table>
+<thead><tr><th>기능</th><th>활성 파일</th><th>중복/백업</th></tr></thead>
+<tbody>
+<tr><td>Alarms 실시간</td><td><code>alarms.py</code>, <code>alarms_rt_simple.py</code>, <code>alarms_rt_new.py</code></td><td><span class="badge warn">3 활성 + alarms.py.backup</span></td></tr>
+<tr><td>Alarms 이력</td><td><code>alarms_hist_simple.py</code>, <code>alarms_hist_new.py</code></td><td><span class="badge warn">2 활성 + .backup + alarms_hist.py</span></td></tr>
+<tr><td>Forecast Player</td><td><code>forecast_player_fixed.py</code></td><td><span class="badge warn">forecast_player.py 미사용</span></td></tr>
+<tr><td>Dashboard</td><td><code>dashboard.py</code></td><td><span class="badge warn">dashboard_v2.py (2 라우트 동시 노출)</span></td></tr>
+<tr><td>Training</td><td><code>training_wizard/</code>, <code>test_wizard.py</code></td><td><span class="badge warn">training_wizard.py + .backup + training_wizard_plotly_backup.py</span></td></tr>
+<tr><td>Trend</td><td><code>trend_enhanced_v2.py</code>, <code>trend_enhanced_hierarchical.py</code></td><td><span class="badge warn">.bak, .disabled, trend_improved.py.bak</span></td></tr>
+<tr><td>Communication</td><td><code>communication.py</code></td><td><span class="badge warn">communication_new_backup.py</span></td></tr>
+</tbody>
+</table>
+
+<h3>상태 / 서비스</h3>
+<div class="tab-grid">
+  <div>
+    <h3>States (32 파일)</h3>
+    <ul>
+      <li><code>alarm_rt_state.py</code> + <code>.backup</code></li>
+      <li><code>dashboard_realtime.py</code> + <code>_grouped</code> + <code>_OLD</code></li>
+      <li><code>trend_state.py</code> + <code>.backup</code> + <code>_enhanced</code></li>
+      <li><code>training_wizard_state.py</code> + <code>_enhanced</code> + <code>_plotly_backup</code></li>
+    </ul>
+  </div>
+  <div>
+    <h3>Services (17 파일)</h3>
+    <ul>
+      <li><code>feature_config_service.py</code> + <code>_final</code> + <code>_simple</code> + <code>_v2</code> <span class="badge warn">4 버전</span></li>
+      <li><code>forecast_service.py</code> + <code>simple_forecast_service</code> + <code>realtime_forecast_service</code></li>
+    </ul>
+  </div>
+</div>
+
+<h3>거대 단일 파일</h3>
+<table>
+<thead><tr><th>파일</th><th>줄 수</th><th>이슈</th></tr></thead>
+<tbody>
+<tr><td><code>ksys_app/ksys_app.py</code></td><td>1,130 lines</td><td><span class="badge err">사이드바 + 헤더 + 라우트 등록 + 임포트 다 묶임</span></td></tr>
+</tbody>
+</table>
+
+<!-- ============== 5. Live Routes ============== -->
+<h2>5. 활성 라우트 (Reflex가 실제 노출하는 페이지)</h2>
+<table>
+<thead><tr><th>경로</th><th>실제 파일</th><th>비고</th></tr></thead>
+<tbody>
+<tr><td><code>/</code></td><td><code>pages/dashboard.py</code></td><td>메인 — on_load에서 DashboardRealtimeState + SchedulerState(이제 gate됨)</td></tr>
+<tr><td><code>/trend</code></td><td><code>pages/trend_enhanced_v2.py</code></td><td>TrendState.load on_load</td></tr>
+<tr><td><code>/comm</code></td><td><code>pages/communication.py</code></td><td>CommunicationState.initialize</td></tr>
+<tr><td><code>/alarms</code></td><td><code>pages/alarms.py</code></td><td>실시간 알람</td></tr>
+<tr><td><code>/alarms_hist</code> + <code>/alarms_hist_new</code></td><td>2개 파일</td><td><span class="badge warn">동일 기능 다중 버전</span></td></tr>
+<tr><td><code>/alarms_rt_simple</code> + <code>/alarms_rt_new</code></td><td>2개 파일</td><td><span class="badge warn">동일 기능 다중 버전</span></td></tr>
+<tr><td><code>/scada-alarms</code>, <code>/scada-alarm-comparison</code></td><td><code>pages/scada_alarm_viewer.py</code> 외</td><td>SCADA 알람 시리즈</td></tr>
+<tr><td><code>/ai</code></td><td><code>pages/ai_insights.py</code></td><td>AI 인사이트</td></tr>
+<tr><td><code>/model-config</code></td><td><code>pages/model_config.py</code></td><td>모델 설정</td></tr>
+<tr><td><code>/model-performance</code></td><td><code>pages/model_performance.py</code></td><td>모델 성능</td></tr>
+<tr><td><code>/forecast-player</code></td><td><code>pages/forecast_player_fixed.py</code></td><td><span class="badge warn">_fixed 버전이 활성</span></td></tr>
+<tr><td><code>/training</code>, <code>/training-wizard</code>, <code>/test/wizard</code></td><td>training_wizard 디렉터리 + 단일 파일 혼재</td><td><span class="badge warn">3 라우트</span></td></tr>
+<tr><td><code>/viewer-tag</code></td><td><code>pages/viewer_tag.py</code></td><td>태그 뷰어</td></tr>
+<tr><td><code>/dashboard-v2</code>, <code>/dashboard-responsive</code></td><td><code>pages/dashboard_v2.py</code></td><td><span class="badge warn">레거시 — 같이 등록됨</span></td></tr>
+<tr><td><code>/design-system-demo</code></td><td><code>pages/design_system_demo.py</code></td><td>디자인 시스템 데모</td></tr>
+</tbody>
+</table>
+
+<!-- ============== 6. Next Steps ============== -->
+<h2>6. 다음 단계 — 사용자 선택지 (A안 진행 중)</h2>
+
+<div class="note">
+사용자 선택: <strong>(A) Broken 먼저 타제</strong>. 1~3번 broken은 위 표에서 모두 FIXED. 다음은 페이지별 walk-through.
+</div>
+
+<ol>
+  <li><strong>페이지 walk-through</strong>: 위 18개 활성 라우트를 순서대로 열어보며 broken 기능 / 콘솔 에러 / 로딩 실패 / WS 끊김 수집 → 페이지별 triage 표 작성</li>
+  <li><strong>broken 일괄 수정</strong>: walk-through에서 나온 list를 우선순위로 묶어서 수정 사이클</li>
+  <li><strong>스파게티 정리</strong>:
+    <ul>
+      <li>9개 backup/disabled 파일 제거</li>
+      <li>중복 페이지 통합 (<code>alarms_rt_simple</code> / <code>_new</code> / <code>alarms.py</code> 셋 중 진짜 사용되는 것만 남김)</li>
+      <li><code>feature_config_service</code> 4 버전 → 1</li>
+      <li><code>ksys_app.py</code> 1,130 lines를 <code>app.py</code> + <code>routes.py</code> + <code>layout.py</code>로 분리</li>
+    </ul>
+  </li>
+  <li><strong>UI 디자인 개선</strong>: design-system-demo 페이지가 이미 존재 — 거기서 정의된 컴포넌트로 dashboard / forecast-player / alarms 페이지 visual refresh</li>
+</ol>
+
+<hr>
+<div class="subtle">
+이 리포트는 <code>reports/fullstack_status_2026-05-19.html</code>에 저장됨. 다음 사이클 리포트는 같은 디렉터리에 날짜 suffix 붙여 누적.
+</div>
+
+</div>
+</body>
+</html>

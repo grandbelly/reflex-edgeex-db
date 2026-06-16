@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8">
+<title>spec_05_test_plan</title><style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+       background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
+       line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+h1 { font-size: 28px; border-bottom: 2px solid #30363d; padding-bottom: 12px; }
+h2 { font-size: 22px; color: #79c0ff; margin-top: 36px;
+     border-left: 4px solid #79c0ff; padding-left: 12px; }
+h3 { font-size: 17px; color: #ffa657; margin-top: 22px; }
+h4 { font-size: 15px; color: #d2a8ff; margin-top: 18px; }
+code { background: #161b22; color: #ff7b72; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+pre { background: #161b22; padding: 14px; border-radius: 6px; border: 1px solid #30363d;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+pre code { background: transparent; color: #e6edf3; padding: 0; }
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+th, td { border: 1px solid #30363d; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #161b22; color: #79c0ff; }
+tr:nth-child(odd) { background: #131923; }
+ul, ol { padding-left: 22px; }
+li { margin: 3px 0; }
+blockquote { border-left: 4px solid #d29922; background: #2a1f08; padding: 10px 16px;
+             margin: 14px 0; border-radius: 6px; color: #e6edf3; }
+a { color: #79c0ff; }
+strong { color: #f0f6fc; }
+hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
+</style></head>
+<body>
+<h1 id="ksys-iot-master-test-catalog">KSys IoT — Master Test Catalog</h1>
+<p><strong>Generated:</strong> 2026-05-28 | <strong>Author:</strong> QA Strategist (reverse-engineered) | <strong>Source:</strong> spec_01 + spec_02 + spec_03 + audit_consolidated_2026-05-21 + playwright_test_2026-05-28 + trust_audit_2026-05-28</p>
+<p><strong>Total test cases proposed: 124</strong></p>
+<h2 id="section-1-test-pyramid">Section 1 — Test Pyramid</h2>
+<p>This is a Reflex (Python SSR + React SPA) app on a Raspberry Pi edge deployment with 14 live routes, 2 dead routes, 201 <code>@rx.event</code> handlers (112 background), 6 schedulers, no authentication, Cloudflare tunnel public exposure. <strong>HTTP 200 from curl does NOT prove a page works</strong> — Reflex SPA serves shell HTML to all routes; client-side router resolves actual content (confirmed in playwright_test_2026-05-28).</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Name</th>
+<th>When</th>
+<th>Target Duration</th>
+<th>Cases</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tier-1</td>
+<td>Smoke</td>
+<td>Every PR</td>
+<td>&lt; 60s</td>
+<td>10</td>
+<td>Build not broken</td>
+</tr>
+<tr>
+<td>Tier-2</td>
+<td>Functional</td>
+<td>Nightly</td>
+<td>8-12 min</td>
+<td>52</td>
+<td>Main user flows</td>
+</tr>
+<tr>
+<td>Tier-3</td>
+<td>Regression</td>
+<td>Weekly/pre-deploy</td>
+<td>45-60 min</td>
+<td>50</td>
+<td>Full feature + data-flow</td>
+</tr>
+<tr>
+<td>Tier-4</td>
+<td>Performance</td>
+<td>Monthly (RPI)</td>
+<td>2-4 hrs</td>
+<td>12</td>
+<td>RPI baseline measurements</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-2-test-method-matrix">Section 2 — Test Method Matrix</h2>
+<table>
+<thead>
+<tr>
+<th>Test Type</th>
+<th>Tool</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UI smoke / page load</td>
+<td>Playwright <code>browser_navigate</code> + title check</td>
+<td>Must check title != "404 - Not Found"</td>
+</tr>
+<tr>
+<td>State event handler (read)</td>
+<td>Playwright button click + snapshot</td>
+<td>Exercises WS round-trip</td>
+</tr>
+<tr>
+<td>State event handler (DB write)</td>
+<td>Playwright action + psql verify</td>
+<td>Click in browser, psql confirm mutation</td>
+</tr>
+<tr>
+<td>Service / DB write isolation</td>
+<td>pytest + real test DB (not mocked)</td>
+<td>Mocks masked production failures historically</td>
+</tr>
+<tr>
+<td>Scheduler correctness</td>
+<td>docker logs grep + DB row count delta</td>
+<td>In-process schedulers; logs confirm execution</td>
+</tr>
+<tr>
+<td>SQL injection</td>
+<td>Playwright typed input with payload + assert no leak</td>
+<td>Audit H-02 found interpolation in dynamic_rag_engine.py</td>
+</tr>
+<tr>
+<td>Long-running stream / leak</td>
+<td>docker stats + pg_stat_activity over N min</td>
+<td>Verify no zombie tasks/connections</td>
+</tr>
+<tr>
+<td>Cross-RPI deploy</td>
+<td><code>bootstrap_rpi.sh</code> + <code>restore_db.sh</code> on clean machine</td>
+<td>Manual quarterly</td>
+</tr>
+<tr>
+<td>Reflex backend health</td>
+<td><code>curl /_ping</code></td>
+<td>Part of smoke</td>
+</tr>
+<tr>
+<td>DB pool health</td>
+<td><code>docker exec psql -c "SELECT 1"</code></td>
+<td>Part of smoke</td>
+</tr>
+<tr>
+<td>Continuous aggregate refresh</td>
+<td>psql count on <code>influx_agg_1m WHERE bucket &gt; NOW()-2h</code></td>
+<td>Part of scheduler checks</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-3-test-case-matrix-by-domain">Section 3 — Test Case Matrix by Domain</h2>
+<h3 id="domain-1-alarm-10-cases">Domain 1: Alarm (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-ALARM-01</td>
+<td><code>/alarms</code> loads — active view; stat cards show counts</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-02</td>
+<td>Switch to History tab; ISA-18.2 P1-P4 priority cards render</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-03</td>
+<td>Acknowledge single alarm; psql confirms <code>acknowledged=true</code></td>
+<td>P0</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-ALARM-04</td>
+<td>Bulk acknowledge N alarms; psql count increases by N</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-ALARM-05</td>
+<td>Time range filter 1h/6h/24h/7d returns different counts</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-06</td>
+<td>Search by tag name filters correctly</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-07</td>
+<td><code>/alarms_hist_new</code> severity checkbox filter (Critical off → no Critical rows)</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-08</td>
+<td>Acknowledge idempotency — second call no-ops</td>
+<td>P1</td>
+<td>pytest + DB</td>
+</tr>
+<tr>
+<td>TC-ALARM-09</td>
+<td><code>/alarms_rt</code> sensor cards grid renders</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-ALARM-10</td>
+<td>cleanup_old_alarms deletes old acknowledged; newer untouched</td>
+<td>P2</td>
+<td>pytest + DB</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-2-forecast-10-cases">Domain 2: Forecast (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-FCAST-01</td>
+<td><code>/forecast</code> loads; deployed model dropdown populated</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-FCAST-02</td>
+<td>Select model populates MAPE/NRMSE/accuracy metric cards</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-FCAST-03</td>
+<td>Chart renders past (blue) / future (orange) / T0 (red) zones</td>
+<td>P1</td>
+<td>Playwright screenshot</td>
+</tr>
+<tr>
+<td>TC-FCAST-04</td>
+<td>Y-axis "자동 스케일" toggle changes domain</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-FCAST-05</td>
+<td>ForecastScheduler runs every 10min; predictions table grows</td>
+<td>P0</td>
+<td>docker logs + psql</td>
+</tr>
+<tr>
+<td>TC-FCAST-06</td>
+<td>ActualValueUpdater backfills past actual_value</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-FCAST-07</td>
+<td>trigger_forecast_now manual button works</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-FCAST-08</td>
+<td>Deploy model sets <code>is_deployed=true</code></td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-FCAST-09</td>
+<td>Undeploy removes from <code>/forecast</code> dropdown</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-FCAST-10</td>
+<td>forecast_player_cache populated after scheduler cycle</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-3-training-10-cases">Domain 3: Training (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-TRAIN-01</td>
+<td><code>/training-wizard</code> Step 1 loads; progress bar shows 1 of 6</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TRAIN-02</td>
+<td>Forward navigation Step 1 → 2</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TRAIN-03</td>
+<td>Backward navigation preserves form state</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TRAIN-04</td>
+<td>Validation gate — cannot skip required step</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TRAIN-05</td>
+<td>Walk-forward feasibility check returns shortage error for too-short window</td>
+<td>P1</td>
+<td>pytest unit</td>
+</tr>
+<tr>
+<td>TC-TRAIN-06</td>
+<td>create_feature_config writes to DB</td>
+<td>P1</td>
+<td>pytest + DB</td>
+</tr>
+<tr>
+<td>TC-TRAIN-07</td>
+<td>start_training completes; Step 6 reachable</td>
+<td>P2</td>
+<td>Playwright (slow)</td>
+</tr>
+<tr>
+<td>TC-TRAIN-08</td>
+<td>save_model — model_registry row with <code>model_pickle IS NOT NULL</code></td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-TRAIN-09</td>
+<td>Step 6 charts (MAPE, R², fold) render</td>
+<td>P2</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TRAIN-10</td>
+<td>Container restart — wizard requires re-train (cache in-memory)</td>
+<td>P2</td>
+<td>Manual</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-4-sensor-viewer-tag-10-cases">Domain 4: Sensor / Viewer-Tag (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-SENSOR-01</td>
+<td><code>/viewer-tag</code> loads; tags table populates</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-SENSOR-02</td>
+<td>toggle_dashboard persists to <code>viewer_tag</code> table</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-03</td>
+<td>toggle propagates to <code>influx_latest</code> view filter</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-04</td>
+<td>add_tag inserts row; appears in table</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-05</td>
+<td>delete_tag removes from <code>viewer_tag</code></td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-06</td>
+<td>update_order persists display_order changes</td>
+<td>P2</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-07</td>
+<td>show_all_dashboard bulk update</td>
+<td>P2</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-08</td>
+<td>save_sensor_info updates <code>influx_qc_rule</code>; AlarmMonitor picks up next cycle</td>
+<td>P1</td>
+<td>Playwright + psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-09</td>
+<td>Virtual tag values appear in <code>influx_hist</code> over 2 min</td>
+<td>P2</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-SENSOR-10</td>
+<td><code>/comm</code> heatmap renders cells; area chart visible</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-5-dashboard-8-cases">Domain 5: Dashboard (8 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-DASH-01</td>
+<td><code>/</code> loads — sensor table with status badges</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-DASH-02</td>
+<td>start_streaming fires WS message within 5s</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-DASH-03</td>
+<td>Real-time update — at least 1 sensor value changes over 35s</td>
+<td>P1</td>
+<td>Playwright timed</td>
+</tr>
+<tr>
+<td>TC-DASH-04</td>
+<td>Status badge color coding (CRITICAL=red, WARNING=amber, NORMAL=green)</td>
+<td>P1</td>
+<td>Playwright screenshot</td>
+</tr>
+<tr>
+<td>TC-DASH-05</td>
+<td>No zombie tasks on navigation — <code>pg_stat_activity</code> stable</td>
+<td>P1</td>
+<td>psql monitor</td>
+</tr>
+<tr>
+<td>TC-DASH-06</td>
+<td>SCADA alarm viewer <code>실시간 시작</code> streams new rows within 10s</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-DASH-07</td>
+<td>SCADA alarm severity filter narrows results</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-DASH-08</td>
+<td>DB unavailable — error callout, no unhandled exception</td>
+<td>P2</td>
+<td>Manual</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-6-trend-10-cases">Domain 6: Trend (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-TREND-01</td>
+<td><code>/trend</code> loads; tag dropdown populated; title = "Trend Analysis"</td>
+<td>P0</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TREND-02</td>
+<td>Tag + 1h agg + 24h range → charts + table render</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TREND-03</td>
+<td>Chart type switch Area → Line</td>
+<td>P1</td>
+<td>Playwright screenshot</td>
+</tr>
+<tr>
+<td>TC-TREND-04</td>
+<td>CSV export — all data; valid CSV file</td>
+<td>P1</td>
+<td>Playwright (download)</td>
+</tr>
+<tr>
+<td>TC-TREND-05</td>
+<td>CSV export — current page; rows match page_size</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TREND-06</td>
+<td>Pagination next page works</td>
+<td>P1</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TREND-07</td>
+<td>Page size change recalculates pagination</td>
+<td>P2</td>
+<td>Playwright</td>
+</tr>
+<tr>
+<td>TC-TREND-08</td>
+<td>Missing data rows highlighted</td>
+<td>P2</td>
+<td>Playwright screenshot</td>
+</tr>
+<tr>
+<td>TC-TREND-09</td>
+<td>Auto-refresh — no leak after 5 cycles</td>
+<td>P2</td>
+<td>psql monitor</td>
+</tr>
+<tr>
+<td>TC-TREND-10</td>
+<td>Y-axis fixed vs auto toggle</td>
+<td>P2</td>
+<td>Playwright</td>
+</tr>
+</tbody>
+</table>
+<h3 id="domain-7-data-integration-10-cases">Domain 7: Data Integration (10 cases)</h3>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Description</th>
+<th>Priority</th>
+<th>Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC-INT-01</td>
+<td>ForecastScheduler heartbeat in docker logs after 12min</td>
+<td>P0</td>
+<td>docker logs</td>
+</tr>
+<tr>
+<td>TC-INT-02</td>
+<td>AlarmMonitor heartbeat in docker logs after 15s</td>
+<td>P0</td>
+<td>docker logs</td>
+</tr>
+<tr>
+<td>TC-INT-03</td>
+<td>SchedulerState starts schedulers on boot</td>
+<td>P0</td>
+<td>docker logs</td>
+</tr>
+<tr>
+<td>TC-INT-04</td>
+<td>pg_cron virtual tags computed every 1min</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-INT-05</td>
+<td>influx_agg_1m continuous aggregate refresh</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-INT-06</td>
+<td>predictions row count grows every 10min cycle</td>
+<td>P1</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-INT-07</td>
+<td>NOTIFY/LISTEN alarm delivery within 15s</td>
+<td>P1</td>
+<td>Playwright timed</td>
+</tr>
+<tr>
+<td>TC-INT-08</td>
+<td>PerformanceAggregator writes hourly metrics</td>
+<td>P2</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-INT-09</td>
+<td>VirtualTagScheduler registers tags in <code>influx_tag</code></td>
+<td>P2</td>
+<td>psql</td>
+</tr>
+<tr>
+<td>TC-INT-10</td>
+<td>data-injector container active; <code>influx_hist</code> grows over 30s</td>
+<td>P0</td>
+<td>docker ps + psql</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-4-smoke-test-suite-tier-1-every-commit">Section 4 — Smoke Test Suite (Tier-1, Every Commit)</h2>
+<p>Target: <strong>exactly 10 cases, &lt; 60 seconds total.</strong></p>
+<table>
+<thead>
+<tr>
+<th>TC-ID</th>
+<th>Test</th>
+<th>Tool</th>
+<th>Expected</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SMOKE-01</td>
+<td><code>curl /_ping</code></td>
+<td>curl</td>
+<td>HTTP 200 + "pong"</td>
+<td>1s</td>
+</tr>
+<tr>
+<td>SMOKE-02</td>
+<td>DB connection (<code>psql -c "SELECT 1"</code>)</td>
+<td>psql</td>
+<td>"1 row"</td>
+<td>2s</td>
+</tr>
+<tr>
+<td>SMOKE-03</td>
+<td><code>/</code> dashboard</td>
+<td>Playwright</td>
+<td>title = "Dashboard | KSYS"</td>
+<td>5s</td>
+</tr>
+<tr>
+<td>SMOKE-04</td>
+<td><code>/alarms</code></td>
+<td>Playwright</td>
+<td>title = "Alarms"</td>
+<td>4s</td>
+</tr>
+<tr>
+<td>SMOKE-05</td>
+<td><code>/forecast</code></td>
+<td>Playwright</td>
+<td>title contains "예측 플레이어"</td>
+<td>5s</td>
+</tr>
+<tr>
+<td>SMOKE-06</td>
+<td><code>/trend</code></td>
+<td>Playwright</td>
+<td>title = "Trend Analysis"</td>
+<td>4s</td>
+</tr>
+<tr>
+<td>SMOKE-07</td>
+<td><code>/training-wizard</code></td>
+<td>Playwright</td>
+<td>title NOT 404; step-1 visible</td>
+<td>5s</td>
+</tr>
+<tr>
+<td>SMOKE-08</td>
+<td><code>/ai</code> (intentional 404 sentinel)</td>
+<td>Playwright</td>
+<td>title = "404 - Not Found" (until registered)</td>
+<td>3s</td>
+</tr>
+<tr>
+<td>SMOKE-09</td>
+<td>reflex-app container Up</td>
+<td>docker ps</td>
+<td>"Up" status</td>
+<td>2s</td>
+</tr>
+<tr>
+<td>SMOKE-10</td>
+<td><code>influx_hist</code> data freshness</td>
+<td>psql</td>
+<td>count &gt; 0 over last 5min</td>
+<td>2s</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>Total</strong></td>
+<td></td>
+<td></td>
+<td><strong>~33s</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>SMOKE-08 sentinel</strong>: if <code>/ai</code> ever passes (not 404), someone registered the page → the Day 6 SQL injection fix must be re-verified before merge.</p>
+<p><strong>Run order</strong>: SMOKE-01/02/09 first (infrastructure). If any fail, abort remaining.</p>
+<h2 id="section-5-regression-test-suite-tier-3-before-rpi-deploy">Section 5 — Regression Test Suite (Tier-3, Before RPI Deploy)</h2>
+<p>Target: 50 cases covering all M1 features + critical data flows. (Full table in original QA strategist output — abbreviated here by domain.)</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Regression case count</th>
+<th>Critical handlers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alarm</td>
+<td>10 (REG-01..10)</td>
+<td>acknowledge_alarm, acknowledge_selected, fetch_history, export_excel, cleanup_old_alarms</td>
+</tr>
+<tr>
+<td>Forecast</td>
+<td>8 (REG-11..18)</td>
+<td>load_deployed_models, select_model, ForecastScheduler 10-min, deploy_model, undeploy_model, delete_model, ActualValueUpdater</td>
+</tr>
+<tr>
+<td>Training</td>
+<td>6 (REG-19..24)</td>
+<td>initialize_wizard, next_step, create_feature_config, start_training, save_model, validation_feasibility</td>
+</tr>
+<tr>
+<td>Sensor</td>
+<td>7 (REG-25..31)</td>
+<td>load_tags, toggle_dashboard, toggle_alarm, add_tag, delete_tag, save_sensor_info, show_all_dashboard</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>6 (REG-32..37)</td>
+<td>start_streaming, _fetch_data, ScadaAlarmState toggle_streaming, set_severity_filter, AlarmMonitor 10s, NOTIFY delivery</td>
+</tr>
+<tr>
+<td>Trend</td>
+<td>5 (REG-38..42)</td>
+<td>TrendState.load, load_series_data, export_csv_all, export_csv_page, set_aggregation_view</td>
+</tr>
+<tr>
+<td>Data Integration + Security + Infra</td>
+<td>8 (REG-43..50)</td>
+<td>ForecastScheduler E2E, pg_cron virtual tags, continuous agg refresh, SchedulerState boot, communication heatmap, SQL injection trend, CORS, smoke pass</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-6-cannot-automate-easily-manual-verification">Section 6 — Cannot Automate Easily (Manual Verification)</h2>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Why Manual</th>
+<th>Cadence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Visual layout accuracy</td>
+<td>Pixel diffs flaky across resolutions</td>
+<td>Per release</td>
+</tr>
+<tr>
+<td>Cloudflare tunnel public access</td>
+<td>Requires live CF account + external network</td>
+<td>Per deployment</td>
+</tr>
+<tr>
+<td>Multi-RPI consistency</td>
+<td>Need actual hardware</td>
+<td>Monthly</td>
+</tr>
+<tr>
+<td>User authentication coverage</td>
+<td>None exists; will test when added</td>
+<td>When added</td>
+</tr>
+<tr>
+<td>pickle.loads security</td>
+<td>Crafted malicious pickle dangerous to automate</td>
+<td>Security review</td>
+</tr>
+<tr>
+<td>AlarmScheduler (legacy psycopg2 thread)</td>
+<td>Hard to introspect from async test</td>
+<td>Logs monitoring monthly</td>
+</tr>
+<tr>
+<td>DailyTrainingScheduler</td>
+<td>Not wired into start_all()</td>
+<td>After activation</td>
+</tr>
+<tr>
+<td>SCADA NOTIFY reconnect on DB drop</td>
+<td>Destructive test</td>
+<td>Quarterly</td>
+</tr>
+<tr>
+<td>Training wizard CPU-bound blocking</td>
+<td>Requires load testing + asyncio profiler</td>
+<td>Manual with profiler</td>
+</tr>
+<tr>
+<td>KnowledgeFileWatcher hot reload</td>
+<td>Filesystem events + timing</td>
+<td>Manual when /ai active</td>
+</tr>
+</tbody>
+</table>
+<h2 id="section-7-test-data-prerequisites">Section 7 — Test Data Prerequisites</h2>
+<p>Seed script <code>scripts/seed_test_data.sql</code> (to be written) must populate:</p>
+<table>
+<thead>
+<tr>
+<th>Dataset</th>
+<th>Minimum</th>
+<th>Why</th>
+<th>Tables</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alarm_history</code> unacked</td>
+<td>5 rows with known event_ids</td>
+<td>Acknowledge tests</td>
+<td>alarm_history</td>
+</tr>
+<tr>
+<td><code>alarm_history</code> old acked (&gt;7d)</td>
+<td>5 rows</td>
+<td>cleanup_old_alarms</td>
+<td>alarm_history</td>
+</tr>
+<tr>
+<td><code>influx_hist</code> sensor data</td>
+<td>48h × 2 tags, 1-min intervals</td>
+<td>Chart/dashboard tests</td>
+<td>influx_hist</td>
+</tr>
+<tr>
+<td><code>influx_qc_rule</code> thresholds</td>
+<td>2 tags with min/max</td>
+<td>Badge logic, AlarmMonitor</td>
+<td>influx_qc_rule</td>
+</tr>
+<tr>
+<td><code>viewer_tag</code> entries</td>
+<td>3 tags with mixed flags</td>
+<td>Sensor tests</td>
+<td>viewer_tag</td>
+</tr>
+<tr>
+<td><code>model_registry</code> deployed</td>
+<td>1 row <code>is_deployed=true, model_pickle NOT NULL</code></td>
+<td>Forecast tests</td>
+<td>model_registry</td>
+</tr>
+<tr>
+<td><code>model_registry</code> saved (not deployed)</td>
+<td>2 rows</td>
+<td>Deploy/undeploy tests</td>
+<td>model_registry</td>
+</tr>
+<tr>
+<td><code>feature_config</code></td>
+<td>1 complete config</td>
+<td>Training tests</td>
+<td>feature_config</td>
+</tr>
+<tr>
+<td><code>influx_tag</code></td>
+<td>All referenced tags</td>
+<td>FK integrity</td>
+<td>influx_tag</td>
+</tr>
+<tr>
+<td><code>predictions</code></td>
+<td>10 rows (5 with actual, 5 without)</td>
+<td>ActualValueUpdater test</td>
+<td>predictions</td>
+</tr>
+</tbody>
+</table>
+<p>Script requirements:
+1. <code>ON CONFLICT DO NOTHING</code> for idempotency
+2. Target only <code>ecoanp</code> test DB — never production
+3. Prefix test data: <code>tag_name='TEST_SENSOR_01'</code>, <code>event_id='TEST-ALM-001'</code>
+4. Cleanup block: <code>DELETE FROM alarm_history WHERE event_id LIKE 'TEST-%'</code>
+5. Relative timestamps: <code>NOW() - INTERVAL '24 hours'</code></p>
+<h2 id="section-8-execution-priority-first-2-weeks">Section 8 — Execution Priority (First 2 Weeks)</h2>
+<h3 id="week-1-ship-tier-1-smoke-suite">Week 1: Ship Tier-1 Smoke Suite</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>Task</th>
+<th>Owner</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Write <code>scripts/seed_test_data.sql</code></td>
+<td>Backend dev</td>
+<td>Idempotent seed</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Implement SMOKE-01..10 as <code>scripts/smoke_test.sh</code></td>
+<td>QA/DevOps</td>
+<td>&lt;60s exit 0/1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Verify smoke runs clean</td>
+<td>QA</td>
+<td>10/10 green</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Wire smoke to pre-push hook (or CI)</td>
+<td>DevOps</td>
+<td><code>make smoke</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Document baseline failures</td>
+<td>QA</td>
+<td>Known-failure list</td>
+</tr>
+</tbody>
+</table>
+<h3 id="week-2-tier-2-functional-coverage-for-m1">Week 2: Tier-2 Functional Coverage for M1</h3>
+<table>
+<thead>
+<tr>
+<th>Day</th>
+<th>Task</th>
+<th>Owner</th>
+<th>Output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1-2</td>
+<td>Playwright Alarm domain (TC-ALARM-01..07)</td>
+<td>QA</td>
+<td><code>tests/e2e/test_alarms.py</code></td>
+</tr>
+<tr>
+<td>2-3</td>
+<td>Playwright Dashboard + Trend critical</td>
+<td>QA</td>
+<td><code>tests/e2e/test_dashboard_trend.py</code></td>
+</tr>
+<tr>
+<td>3-4</td>
+<td>pytest DB write handlers</td>
+<td>Backend dev</td>
+<td><code>tests/unit/test_db_writes.py</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Scheduler smoke (docker logs + psql)</td>
+<td>DevOps</td>
+<td>Added to <code>smoke_test.sh</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Full Tier-2 end-to-end</td>
+<td>QA</td>
+<td>Baseline; document failures</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tier-34-deferred">Tier-3/4 Deferred</h3>
+<ul>
+<li>Tier-3 (50 regression) before first RPI deployment</li>
+<li>Tier-4 (12 performance) monthly on actual RPI</li>
+</ul>
+<h2 id="appendix-a-known-issues-affecting-test-coverage">Appendix A — Known Issues Affecting Test Coverage</h2>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Source</th>
+<th>Test Implication</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/ai</code> dead, Day 6 fix dead-path</td>
+<td>playwright_test</td>
+<td>SMOKE-08 sentinel; REG-48 must cover AI input when registered</td>
+</tr>
+<tr>
+<td><code>/alarms_rt</code> filter bar hardcoded literals</td>
+<td>spec_01 Issue 2</td>
+<td>Document as P1 bug; cannot test filtering</td>
+</tr>
+<tr>
+<td>Pagination buttons dead on realtime alarm pages</td>
+<td>spec_01 Issue 3</td>
+<td>TC-ALARM-09 step 4</td>
+</tr>
+<tr>
+<td><code>toggle_auto_refresh</code> dup-def (FIXED Day 2)</td>
+<td>audit H-07</td>
+<td>Add introspection test to prevent regression</td>
+</tr>
+<tr>
+<td><code>overall_success_rate</code> &gt;100% bug</td>
+<td>spec_02 CommunicationState</td>
+<td>Unit test with synthetic &gt;100% data</td>
+</tr>
+<tr>
+<td><code>@rx.var</code> on pandas pivot not cached</td>
+<td>audit MEDIUM</td>
+<td>Render 20× rapid, check no degradation</td>
+</tr>
+<tr>
+<td>HTTP 200 != page works (Reflex SPA)</td>
+<td>playwright_test</td>
+<td>SMOKE-03..07 use Playwright title check, not curl</td>
+</tr>
+<tr>
+<td>987 <code>print()</code> calls — UnicodeDecodeError risk</td>
+<td>audit MEDIUM + user memory</td>
+<td>Fixture captures print, asserts no error</td>
+</tr>
+</tbody>
+</table>
+<h2 id="appendix-b-test-method-distribution">Appendix B — Test Method Distribution</h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Test Count</th>
+<th>%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Playwright</td>
+<td>49</td>
+<td>40%</td>
+</tr>
+<tr>
+<td>pytest</td>
+<td>28</td>
+<td>23%</td>
+</tr>
+<tr>
+<td>psql direct</td>
+<td>20</td>
+<td>16%</td>
+</tr>
+<tr>
+<td>docker logs grep</td>
+<td>15</td>
+<td>12%</td>
+</tr>
+<tr>
+<td>curl/HTTP</td>
+<td>5</td>
+<td>4%</td>
+</tr>
+<tr>
+<td>Manual</td>
+<td>6</td>
+<td>5%</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>123</strong></td>
+<td><strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><em>End of spec_05_test_plan.md</em></p>
+</body></html>

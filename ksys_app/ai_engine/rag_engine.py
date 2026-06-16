@@ -35,7 +35,8 @@ class RAGEngine:
         self.openai_client = None
         self.hallucination_prevention = None
         self.w5h1_formatter = W5H1Formatter()
-        
+        self._initialized = False  # lazy-init 가드 (get_rag_response 첫 호출 시 1회 init)
+
     async def initialize(self):
         """RAG 엔진 초기화"""
         # 환경변수 강제 로드
@@ -61,6 +62,7 @@ class RAGEngine:
         print("🛡️ 할루시네이션 방지 시스템 초기화 완료")
             
         await self._update_knowledge_cache()
+        self._initialized = True
         print("🧠 RAG 엔진 초기화 완료")
         
     async def _update_knowledge_cache(self):
@@ -649,4 +651,12 @@ async def get_rag_response(query: str, context: str | None = None) -> str:
                  query 뿐. 호출부(ai_state.py:133)와의 시그니처 호환을 위해 받는다.
                  NOTE: context 를 LLM 프롬프트에 직접 주입하는 것은 AI 품질개선 후속 작업.
     """
+    # lazy-init: 첫 호출 시 1회 초기화 (openai_client/hallucination_prevention 세팅).
+    # 이전엔 initialize() 가 라이브 경로에서 한 번도 호출되지 않아 항상 템플릿 응답이었음(audit C2).
+    if not rag_engine._initialized:
+        try:
+            await rag_engine.initialize()
+        except Exception as e:
+            from reflex.utils import console
+            console.warn(f"RAG init 실패(템플릿 모드로 계속): {e}")
     return await rag_engine.generate_response(query)

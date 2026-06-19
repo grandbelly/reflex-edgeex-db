@@ -133,5 +133,5 @@ def pagination(
         align="center",
         width="100%",
         padding="3",
-        border_top=f"1px solid {rx.color('gray', 3)}",
+        border_top="1px solid #22384E",
     )

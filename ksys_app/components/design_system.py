@@ -22,8 +22,8 @@ COLORS = {
     "red": "#EF4444",
 
     # Neutral Colors
-    "gray_900": "#111827",
-    "gray_700": "#374151",
+    "gray_900": "#E8F0FA",
+    "gray_700": "#8DA2C0",
     "gray_500": "#6B7280",
     "gray_300": "#D1D5DB",
     "gray_100": "#F3F4F6",

@@ -22,7 +22,7 @@ def realtime_header() -> rx.Component:
                     "실시간 모니터링",
                     size="4",
                     weight="bold",
-                    color="#111827"
+                    color="#E8F0FA"
                 ),
                 spacing="2",
                 align="center"
@@ -33,7 +33,7 @@ def realtime_header() -> rx.Component:
                 rx.text(
                     f"Last update: {DashboardRealtimeState.last_update}",
                     size="2",
-                    color="#6b7280",
+                    color="#8DA2C0",
                     style={"font-family": "monospace"}
                 ),
                 spacing="2",
@@ -43,8 +43,8 @@ def realtime_header() -> rx.Component:
             align="center"
         ),
         padding="4",
-        border_bottom="2px solid #e5e7eb",
-        bg="white"
+        border_bottom="2px solid #22384E",
+        bg="var(--ks-panel)"
     )
 
 
@@ -218,7 +218,7 @@ def mini_chart(
             vertical=False,  # No vertical lines
             stroke_dasharray="3 3",  # Stock Graph dash pattern
             stroke_opacity=0.2,  # Very subtle (Stock Graph style)
-            stroke="#9ca3af",  # Neutral gray
+            stroke="#6E8093",  # Neutral gray
         ),
         # X axis - no axis line, minimal style (Stock Graph inspired)
         rx.recharts.x_axis(
@@ -228,14 +228,14 @@ def mini_chart(
             height=50,
             angle=-30,
             text_anchor="end",
-            tick={"fontSize": 8, "fill": "#9ca3af"}  # Neutral gray
+            tick={"fontSize": 8, "fill": "#6E8093"}  # Neutral gray
         ),
         # Y axis - no axis line, minimal style (Stock Graph inspired)
         rx.recharts.y_axis(
             axis_line=False,  # No axis line (Stock Graph style)
             tick_line=False,  # No tick marks (Stock Graph style)
             width=55,
-            tick={"fontSize": 11, "fill": "#9ca3af"}  # Neutral gray
+            tick={"fontSize": 11, "fill": "#6E8093"}  # Neutral gray
         ),
         # Legend - minimal with tiny font
         rx.recharts.legend(
@@ -255,13 +255,13 @@ def mini_chart(
                 "fontSize": "11px"
             },
             label_style={
-                "color": "#111827",
+                "color": "#E8F0FA",
                 "fontWeight": "600",
                 "fontSize": "11px",
                 "marginBottom": "4px"
             },
             item_style={
-                "color": "#6b7280",
+                "color": "#8DA2C0",
                 "fontSize": "10px"
             },
             cursor={
@@ -294,14 +294,14 @@ def sensor_tile(sensor_data: Dict) -> rx.Component:
                         sensor_data["tag_name"],
                         size="2",
                         weight="medium",
-                        color="#6b7280"
+                        color="#8DA2C0"
                     ),
                     rx.cond(
                         sensor_data.get("description", "") != "",
                         rx.text(
                             sensor_data.get("description", ""),
                             size="1",
-                            color="#9ca3af",
+                            color="#6E8093",
                             style={"white_space": "nowrap", "overflow": "hidden", "text_overflow": "ellipsis", "max_width": "100%"}
                         ),
                         rx.box()
@@ -404,14 +404,14 @@ def sensor_tile(sensor_data: Dict) -> rx.Component:
                             f"{sensor_data['value']:.2f}",
                             size="7",
                             weight="bold",
-                            color="#111827"
+                            color="#E8F0FA"
                         ),
                         rx.cond(
                             sensor_data.get("unit", "") != "",
                             rx.text(
                                 sensor_data.get("unit", ""),
                                 size="3",
-                                color="#6b7280",
+                                color="#8DA2C0",
                                 style={"margin_left": "4px"}
                             ),
                             rx.box()
@@ -422,7 +422,7 @@ def sensor_tile(sensor_data: Dict) -> rx.Component:
                     rx.text(
                         f"{sensor_data['min_val']:.2f} ~ {sensor_data['max_val']:.2f}",
                         size="1",
-                        color="#6b7280"
+                        color="#8DA2C0"
                     ),
                     spacing="0",
                     align="center",  # Changed from "start" to "center"
@@ -439,7 +439,7 @@ def sensor_tile(sensor_data: Dict) -> rx.Component:
             rx.text(
                 sensor_data["timestamp"],
                 size="1",
-                color="#9ca3af",
+                color="#6E8093",
                 text_align="right",
                 width="100%"
             ),
@@ -479,35 +479,35 @@ def alarm_monitoring_table() -> rx.Component:
     """Real-time alarm monitoring table"""
     def table_row(sensor: Dict) -> rx.Component:
         return rx.table.row(
-            rx.table.cell(rx.text(sensor["tag_name"], size="2", weight="medium", color="#111827"), width="80px"),
+            rx.table.cell(rx.text(sensor["tag_name"], size="2", weight="medium", color="#E8F0FA"), width="80px"),
             rx.table.cell(rx.badge(rx.cond(sensor["status"] == 0, "NORMAL", rx.cond(sensor["status"] == 1, "WARNING", "CRITICAL")),
                 color_scheme=rx.cond(sensor["status"] == 0, "green", rx.cond(sensor["status"] == 1, "amber", "red")), variant="soft", size="1"), width="100px"),
-            rx.table.cell(rx.text(sensor["value_str"], size="2", weight="medium", color="#111827"), width="100px"),
-            rx.table.cell(rx.text(sensor["range_str"], size="2", color="#6b7280"), width="140px"),
-            rx.table.cell(rx.text(sensor["deviation_str"], size="2", color=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#6b7280")), weight="medium"), width="100px"),
+            rx.table.cell(rx.text(sensor["value_str"], size="2", weight="medium", color="#E8F0FA"), width="100px"),
+            rx.table.cell(rx.text(sensor["range_str"], size="2", color="#8DA2C0"), width="140px"),
+            rx.table.cell(rx.text(sensor["deviation_str"], size="2", color=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#8DA2C0")), weight="medium"), width="100px"),
             rx.table.cell(rx.hstack(rx.box(width=sensor["risk_pct_str"], height="16px", bg=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#10b981")), border_radius="2px"),
-                rx.text(sensor["risk_pct_str"], size="2", weight="medium", color="#111827"), spacing="2", align="center"), width="150px"),
-            rx.table.cell(rx.text(sensor["timestamp"], size="2", color="#6b7280", weight="regular"), width="140px"),
+                rx.text(sensor["risk_pct_str"], size="2", weight="medium", color="#E8F0FA"), spacing="2", align="center"), width="150px"),
+            rx.table.cell(rx.text(sensor["timestamp"], size="2", color="#8DA2C0", weight="regular"), width="140px"),
             rx.table.cell(rx.button(rx.cond(sensor["status"] == 0, "확인", "조치"), size="1", variant="soft", color_scheme=rx.cond(sensor["status"] == 0, "green", "red")), width="100px"),
-            bg=rx.cond(sensor["status"] == 2, "rgba(239, 68, 68, 0.1)", rx.cond(sensor["status"] == 1, "rgba(245, 158, 11, 0.1)", "white")),
+            bg=rx.cond(sensor["status"] == 2, "rgba(239, 68, 68, 0.1)", rx.cond(sensor["status"] == 1, "rgba(245, 158, 11, 0.1)", "transparent")),
             border_left=rx.cond(sensor["status"] == 2, "4px solid #ef4444", rx.cond(sensor["status"] == 1, "4px solid #f59e0b", "4px solid transparent")),
             _hover={"bg": "rgba(59, 130, 246, 0.05)", "cursor": "pointer"}
         )
     return rx.vstack(
-        rx.heading("실시간 알람 모니터링", size="5", color="#111827"),
+        rx.heading("실시간 알람 모니터링", size="5", color="#E8F0FA"),
         rx.table.root(
             rx.table.header(rx.table.row(
-                rx.table.column_header_cell("ID", width="80px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("현재값", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("범위", width="140px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("초과량", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("위험도", width="150px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("판정시간", width="140px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("액션", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                style={"backgroundColor": "#f9fafb !important"})),
+                rx.table.column_header_cell("ID", width="80px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("현재값", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("범위", width="140px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("초과량", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("위험도", width="150px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("판정시간", width="140px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("액션", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                style={"backgroundColor": "#192D40 !important"})),
             rx.table.body(rx.foreach(DashboardRealtimeState.sensors, table_row)),
-            width="100%", style={"backgroundColor": "white"}),
+            width="100%", style={"backgroundColor": "transparent"}),
         width="100%", spacing="3", align="start")
 
 

@@ -59,7 +59,7 @@ def pagination_controls() -> rx.Component:
     return rx.hstack(
         # 왼쪽: 페이지 크기 선택
         rx.hstack(
-            rx.text("페이지 크기:", size="2", color="#6b7280"),
+            rx.text("페이지 크기:", size="2", color="#8DA2C0"),
             rx.select.root(
                 rx.select.trigger(placeholder=f"{T.page_size}"),
                 rx.select.content(
@@ -82,7 +82,7 @@ def pagination_controls() -> rx.Component:
         rx.text(
             T.page_info,
             size="2",
-            color="#6b7280",
+            color="#8DA2C0",
             weight="medium"
         ),
 
@@ -106,7 +106,7 @@ def pagination_controls() -> rx.Component:
                     "1 / 1"
                 ),
                 size="2",
-                color="#374151",
+                color="#8DA2C0",
                 weight="medium",
                 class_name="px-3"
             ),
@@ -127,9 +127,9 @@ def pagination_controls() -> rx.Component:
         align="center",
         width="100%",
         padding="12px",
-        border="1px solid #e5e7eb",
+        border="1px solid #22384E",
         border_radius="8px",
-        background="white",
+        background="var(--ks-panel)",
         class_name="mt-3"
     )
 
@@ -315,7 +315,7 @@ def create_bottom_chart_with_brush() -> rx.Component:
                 data_key="bucket_formatted",
                 height=40,
                 stroke="#8884d8",
-                fill="#f0f0f0"
+                fill="#22384E"
             ),
             data=T.series_for_tag,
             sync_id="trend",
@@ -332,25 +332,25 @@ def trend_chart_area() -> rx.Component:
     loading_spinner = rx.center(
         rx.vstack(
             rx.spinner(size="3", color="blue"),
-            rx.text("데이터 로딩 중...", size="3", color="#6b7280"),
+            rx.text("데이터 로딩 중...", size="3", color="#8DA2C0"),
             spacing="3"
         ),
         width="100%",
         height="600px",
-        bg="white"
+        bg="var(--ks-panel)"
     )
 
     # 데이터 없음 메시지
     no_data_message = rx.center(
         rx.vstack(
-            rx.icon("circle-alert", size=48, color="#9ca3af"),
-            rx.text("차트 데이터가 없습니다", size="4", weight="bold", color="#6b7280"),
-            rx.text("필터를 조정하고 다시 로드하세요", size="2", color="#9ca3af"),
+            rx.icon("circle-alert", size=48, color="#6E8093"),
+            rx.text("차트 데이터가 없습니다", size="4", weight="bold", color="#8DA2C0"),
+            rx.text("필터를 조정하고 다시 로드하세요", size="2", color="#6E8093"),
             spacing="3"
         ),
         width="100%",
         height="600px",
-        bg="white"
+        bg="var(--ks-panel)"
     )
 
     # 두 개의 동기화된 차트
@@ -378,8 +378,8 @@ def trend_chart_area() -> rx.Component:
             ),
             padding="3",
             border_radius="lg",
-            bg="white",
-            border="1px solid #e5e7eb",
+            bg="var(--ks-panel)",
+            border="1px solid #22384E",
             width="100%",
             min_width="0"  # flex-shrink 허용
         ),
@@ -399,8 +399,8 @@ def trend_chart_area() -> rx.Component:
             ),
             padding="3",
             border_radius="lg",
-            bg="white",
-            border="1px solid #e5e7eb",
+            bg="var(--ks-panel)",
+            border="1px solid #22384E",
             width="100%",
             min_width="0"  # flex-shrink 허용
         ),
@@ -433,7 +433,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                     rx.flex(
                         rx.hstack(
                             rx.icon("chart-line", size=20, color="#3b82f6"),
-                            rx.heading("센서 트렌드", size="5", weight="bold", color="#111827"),
+                            rx.heading("센서 트렌드", size="5", weight="bold", color="#E8F0FA"),
                             spacing="2",
                             align="center"
                         ),
@@ -459,7 +459,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                             rx.vstack(
                                 rx.hstack(
                                     rx.icon("tag", size=14, color="#3b82f6"),
-                                    rx.text("태그 선택", size="2", weight="medium", color="#374151"),
+                                    rx.text("태그 선택", size="2", weight="medium", color="#8DA2C0"),
                                     spacing="1",
                                     align="center"
                                 ),
@@ -476,8 +476,8 @@ def trend_page_enhanced_v2() -> rx.Component:
                             ),
                             padding="3",
                             border_radius="md",
-                            bg="#eff6ff",
-                            border="1px solid #dbeafe",
+                            bg="rgba(77,163,255,0.10)",
+                            border="1px solid rgba(77,163,255,0.25)",
                             width="100%",
                             min_width="0"  # flex-shrink 허용
                         ),
@@ -487,7 +487,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                             rx.vstack(
                                 rx.hstack(
                                     rx.icon("layers", size=14, color="#10b981"),
-                                    rx.text("집계 단위", size="2", weight="medium", color="#374151"),
+                                    rx.text("집계 단위", size="2", weight="medium", color="#8DA2C0"),
                                     spacing="1",
                                     align="center"
                                 ),
@@ -504,8 +504,8 @@ def trend_page_enhanced_v2() -> rx.Component:
                             ),
                             padding="3",
                             border_radius="md",
-                            bg="#d1fae5",
-                            border="1px solid #a7f3d0",
+                            bg="rgba(54,226,192,0.10)",
+                            border="1px solid rgba(54,226,192,0.25)",
                             width="100%",
                             min_width="0"  # flex-shrink 허용
                         ),
@@ -515,7 +515,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                             rx.vstack(
                                 rx.hstack(
                                     rx.icon("calendar", size=14, color="#f59e0b"),
-                                    rx.text("조회 기간", size="2", weight="medium", color="#374151"),
+                                    rx.text("조회 기간", size="2", weight="medium", color="#8DA2C0"),
                                     spacing="1",
                                     align="center"
                                 ),
@@ -532,8 +532,8 @@ def trend_page_enhanced_v2() -> rx.Component:
                             ),
                             padding="3",
                             border_radius="md",
-                            bg="#fef3c7",
-                            border="1px solid #fde68a",
+                            bg="rgba(255,180,84,0.10)",
+                            border="1px solid rgba(255,180,84,0.25)",
                             width="100%",
                             min_width="0"  # flex-shrink 허용
                         ),
@@ -583,7 +583,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                     # 차트 컨트롤
                     rx.grid(
                         rx.vstack(
-                            rx.text("상단 차트 타입", size="2", weight="medium", color="#374151"),
+                            rx.text("상단 차트 타입", size="2", weight="medium", color="#8DA2C0"),
                             chart_mode_selector(),
                             spacing="1",
                             align="start",
@@ -591,7 +591,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                         ),
 
                         rx.vstack(
-                            rx.text("Y축 조정", size="2", weight="medium", color="#374151"),
+                            rx.text("Y축 조정", size="2", weight="medium", color="#8DA2C0"),
                             y_axis_mode_toggle(),
                             spacing="1",
                             align="start",
@@ -599,7 +599,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                         ),
 
                         rx.vstack(
-                            rx.text("데이터 선택", size="2", weight="medium", color="#374151"),
+                            rx.text("데이터 선택", size="2", weight="medium", color="#8DA2C0"),
                             trend_toggle_group(),
                             spacing="1",
                             align="start",
@@ -643,7 +643,7 @@ def trend_page_enhanced_v2() -> rx.Component:
             rx.card(
                 rx.vstack(
                     rx.hstack(
-                        rx.heading("Historical Data", size="4", weight="bold", color="#111827"),
+                        rx.heading("Historical Data", size="4", weight="bold", color="#E8F0FA"),
                         rx.spacer(),
                         rx.hstack(
                             # 데이터 개수
@@ -758,7 +758,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["Average"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -766,7 +766,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["Min"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -774,7 +774,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["Max"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -782,7 +782,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["Last"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -790,7 +790,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["First"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -798,7 +798,7 @@ def trend_page_enhanced_v2() -> rx.Component:
                                                 row["Count"],
                                                 style=rx.cond(
                                                     row.get("Missing", False),
-                                                    {"color": "#9ca3af", "fontStyle": "italic"},
+                                                    {"color": "#6E8093", "fontStyle": "italic"},
                                                     {}
                                                 )
                                             ),
@@ -822,9 +822,9 @@ def trend_page_enhanced_v2() -> rx.Component:
                         ),
                         rx.center(
                             rx.vstack(
-                                rx.icon("database", size=48, color="#9ca3af"),
-                                rx.text("데이터가 없습니다", size="3", color="#6b7280"),
-                                rx.text("태그를 선택하고 조회 기간을 설정하세요", size="2", color="#9ca3af"),
+                                rx.icon("database", size=48, color="#6E8093"),
+                                rx.text("데이터가 없습니다", size="3", color="#8DA2C0"),
+                                rx.text("태그를 선택하고 조회 기간을 설정하세요", size="2", color="#6E8093"),
                                 spacing="3",
                                 align="center"
                             ),

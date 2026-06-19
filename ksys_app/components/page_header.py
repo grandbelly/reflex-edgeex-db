@@ -42,7 +42,7 @@ def page_header(
             rx.flex(
                 rx.hstack(
                     rx.icon(icon, size=20, color="#3b82f6"),
-                    rx.heading(title, size="5", weight="bold", color="#111827"),
+                    rx.heading(title, size="5", weight="bold", color="#E8F0FA"),
                     spacing="2",
                     align="center"
                 ),

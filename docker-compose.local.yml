@@ -34,6 +34,7 @@ services:
     volumes:
       - ./ksys_app:/app/ksys_app
       - ./rxconfig.py:/app/rxconfig.py
+      - ./assets:/app/assets
       - ./logs:/app/logs
     networks:
       - dev_network

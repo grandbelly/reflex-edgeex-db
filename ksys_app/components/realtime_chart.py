@@ -17,14 +17,14 @@ def realtime_trend_chart(chart_data: rx.Var | List[Dict[str, Any]], tag_name: st
                 data_key="bucket",
                 tick_line=False,
                 axis_line=False,
-                tick={"fontSize": 7, "fill": "#6b7280", "angle": -45, "textAnchor": "end"},
+                tick={"fontSize": 7, "fill": "#8DA2C0", "angle": -45, "textAnchor": "end"},
                 interval=0,  # 모든 시간 표시 (45도 회전)
                 height=40   # 회전된 텍스트를 위한 여백 추가
             ),
             rx.recharts.y_axis(
                 tick_line=False,
                 axis_line=False,
-                tick={"fontSize": 8, "fill": "#6b7280"},
+                tick={"fontSize": 8, "fill": "#8DA2C0"},
                 width=35
             ),
             rx.recharts.responsive_container(

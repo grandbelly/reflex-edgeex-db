@@ -93,7 +93,7 @@ def history_table(alarms: List[Dict]) -> rx.Component:
                             ),
                         ),
 
-                        _hover={"bg": "gray.50"},
+                        _hover={"bg": "#0E1724"},
                     ),
                 ),
             ),

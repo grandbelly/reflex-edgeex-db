@@ -140,7 +140,7 @@ def sparkline_chart(
         border_radius="4px",
         border=f"1px solid {line_color}",
         overflow="hidden",
-        background="#f9fafb"
+        background="#192D40"
     )
 
 
@@ -190,5 +190,5 @@ def sparkline_simple(
         height=f"{height}px",
         border_radius="4px",
         border=f"1px solid {line_color}",
-        background="#f9fafb"
+        background="#192D40"
     )

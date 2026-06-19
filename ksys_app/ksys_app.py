@@ -127,15 +127,16 @@ except Exception as e:
 
 
 app = rx.App(
+    # RO control-room theme — dark instrument console (frontend-design).
     theme=rx.theme(
-        appearance="light",
-        accent_color="blue",
+        appearance="dark",
+        accent_color="teal",   # instrument aqua/permeate
         gray_color="slate",
         radius="medium",
         scaling="100%",
     ),
     stylesheets=[
-        "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap&crossorigin=anonymous",
+        "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap&crossorigin=anonymous",
         "/styles.css",
     ],
     style={
@@ -144,13 +145,12 @@ app = rx.App(
         }
     },
     head_components=[
-        rx.script("""
-            // Force light mode by removing dark theme from localStorage
-            if (typeof localStorage !== 'undefined') {
-                localStorage.removeItem('chakra-ui-color-mode');
-                localStorage.setItem('chakra-ui-color-mode', 'light');
-            }
-        """),
+        # Control-room app has no theme toggle — pin dark so prior visitors
+        # who still have `theme: light` in localStorage also get the new theme.
+        rx.script(
+            "try{localStorage.setItem('theme','dark');"
+            "localStorage.removeItem('chakra-ui-color-mode');}catch(e){}"
+        ),
     ],
 )
 
@@ -186,6 +186,7 @@ from .pages import (
     training_wizard,         # /training-wizard (@rx.page in module)
     trend_enhanced_v2,       # /trend
     viewer_tag,              # /viewer-tag (@rx.page in module)
+    workflow,                # /workflow (@rx.page in module)
 )
 
 # /ai (CR-01 등록 2026-06-03) — 별도 가드 import.

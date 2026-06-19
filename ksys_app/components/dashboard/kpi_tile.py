@@ -28,12 +28,12 @@ def kpi_tile_compact(
     Returns:
         Compact KPI tile with light colored background
     """
-    # Icon and background colors
+    # Icon and background colors — dark instrument tint
     color_schemes = {
-        "blue": {"icon": "#3b82f6", "bg": "#eff6ff"},      # blue-50
-        "red": {"icon": "#ef4444", "bg": "#fef2f2"},        # red-50
-        "orange": {"icon": "#f97316", "bg": "#fff7ed"},     # orange-50
-        "gray": {"icon": "#6b7280", "bg": "#f9fafb"}        # gray-50
+        "blue": {"icon": "#4DA3FF", "bg": "rgba(77,163,255,.10)"},
+        "red": {"icon": "#FF566E", "bg": "rgba(255,86,110,.10)"},
+        "orange": {"icon": "#FFB454", "bg": "rgba(255,180,84,.10)"},
+        "gray": {"icon": "#8DA2C0", "bg": "#192D40"}
     }
 
     scheme = color_schemes.get(color, color_schemes["gray"])
@@ -43,7 +43,7 @@ def kpi_tile_compact(
             # Left: Title with small inline icon
             rx.vstack(
                 rx.hstack(
-                    rx.text(title, size="1", color="#6b7280", weight="medium"),  # gray-500
+                    rx.text(title, size="1", color="var(--ks-haze)", weight="medium"),
                     rx.cond(
                         icon is not None,
                         rx.icon(icon, size=14, color=scheme["icon"]),
@@ -52,10 +52,10 @@ def kpi_tile_compact(
                     spacing="1",
                     align="center"
                 ),
-                rx.text(value, size="6", weight="bold", color="#111827"),  # gray-900
+                rx.text(value, size="6", weight="bold", color="var(--ks-text)"),
                 rx.cond(
                     subtitle is not None,
-                    rx.text(subtitle, size="1", color="#6b7280"),  # gray-500
+                    rx.text(subtitle, size="1", color="var(--ks-haze)"),
                     rx.box()
                 ),
                 spacing="1",
@@ -68,7 +68,7 @@ def kpi_tile_compact(
         padding="3",
         bg=scheme["bg"],  # Light colored background
         border_radius="8px",
-        border="1px solid #e5e7eb",  # gray-200
+        border="1px solid var(--ks-line)",
         width="100%"
     )
 
@@ -455,9 +455,9 @@ def device_status_distribution_bar(state_class) -> rx.Component:
             width="100%",
         ),
         padding="4",
-        bg="white",
+        bg="var(--ks-panel)",
         border_radius="8px",
-        border="1px solid #e5e7eb",
+        border="1px solid #22384E",
         margin_top="4",
         margin_bottom="4",
     )

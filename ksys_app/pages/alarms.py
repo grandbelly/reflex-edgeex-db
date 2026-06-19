@@ -62,15 +62,15 @@ def stat_tile(title: str, value: rx.Var, color: str = "blue") -> rx.Component:
     """
     return rx.box(
         rx.vstack(
-            rx.text(title, size="2", color="#6b7280"),  # gray-500
-            rx.text(value, size="6", weight="bold", color="#111827"),  # black
+            rx.text(title, size="2", color="#8DA2C0"),  # gray-500
+            rx.text(value, size="6", weight="bold", color="#E8F0FA"),  # black
             spacing="1",
             align="center",
         ),
         padding="4",
         border_radius="lg",
-        bg="white",  # KSYS: Always white background
-        border="1px solid #e5e7eb",  # gray-200
+        bg="var(--ks-panel)",  # KSYS: Always white background
+        border="1px solid #22384E",  # gray-200
         width="100%",
     )
 
@@ -79,7 +79,7 @@ def alarm_card(alarm: Dict) -> rx.Component:
     """
     Alarm card component - Light Mode
 
-    KSYS Design: Always white background (#FFFFFF), black text (#111827)
+    KSYS Design: Always white background (#FFFFFF), black text (#E8F0FA)
     """
     return rx.box(
         rx.vstack(
@@ -90,7 +90,7 @@ def alarm_card(alarm: Dict) -> rx.Component:
                 rx.text(
                     alarm["triggered_at_short"],
                     size="2",
-                    color="#6b7280"  # gray-500 for timestamps
+                    color="#8DA2C0"  # gray-500 for timestamps
                 ),
                 justify="between",
                 align="center",
@@ -102,7 +102,7 @@ def alarm_card(alarm: Dict) -> rx.Component:
                 alarm["message"],
                 size="3",
                 weight="medium",
-                color="#111827",  # KSYS: Always black text
+                color="#E8F0FA",  # KSYS: Always black text
             ),
 
             # Sensor info and action
@@ -112,7 +112,7 @@ def alarm_card(alarm: Dict) -> rx.Component:
                     rx.text(
                         f"{alarm['value']}{alarm['unit']}",
                         size="2",
-                        color="#6b7280"
+                        color="#8DA2C0"
                     ),
                     spacing="2",
                 ),
@@ -138,8 +138,8 @@ def alarm_card(alarm: Dict) -> rx.Component:
             width="100%",
         ),
         padding="4",
-        bg="white",  # KSYS: Always white background
-        border="1px solid #e5e7eb",  # gray-200
+        bg="var(--ks-panel)",  # KSYS: Always white background
+        border="1px solid #22384E",  # gray-200
         border_radius="lg",
         width="100%",
         _hover={"border_color": "#3b82f6"},  # blue-500 on hover
@@ -151,35 +151,35 @@ def active_alarms_view() -> rx.Component:
     """Active Alarms view - Real-time alarm monitoring table from Dashboard"""
     def table_row(sensor: Dict) -> rx.Component:
         return rx.table.row(
-            rx.table.cell(rx.text(sensor["tag_name"], size="2", weight="medium", color="#111827"), width="80px"),
+            rx.table.cell(rx.text(sensor["tag_name"], size="2", weight="medium", color="#E8F0FA"), width="80px"),
             rx.table.cell(rx.badge(rx.cond(sensor["status"] == 0, "NORMAL", rx.cond(sensor["status"] == 1, "WARNING", "CRITICAL")),
                 color_scheme=rx.cond(sensor["status"] == 0, "green", rx.cond(sensor["status"] == 1, "amber", "red")), variant="soft", size="1"), width="100px"),
-            rx.table.cell(rx.text(sensor["value_str"], size="2", weight="medium", color="#111827"), width="100px"),
-            rx.table.cell(rx.text(sensor["range_str"], size="2", color="#6b7280"), width="140px"),
-            rx.table.cell(rx.text(sensor["deviation_str"], size="2", color=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#6b7280")), weight="medium"), width="100px"),
+            rx.table.cell(rx.text(sensor["value_str"], size="2", weight="medium", color="#E8F0FA"), width="100px"),
+            rx.table.cell(rx.text(sensor["range_str"], size="2", color="#8DA2C0"), width="140px"),
+            rx.table.cell(rx.text(sensor["deviation_str"], size="2", color=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#8DA2C0")), weight="medium"), width="100px"),
             rx.table.cell(rx.hstack(rx.box(width=sensor["risk_pct_str"], height="16px", bg=rx.cond(sensor["status"] == 2, "#ef4444", rx.cond(sensor["status"] == 1, "#f59e0b", "#10b981")), border_radius="2px"),
-                rx.text(sensor["risk_pct_str"], size="2", weight="medium", color="#111827"), spacing="2", align="center"), width="150px"),
-            rx.table.cell(rx.text(sensor["timestamp"], size="2", color="#6b7280", weight="regular"), width="140px"),
+                rx.text(sensor["risk_pct_str"], size="2", weight="medium", color="#E8F0FA"), spacing="2", align="center"), width="150px"),
+            rx.table.cell(rx.text(sensor["timestamp"], size="2", color="#8DA2C0", weight="regular"), width="140px"),
             rx.table.cell(rx.button(rx.cond(sensor["status"] == 0, "확인", "조치"), size="1", variant="soft", color_scheme=rx.cond(sensor["status"] == 0, "green", "red")), width="100px"),
-            bg=rx.cond(sensor["status"] == 2, "rgba(239, 68, 68, 0.1)", rx.cond(sensor["status"] == 1, "rgba(245, 158, 11, 0.1)", "white")),
+            bg=rx.cond(sensor["status"] == 2, "rgba(239, 68, 68, 0.1)", rx.cond(sensor["status"] == 1, "rgba(245, 158, 11, 0.1)", "transparent")),
             border_left=rx.cond(sensor["status"] == 2, "4px solid #ef4444", rx.cond(sensor["status"] == 1, "4px solid #f59e0b", "4px solid transparent")),
             _hover={"bg": "rgba(59, 130, 246, 0.05)", "cursor": "pointer"}
         )
     return rx.vstack(
-        rx.heading("실시간 알람 모니터링", size="5", color="#111827"),
+        rx.heading("실시간 알람 모니터링", size="5", color="#E8F0FA"),
         rx.table.root(
             rx.table.header(rx.table.row(
-                rx.table.column_header_cell("ID", width="80px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("현재값", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("범위", width="140px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("초과량", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("위험도", width="150px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("판정시간", width="140px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                rx.table.column_header_cell("액션", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                style={"backgroundColor": "#f9fafb !important"})),
+                rx.table.column_header_cell("ID", width="80px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("현재값", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("범위", width="140px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("초과량", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("위험도", width="150px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("판정시간", width="140px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                rx.table.column_header_cell("액션", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                style={"backgroundColor": "#192D40 !important"})),
             rx.table.body(rx.foreach(DashboardRealtimeState.sensors, table_row)),
-            width="100%", style={"backgroundColor": "white"}),
+            width="100%", style={"backgroundColor": "transparent"}),
         width="100%", spacing="3", align="start")
 
 
@@ -188,12 +188,12 @@ def history_alarms_view() -> rx.Component:
     def history_row(alarm: Dict) -> rx.Component:
         return rx.table.row(
             rx.table.cell(rx.badge(rx.cond(alarm["acknowledged"], "✓ 확인완료", "● 미확인"), color_scheme=rx.cond(alarm["acknowledged"], "green", "orange"), variant="solid", size="1"), width="100px"),
-            rx.table.cell(rx.text(alarm["triggered_at_short"], size="2", color="#6b7280"), width="140px"),
-            rx.table.cell(rx.text(alarm["tag_name"], size="2", weight="medium", color="#111827"), width="120px"),
+            rx.table.cell(rx.text(alarm["triggered_at_short"], size="2", color="#8DA2C0"), width="140px"),
+            rx.table.cell(rx.text(alarm["tag_name"], size="2", weight="medium", color="#E8F0FA"), width="120px"),
             rx.table.cell(isa_level_badge(alarm), width="120px"),
             rx.table.cell(rx.badge(alarm["scenario_id"], color_scheme=rx.cond(alarm["scenario_id"] == "AI_BASE", "purple", "blue"), variant="soft", size="1"), width="120px"),
-            rx.table.cell(rx.text(f"{alarm['value']}{alarm['unit']}", size="2", weight="medium", color="#111827"), width="100px"),
-            rx.table.cell(rx.text(alarm["message"], size="2", color="#6b7280"), width="300px"),
+            rx.table.cell(rx.text(f"{alarm['value']}{alarm['unit']}", size="2", weight="medium", color="#E8F0FA"), width="100px"),
+            rx.table.cell(rx.text(alarm["message"], size="2", color="#8DA2C0"), width="300px"),
             rx.table.cell(rx.cond(alarm["acknowledged"], rx.badge("확인완료", variant="soft", color_scheme="green", size="1"),
                 rx.button("Acknowledge", size="1", variant="soft", color_scheme="blue", on_click=lambda: AlarmsState.acknowledge_alarm(alarm["event_id"]))), width="120px"),
             _hover={"bg": "rgba(59, 130, 246, 0.05)", "cursor": "pointer"})
@@ -201,17 +201,17 @@ def history_alarms_view() -> rx.Component:
         rx.vstack(
             rx.table.root(
                 rx.table.header(rx.table.row(
-                    rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("시간", width="140px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("센서", width="120px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("ISA Priority", width="120px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("시나리오", width="120px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("값", width="100px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("메시지", width="300px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    rx.table.column_header_cell("액션", width="120px", style={"backgroundColor": "#f9fafb !important", "color": "#374151 !important"}),
-                    style={"backgroundColor": "#f9fafb !important"})),
+                    rx.table.column_header_cell("상태", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("시간", width="140px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("센서", width="120px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("ISA Priority", width="120px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("시나리오", width="120px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("값", width="100px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("메시지", width="300px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    rx.table.column_header_cell("액션", width="120px", style={"backgroundColor": "#192D40 !important", "color": "#8DA2C0 !important"}),
+                    style={"backgroundColor": "#192D40 !important"})),
                 rx.table.body(rx.foreach(AlarmsState.paginated_alarms, history_row)),
-                width="100%", style={"backgroundColor": "white"}),
+                width="100%", style={"backgroundColor": "transparent"}),
             pagination(
                 current_page=AlarmsState.page,
                 total_pages=AlarmsState.total_pages,
@@ -224,9 +224,9 @@ def history_alarms_view() -> rx.Component:
                 on_next=AlarmsState.next_page,
             ),
             spacing="4", width="100%"),
-        rx.center(rx.vstack(rx.icon("inbox", size=48, color="#9ca3af"),
-            rx.text("No alarms found", size="4", weight="bold", color="#6b7280"),
-            rx.text("Try adjusting the filters or time range", size="2", color="#9ca3af"),
+        rx.center(rx.vstack(rx.icon("inbox", size=48, color="#6E8093"),
+            rx.text("No alarms found", size="4", weight="bold", color="#8DA2C0"),
+            rx.text("Try adjusting the filters or time range", size="2", color="#6E8093"),
             spacing="3", align="center"), padding="12"))
 
 
@@ -249,7 +249,7 @@ def alarms_page() -> rx.Component:
                     "🚨 Alarm Dashboard",
                     size="6",
                     weight="bold",
-                    color="#111827",  # KSYS: Always black
+                    color="#E8F0FA",  # KSYS: Always black
                 ),
                 rx.spacer(),
                 rx.button(
@@ -301,7 +301,7 @@ def alarms_page() -> rx.Component:
             rx.cond(
                 AlarmsState.view_mode == "history",
                 rx.vstack(
-                    rx.text("ISA-18.2 Alarm Priority Distribution", size="3", weight="bold", color="#111827"),
+                    rx.text("ISA-18.2 Alarm Priority Distribution", size="3", weight="bold", color="#E8F0FA"),
                     rx.grid(
                         stat_card(
                             title="P1: Advisory",
@@ -406,20 +406,20 @@ def alarms_page() -> rx.Component:
                     rx.text(
                         f"Showing {AlarmsState.filtered_count} alarms",
                         size="2",
-                        color="#6b7280",
+                        color="#8DA2C0",
                         weight="medium",
                     ),
                     rx.spacer(),
                     rx.text(
                         f"Last update: {AlarmsState.last_update}",
                         size="2",
-                        color="#9ca3af",
+                        color="#6E8093",
                     ),
                     align="center",
                     justify="between",
                     width="100%",
                     padding="3",
-                    bg="#f9fafb",
+                    bg="#192D40",
                     border_radius="md",
                 ),
                 rx.box(),
@@ -442,7 +442,7 @@ def alarms_page() -> rx.Component:
                 rx.center(
                     rx.vstack(
                         rx.spinner(size="3", color="#3b82f6"),
-                        rx.text("Loading alarms...", size="2", color="#6b7280"),
+                        rx.text("Loading alarms...", size="2", color="#8DA2C0"),
                         spacing="3",
                         align="center",
                     ),
@@ -458,7 +458,7 @@ def alarms_page() -> rx.Component:
             spacing="4",
             width="100%",
             padding="4",
-            bg="#f9fafb",  # Light gray page background
+            bg="#192D40",  # Light gray page background
             min_height="100vh",
         ),
         active_route="/alarms",

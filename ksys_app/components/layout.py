@@ -16,6 +16,7 @@ if APP_VERSION == "PART":
 BASE_MENU = [
     {"type": "header", "name": "미니 SCADA"},
     {"icon": "layout-dashboard", "name": "대시보드", "path": "/", "desc": "실시간 모니터링"},
+    {"icon": "workflow", "name": "워크플로우", "path": "/workflow", "desc": "공정 전체 흐름"},
     {"icon": "trending-up", "name": "트렌드", "path": "/trend", "desc": "시계열 분석"},
     {"icon": "bell", "name": "알람", "path": "/alarms", "desc": "룰베이스 알람"},
     {"icon": "signal", "name": "통신 상태", "path": "/comm", "desc": "통신 성공률"},
@@ -59,7 +60,7 @@ def render_menu_item(menu: dict, active: str) -> rx.Component:
             menu["name"],
             size="1",
             weight="bold",
-            color="#6b7280",
+            color="var(--ks-haze)",
             class_name="px-3 py-2 uppercase tracking-wide",
         )
 
@@ -71,13 +72,13 @@ def render_menu_item(menu: dict, active: str) -> rx.Component:
             rx.icon(
                 menu["icon"],
                 size=20,
-                color="#3b82f6" if is_active else "#6b7280",  # blue-500 or gray-500
+                color="var(--ks-aqua)" if is_active else "var(--ks-haze)",  # blue-500 or gray-500
             ),
             rx.text(
                 menu["name"],
                 size="3",
                 weight="bold" if is_active else "medium",
-                color="#3b82f6" if is_active else "#111827",  # blue-500 or gray-900
+                color="var(--ks-aqua)" if is_active else "var(--ks-text)",  # blue-500 or gray-900
             ),
             align="center",
             gap="3",
@@ -87,10 +88,10 @@ def render_menu_item(menu: dict, active: str) -> rx.Component:
         width="100%",
         padding="0.75rem",
         border_radius="0.5rem",
-        border_left=f"4px solid {'#3b82f6' if is_active else 'transparent'}",
-        background="#eff6ff" if is_active else "transparent",  # blue-50 when active
+        border_left=f"4px solid {'var(--ks-aqua)' if is_active else 'transparent'}",
+        background="rgba(54,226,192,0.12)" if is_active else "transparent",  # blue-50 when active
         _hover={
-            "background": "#f3f4f6" if not is_active else "#eff6ff",  # gray-100 or blue-50
+            "background": "rgba(141,162,192,0.10)" if not is_active else "rgba(54,226,192,0.12)",  # gray-100 or blue-50
             "transform": "translateX(2px)",
         },
         transition="all 0.2s ease",
@@ -107,32 +108,32 @@ def collapsed_sidebar() -> rx.Component:
         # 토글 버튼 (펼치기)
         rx.flex(
             rx.button(
-                rx.icon("panel-left-open", size=20, color="#6b7280"),
+                rx.icon("panel-left-open", size=20, color="var(--ks-haze)"),
                 variant="ghost",
                 size="2",
                 on_click=B.toggle_sidebar,
-                _hover={"background": "#f3f4f6"},
+                _hover={"background": "rgba(141,162,192,0.10)"},
                 style={"cursor": "pointer"}
             ),
             direction="column",
             align="center",
             gap="4",
             padding_bottom="1rem",
-            border_bottom="1px solid #e5e7eb",
+            border_bottom="1px solid var(--ks-line)",
         ),
         # 축소된 네비게이션 아이콘들 - 버튼 없이 직접 링크로
         rx.vstack(
             *[
                 rx.link(
                     rx.flex(
-                        rx.icon(menu["icon"], size=18, color="#6b7280"),
+                        rx.icon(menu["icon"], size=18, color="var(--ks-haze)"),
                         justify="center",
                         align="center",
                         width="100%",
                         height="2.5rem",
                         border_radius="0.5rem",
                         _hover={
-                            "background": "#f3f4f6",
+                            "background": "rgba(141,162,192,0.10)",
                             "transform": "scale(1.1)",
                         },
                         transition="all 0.2s ease"
@@ -151,8 +152,8 @@ def collapsed_sidebar() -> rx.Component:
         width="64px",
         flex_shrink="0",
         padding="1rem 0.5rem",
-        border_right="1px solid #e5e7eb",
-        background="white",
+        border_right="1px solid var(--ks-line)",
+        background="var(--ks-ink-2)",
         box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.1)",
         position="sticky",
         top="0",
@@ -167,11 +168,11 @@ def sidebar(active: str = "/") -> rx.Component:
         rx.flex(
             rx.flex(
                 rx.button(
-                    rx.icon("panel-left-close", size=20, color="#6b7280"),
+                    rx.icon("panel-left-close", size=20, color="var(--ks-haze)"),
                     variant="ghost",
                     size="2",
                     on_click=B.toggle_sidebar,
-                    _hover={"background": "#f3f4f6"},
+                    _hover={"background": "rgba(141,162,192,0.10)"},
                     style={"cursor": "pointer"}
                 ),
                 # KSYS CI 로고 이미지
@@ -190,7 +191,7 @@ def sidebar(active: str = "/") -> rx.Component:
             align="center",
             gap="3",
             padding_bottom="1rem",
-            border_bottom="1px solid #e5e7eb",
+            border_bottom="1px solid var(--ks-line)",
             width="100%",
         ),
 
@@ -210,8 +211,8 @@ def sidebar(active: str = "/") -> rx.Component:
         width="240px",
         flex_shrink="0",
         padding="1.5rem",
-        border_right="1px solid #e5e7eb",
-        background="white",
+        border_right="1px solid var(--ks-line)",
+        background="var(--ks-ink-2)",
         box_shadow="0 1px 3px 0 rgba(0, 0, 0, 0.1)",
         position="sticky",
         top="0",
@@ -274,7 +275,7 @@ def header(active_route: str = "/") -> rx.Component:
             # 왼쪽: KSYS 로고
             rx.box(
                 rx.text("KSYS", weight="bold", size="5", color="white"),
-                bg="#3b82f6",  # blue-500
+                bg="var(--ks-aqua)",  # blue-500
                 padding="0.5rem 1rem",
                 border_radius="8px"
             ),
@@ -323,8 +324,8 @@ def shell(*children: rx.Component, on_mount=None, active_route: str = "/") -> rx
                 *children,
                 class_name="w-full min-h-screen",
             ),
-            class_name="flex-1 min-h-screen bg-white",
+            class_name="flex-1 min-h-screen bg-transparent",
         ),
-        class_name="w-full min-h-screen bg-white flex",
+        class_name="w-full min-h-screen flex",
         on_mount=on_mount,
     )

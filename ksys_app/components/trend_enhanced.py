@@ -27,32 +27,32 @@ def clean_area_chart(data: List[Dict[str, Any]], height: int = 400) -> rx.Compon
         ),
         rx.recharts.x_axis(
             data_key="bucket_formatted",
-            stroke="#e5e7eb",
-            tick={"fill": "#6b7280", "fontSize": 11},
-            axis_line={"stroke": "#e5e7eb"},
+            stroke="#22384E",
+            tick={"fill": "#8DA2C0", "fontSize": 11},
+            axis_line={"stroke": "#22384E"},
         ),
         rx.recharts.y_axis(
-            stroke="#e5e7eb",
-            tick={"fill": "#6b7280", "fontSize": 11},
-            axis_line={"stroke": "#e5e7eb"},
+            stroke="#22384E",
+            tick={"fill": "#8DA2C0", "fontSize": 11},
+            axis_line={"stroke": "#22384E"},
             domain=["dataMin - 5", "dataMax + 5"],
         ),
         rx.recharts.cartesian_grid(
             stroke_dasharray="3 3",
-            stroke="#f3f4f6",
+            stroke="#192D40",
             opacity=0.5,
             horizontal=True,
             vertical=False,
         ),
         rx.recharts.tooltip(
             content_style={
-                "backgroundColor": "white",
-                "border": "1px solid #e5e7eb",
+                "backgroundColor": "#13212F",
+                "border": "1px solid #22384E",
                 "borderRadius": "8px",
                 "padding": "8px",
                 "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
             },
-            label_style={"color": "#6b7280", "fontSize": "12px"},
+            label_style={"color": "#8DA2C0", "fontSize": "12px"},
             item_style={"color": "#3b82f6", "fontSize": "14px", "fontWeight": "bold"},
         ),
         data=data,
@@ -68,13 +68,13 @@ def metric_card(title: str, value: str, color: str = "blue", icon: str = None) -
         "green": "#10b981",
         "red": "#ef4444",
         "amber": "#f59e0b",
-        "gray": "#6b7280",
+        "gray": "#8DA2C0",
     }
     
     return rx.card(
         rx.vstack(
             rx.hstack(
-                rx.icon(icon, size=16, color=icon_color_map.get(color, "#6b7280")) if icon else rx.fragment(),
+                rx.icon(icon, size=16, color=icon_color_map.get(color, "#8DA2C0")) if icon else rx.fragment(),
                 rx.text(title, size="1", color="gray", weight="medium"),
                 spacing="1",
                 align="center",
@@ -83,7 +83,7 @@ def metric_card(title: str, value: str, color: str = "blue", icon: str = None) -
                 value,
                 size="5",
                 weight="bold",
-                color=icon_color_map.get(color, "#1f2937"),
+                color=icon_color_map.get(color, "#E8F0FA"),
             ),
             spacing="1",
         ),
@@ -113,7 +113,7 @@ def time_range_pills(selected: str, on_change) -> rx.Component:
                 ),
                 padding="6px 12px",
                 border_radius="full",
-                background="#3b82f6" if selected == r["value"] else "#f3f4f6",
+                background="#3b82f6" if selected == r["value"] else "#192D40",
                 cursor="pointer",
                 on_click=lambda v=r["value"]: on_change(v),
                 class_name="hover:shadow-sm transition-all",
@@ -146,7 +146,7 @@ def sensor_info_header(
     
     return rx.hstack(
         # Tag name
-        rx.heading(tag_name, size="6", weight="bold", color="gray.900"),
+        rx.heading(tag_name, size="6", weight="bold", color="#E8F0FA"),
         
         rx.spacer(),
         
@@ -154,14 +154,14 @@ def sensor_info_header(
         rx.hstack(
             rx.icon(
                 status_icons.get(status, "info"),
-                color=status_colors.get(status, "#6b7280"),
+                color=status_colors.get(status, "#8DA2C0"),
                 size=20,
             ),
             rx.text(
                 f"{current_value:.2f}",
                 size="6",
                 weight="bold",
-                color=status_colors.get(status, "#1f2937"),
+                color=status_colors.get(status, "#E8F0FA"),
             ),
             rx.text(unit, size="3", color="gray"),
             spacing="2",
@@ -170,5 +170,5 @@ def sensor_info_header(
         
         width="100%",
         padding="12px 0",
-        border_bottom="1px solid #e5e7eb",
+        border_bottom="1px solid #22384E",
     )

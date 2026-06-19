@@ -118,7 +118,7 @@ def unified_kpi_card(
                                     value_s,
                                     font_weight="bold",
                                     font_size="lg",
-                                    color="gray.800",
+                                    color="white",
                                     transition="all 0.2s ease-in-out"
                                 ),
                                 rx.text(
@@ -169,7 +169,7 @@ def unified_kpi_card(
                         rx.recharts.line_chart(
                                 # 1) 심플한 그리드 (세로선 제거, 가로선만)
                                 rx.recharts.cartesian_grid(
-                                    stroke="#f0f0f0",
+                                    stroke="#22384E",
                                     stroke_dasharray="2 2",
                                     vertical=False,
                                     horizontal=True
@@ -195,7 +195,7 @@ def unified_kpi_card(
                                     axis_line=False,  # Boolean 타입으로 수정
                                     tick={
                                         "fontSize": 8,
-                                        "fill": "#6b7280",
+                                        "fill": "#8DA2C0",
                                         "angle": -90,  # 90도 회전
                                         "textAnchor": "end"
                                     },
@@ -213,20 +213,20 @@ def unified_kpi_card(
                                     cursor=False,  # 커서 라인 제거
                                     content_style={
                                         "borderRadius": 6,
-                                        "border": "1px solid #e5e7eb",
-                                        "backgroundColor": "#ffffff",
-                                        "color": "#374151",
+                                        "border": "1px solid #22384E",
+                                        "backgroundColor": "#13212F",
+                                        "color": "#8DA2C0",
                                         "padding": "8px 12px",
                                         "fontSize": "12px",
                                         "boxShadow": "0 4px 12px rgba(0,0,0,0.1)"
                                     },
                                     label_style={
-                                        "color": "#6b7280",
+                                        "color": "#8DA2C0",
                                         "fontSize": "11px",
                                         "marginBottom": "4px"
                                     },
                                     item_style={
-                                        "color": "#111827",
+                                        "color": "#E8F0FA",
                                         "fontSize": "12px",
                                         "fontWeight": "500"
                                     }
@@ -248,16 +248,16 @@ def unified_kpi_card(
                                 data_key="bucket",
                                 tick_line=False,
                                 axis_line=False,
-                                tick={"fontSize": 7, "fill": "#9ca3af", "angle": -45, "textAnchor": "end"},  # 45도 회전
+                                tick={"fontSize": 7, "fill": "#6E8093", "angle": -45, "textAnchor": "end"},  # 45도 회전
                                 interval="preserveStartEnd",
                                 height=25                         # 회전된 텍스트를 위한 여백
                             ),
                             rx.recharts.tooltip(
                                 content_style={
-                                    "backgroundColor": "white",
-                                    "border": "1px solid #e5e7eb",
+                                    "backgroundColor": "#13212F",
+                                    "border": "1px solid #22384E",
                                     "borderRadius": "6px",
-                                    "color": "#374151",
+                                    "color": "#8DA2C0",
                                     "boxShadow": "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
                                 }
                             ),

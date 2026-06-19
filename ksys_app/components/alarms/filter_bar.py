@@ -36,13 +36,13 @@ def filter_bar(
         on_change=on_search,
         size="2",
         width="40%",
-        bg="white",
+        bg="var(--ks-panel)",
     ) if on_search else rx.input(
         placeholder="Search by tag, message, or cause...",
         value=search_value,
         size="2",
         width="40%",
-        bg="white",
+        bg="var(--ks-panel)",
     )
 
     severity_select = rx.select(
@@ -87,11 +87,11 @@ def live_indicator(is_live: bool | rx.Var = True, last_update: str | rx.Var = "J
             width="8px",
             height="8px",
             border_radius="full",
-            bg=rx.cond(is_live, "#10b981", "#9ca3af"),
+            bg=rx.cond(is_live, "#10b981", "#6E8093"),
             class_name=rx.cond(is_live, "animate-pulse", ""),
         ),
-        rx.text("LIVE", size="2", weight="bold", color=rx.cond(is_live, "#10b981", "#9ca3af")),
-        rx.text(f"Last update: {last_update}", size="1", color="#6b7280"),
+        rx.text("LIVE", size="2", weight="bold", color=rx.cond(is_live, "#10b981", "#6E8093")),
+        rx.text(f"Last update: {last_update}", size="1", color="#8DA2C0"),
         gap="2",
         align="center",
     )
@@ -103,7 +103,7 @@ def action_bar(shown_count: int | rx.Var, selected_count: int | rx.Var) -> rx.Co
         rx.text(
             f"{shown_count} alarms shown | {selected_count} selected",
             size="2",
-            color="#6b7280",
+            color="#8DA2C0",
         ),
         rx.spacer(),
         rx.flex(
@@ -124,7 +124,7 @@ def action_bar(shown_count: int | rx.Var, selected_count: int | rx.Var) -> rx.Co
         justify="between",
         align="center",
         padding="3",
-        bg="#f9fafb",
+        bg="#192D40",
         border_radius="md",
         width="100%",
     )

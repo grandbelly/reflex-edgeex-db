@@ -7,7 +7,7 @@ TOOLTIP_PROPS = {
         "color": "#cbd5e1",
     },
     "item_style": {
-        "color": "#e5e7eb",
+        "color": "#E8F0FA",
         "display": "flex",
         "paddingBottom": "0px",
         "justifyContent": "space-between",

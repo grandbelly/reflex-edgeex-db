@@ -39,8 +39,8 @@ def performance_trend_chart(state_class: Any) -> rx.Component:
             # Tooltip
             rx.recharts.graphing_tooltip(
                 content_style={
-                    "backgroundColor": "var(--gray-1)",
-                    "border": "1px solid var(--gray-6)",
+                    "backgroundColor": "#0E1724",
+                    "border": "1px solid #22384E",
                     "borderRadius": "8px",
                 },
                 formatter=rx.Var.create(
@@ -131,8 +131,8 @@ def model_comparison_chart(state_class: Any) -> rx.Component:
             # Tooltip
             rx.recharts.graphing_tooltip(
                 content_style={
-                    "backgroundColor": "var(--gray-1)",
-                    "border": "1px solid var(--gray-6)",
+                    "backgroundColor": "#0E1724",
+                    "border": "1px solid #22384E",
                     "borderRadius": "8px",
                 },
                 formatter=rx.Var.create(
@@ -242,8 +242,8 @@ def drift_severity_chart(state_class: Any) -> rx.Component:
             # Tooltip
             rx.recharts.graphing_tooltip(
                 content_style={
-                    "backgroundColor": "var(--gray-1)",
-                    "border": "1px solid var(--gray-6)",
+                    "backgroundColor": "#0E1724",
+                    "border": "1px solid #22384E",
                     "borderRadius": "8px",
                 },
             ),
@@ -828,7 +828,7 @@ def deployed_model_info_card(state_class: Any) -> rx.Component:
                                 ),
                                 padding="3",
                                 border_radius="md",
-                                bg=rx.color("purple", 2)
+                                bg="#192D40"
                             ),
                             rx.box(
                                 rx.vstack(
@@ -852,7 +852,7 @@ def deployed_model_info_card(state_class: Any) -> rx.Component:
                                 ),
                                 padding="3",
                                 border_radius="md",
-                                bg=rx.color("green", 2)
+                                bg="#192D40"
                             ),
                             rx.box(
                                 rx.vstack(
@@ -876,7 +876,7 @@ def deployed_model_info_card(state_class: Any) -> rx.Component:
                                 ),
                                 padding="3",
                                 border_radius="md",
-                                bg=rx.color("amber", 2)
+                                bg="#192D40"
                             ),
                             columns="3",
                             spacing="3",

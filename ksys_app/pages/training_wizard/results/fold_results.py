@@ -63,7 +63,7 @@ def fold_results_section() -> rx.Component:
                 border_radius="md",
                 border="1px solid",
                 border_color=rx.color("gray", 4),
-                background=rx.color("gray", 1),
+                background="#192D40",
             ),
 
             # Note: Individual fold charts disabled due to Reflex 0.8.9 nested data limitation

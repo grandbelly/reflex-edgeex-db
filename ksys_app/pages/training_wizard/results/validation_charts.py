@@ -36,7 +36,7 @@ def validation_chart_section() -> rx.Component:
                 border_radius="md",
                 border="1px solid",
                 border_color=rx.color("gray", 4),
-                background=rx.color("gray", 1),
+                background="#192D40",
             ),
             spacing="3",
         ),
@@ -119,7 +119,7 @@ def forecast_chart_section() -> rx.Component:
                 border_radius="md",
                 border="1px solid",
                 border_color=rx.color("gray", 4),
-                background=rx.color("gray", 1),
+                background="#192D40",
             ),
 
             spacing="3",

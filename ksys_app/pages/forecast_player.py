@@ -589,7 +589,7 @@ def enhanced_forecast_chart() -> rx.Component:
                     # Tooltip
                     rx.recharts.tooltip(
                         content_style={
-                            "backgroundColor": "rgba(255, 255, 255, 0.95)",
+                            "backgroundColor": "#0E1724",
                             "border": "1px solid #e2e8f0",
                             "borderRadius": "8px",
                             "padding": "10px"

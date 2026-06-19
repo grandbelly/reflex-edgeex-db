@@ -137,17 +137,17 @@ def create_mlforecast_chart_figure(data: List[Dict[str, Any]]) -> go.Figure:
             title='Time',
             showgrid=True,
             gridwidth=1,
-            gridcolor='rgba(200,200,200,0.3)'
+            gridcolor='rgba(46,56,78,0.4)'
         ),
         yaxis=dict(
             title='Value',
             showgrid=True,
             gridwidth=1,
-            gridcolor='rgba(200,200,200,0.3)'
+            gridcolor='rgba(46,56,78,0.4)'
         ),
         hovermode='x unified',
         height=450,
-        template='plotly_white',
+        template='plotly_dark',
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -156,8 +156,8 @@ def create_mlforecast_chart_figure(data: List[Dict[str, Any]]) -> go.Figure:
             x=1
         ),
         margin=dict(l=50, r=50, t=80, b=50),
-        plot_bgcolor='rgba(250, 250, 250, 0.5)',
-        paper_bgcolor='white'
+        plot_bgcolor='rgba(13, 17, 24, 0.5)',
+        paper_bgcolor='#0A1018'
     )
 
     return fig
@@ -179,5 +179,5 @@ def forecast_chart_component() -> rx.Component:
         border_radius="md",
         border="1px solid",
         border_color=rx.color("gray", 4),
-        bg="white",
+        bg="var(--ks-panel)",
     )

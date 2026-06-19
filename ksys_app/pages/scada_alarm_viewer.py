@@ -140,7 +140,7 @@ def alarm_log_table() -> rx.Component:
                                     "rgba(255, 255, 0, 0.1)",
                                     "transparent"
                                 ),
-                                _hover={"background_color": "rgba(255, 255, 255, 0.05)"}
+                                _hover={"background_color": "rgba(25, 45, 64, 0.5)"}
                             )
                         )
                     ),

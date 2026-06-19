@@ -5,7 +5,7 @@ def radial_gauge(percent: rx.Var, value_text: rx.Var, label: rx.Var | str = "Cur
     # percent: 0..100, color: stroke color
     p = percent.to_string()
     col = color if isinstance(color, str) else color.to_string()
-    track = track_css.to_string() if track_css is not None else "conic-gradient(#e5e7eb 0 100%)"
+    track = track_css.to_string() if track_css is not None else "conic-gradient(#22384E 0 100%)"
     bg = rx.Var.create(f"conic-gradient({col} {p}%, transparent {p}% 100%), {track}")
     return rx.el.div(
         rx.el.div(

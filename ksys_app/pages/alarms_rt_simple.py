@@ -86,7 +86,7 @@ def alarms_rt_page() -> rx.Component:
 
             # All Sensor Status Cards (detailed view)
             rx.vstack(
-                rx.heading("🔍 All Sensor Status", size="3", color="#111827"),
+                rx.heading("🔍 All Sensor Status", size="3", color="#E8F0FA"),
                 rx.grid(
                     rx.foreach(
                         A.all_sensors,
@@ -98,7 +98,7 @@ def alarms_rt_page() -> rx.Component:
                                         sensor["tag_name"],
                                         size="2",
                                         weight="bold",
-                                        color="#111827",
+                                        color="#E8F0FA",
                                     ),
                                     rx.badge(
                                         sensor["status"],
@@ -121,7 +121,7 @@ def alarms_rt_page() -> rx.Component:
                                 rx.text(
                                     sensor["description"],
                                     size="1",
-                                    color="#6b7280",
+                                    color="#8DA2C0",
                                 ),
                                 # Value
                                 rx.flex(
@@ -129,12 +129,12 @@ def alarms_rt_page() -> rx.Component:
                                         f"{sensor['value']:.2f}",
                                         size="3",
                                         weight="bold",
-                                        color="#111827",
+                                        color="#E8F0FA",
                                     ),
                                     rx.text(
                                         sensor["unit"],
                                         size="1",
-                                        color="#9ca3af",
+                                        color="#6E8093",
                                     ),
                                     gap="1",
                                     align="baseline",
@@ -143,20 +143,20 @@ def alarms_rt_page() -> rx.Component:
                                 rx.text(
                                     f"Range: {sensor['min_val']:.2f} ~ {sensor['max_val']:.2f}",
                                     size="1",
-                                    color="#9ca3af",
+                                    color="#6E8093",
                                 ),
                                 # Timestamp
                                 rx.text(
                                     sensor["timestamp"],
                                     size="1",
-                                    color="#9ca3af",
+                                    color="#6E8093",
                                 ),
                                 spacing="2",
                                 align="start",
                             ),
                             padding="3",
-                            bg="white",
-                            border="1px solid #e5e7eb",
+                            bg="var(--ks-panel)",
+                            border="1px solid #22384E",
                             border_radius="md",
                             _hover={"border_color": "#3b82f6"},
                         )
@@ -267,7 +267,7 @@ def alarms_rt_page() -> rx.Component:
                                                 alarm["tag_name"],
                                                 size="2",
                                                 weight="bold",
-                                                color="#111827",
+                                                color="#E8F0FA",
                                             ),
                                             gap="2",
                                             align="center",
@@ -277,7 +277,7 @@ def alarms_rt_page() -> rx.Component:
                                             rx.text(
                                                 alarm["last_alarm_time"],
                                                 size="2",
-                                                color="#6b7280",
+                                                color="#8DA2C0",
                                             ),
                                             rx.button(
                                                 "Acknowledge",
@@ -297,28 +297,28 @@ def alarms_rt_page() -> rx.Component:
                                     # Details row
                                     rx.flex(
                                         rx.vstack(
-                                            rx.text("현재값", size="1", color="#9ca3af"),
+                                            rx.text("현재값", size="1", color="#6E8093"),
                                             rx.text(
                                                 f"{alarm['current_value']:.2f}",
                                                 size="2",
                                                 weight="bold",
-                                                color="#111827",
+                                                color="#E8F0FA",
                                             ),
                                             spacing="1",
                                             align="start",
                                         ),
                                         rx.vstack(
-                                            rx.text("임계값", size="1", color="#9ca3af"),
+                                            rx.text("임계값", size="1", color="#6E8093"),
                                             rx.text(
                                                 f"{alarm['threshold_low']:.2f} ~ {alarm['threshold_high']:.2f}",
                                                 size="2",
-                                                color="#111827",
+                                                color="#E8F0FA",
                                             ),
                                             spacing="1",
                                             align="start",
                                         ),
                                         rx.vstack(
-                                            rx.text("시나리오", size="1", color="#9ca3af"),
+                                            rx.text("시나리오", size="1", color="#6E8093"),
                                             rx.badge(
                                                 alarm["scenario"],
                                                 size="2",
@@ -339,8 +339,8 @@ def alarms_rt_page() -> rx.Component:
                                     spacing="3",
                                 ),
                                 padding="4",
-                                bg="white",
-                                border="1px solid #e5e7eb",
+                                bg="var(--ks-panel)",
+                                border="1px solid #22384E",
                                 border_radius="lg",
                                 _hover={"border_color": "#3b82f6"},
                             )
@@ -351,17 +351,17 @@ def alarms_rt_page() -> rx.Component:
                     # No data state
                     rx.center(
                         rx.vstack(
-                            rx.icon("inbox", size=48, color="#9ca3af"),
+                            rx.icon("inbox", size=48, color="#6E8093"),
                             rx.text(
                                 "알람이 없습니다",
                                 size="4",
                                 weight="bold",
-                                color="#6b7280",
+                                color="#8DA2C0",
                             ),
                             rx.text(
                                 "필터를 조정하거나 새로고침하세요",
                                 size="2",
-                                color="#9ca3af",
+                                color="#6E8093",
                             ),
                             spacing="3",
                         ),
@@ -376,7 +376,7 @@ def alarms_rt_page() -> rx.Component:
                 rx.text(
                     f"Showing {A.total_alarm_count} alarms",
                     size="2",
-                    color="#6b7280",
+                    color="#8DA2C0",
                 ),
                 rx.button(
                     "Load More",
@@ -387,7 +387,7 @@ def alarms_rt_page() -> rx.Component:
                 justify="between",
                 align="center",
                 padding="3",
-                bg="#f9fafb",
+                bg="#192D40",
                 border_radius="md",
                 width="100%",
             ),
@@ -395,7 +395,7 @@ def alarms_rt_page() -> rx.Component:
             spacing="4",
             padding="4",
             width="100%",
-            class_name="bg-white min-h-screen",
+            class_name="min-h-screen",
         ),
         active_route="/alarms_rt",
     )

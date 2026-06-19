@@ -175,9 +175,9 @@ def mini_chart(
         # X axis - visible with time labels
         rx.recharts.x_axis(
             data_key="timestamp",
-            tick={"fontSize": 10, "fill": "#666"},
-            stroke="#e5e7eb",
-            tick_line={"stroke": "#e5e7eb"},
+            tick={"fontSize": 10, "fill": "#8DA2C0"},
+            stroke="#22384E",
+            tick_line={"stroke": "#22384E"},
             tick_count=3,
             angle=-15,
             text_anchor="end",
@@ -186,9 +186,9 @@ def mini_chart(
 
         # Y axis - visible with value labels
         rx.recharts.y_axis(
-            tick={"fontSize": 10, "fill": "#666"},
-            stroke="#e5e7eb",
-            tick_line={"stroke": "#e5e7eb"},
+            tick={"fontSize": 10, "fill": "#8DA2C0"},
+            stroke="#22384E",
+            tick_line={"stroke": "#22384E"},
             tick_count=5,
             width=50,
             domain=["auto", "auto"]
@@ -197,28 +197,28 @@ def mini_chart(
         # Grid for better readability
         rx.recharts.cartesian_grid(
             stroke_dasharray="3 3",
-            stroke="#e5e7eb",
+            stroke="#22384E",
             stroke_opacity=0.3
         ),
 
         # Tooltip
         rx.recharts.tooltip(
             content_style={
-                "backgroundColor": "rgba(255, 255, 255, 0.95)",
-                "border": "1px solid #d1d5db",
+                "backgroundColor": "#13212F",
+                "border": "1px solid #22384E",
                 "borderRadius": "6px",
                 "padding": "8px 10px",
                 "boxShadow": "0 4px 12px rgba(0,0,0,0.15)",
                 "fontSize": "11px"
             },
             label_style={
-                "color": "#374151",
+                "color": "#8DA2C0",
                 "fontWeight": "600",
                 "fontSize": "11px",
                 "marginBottom": "4px"
             },
             item_style={
-                "color": "#6b7280",
+                "color": "#8DA2C0",
                 "fontSize": "11px"
             },
             separator=": ",

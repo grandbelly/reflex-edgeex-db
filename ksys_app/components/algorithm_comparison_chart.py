@@ -89,8 +89,8 @@ def algorithm_comparison_chart(state_class: Any) -> rx.Component:
                 # Tooltip with custom formatter
                 rx.recharts.graphing_tooltip(
                     content_style={
-                        "backgroundColor": "var(--gray-1)",
-                        "border": "1px solid var(--gray-6)",
+                        "backgroundColor": "#0E1724",
+                        "border": "1px solid #22384E",
                         "borderRadius": "8px",
                         "padding": "12px",
                     },

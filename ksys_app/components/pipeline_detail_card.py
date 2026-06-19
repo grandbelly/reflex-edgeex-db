@@ -75,7 +75,7 @@ def pipeline_detail_card(model: rx.Var) -> rx.Component:
                 width="100%",
                 padding="2",
                 border_radius="md",
-                bg=rx.color("purple", 2),
+                bg="#192D40",
             ),
 
             rx.divider(),

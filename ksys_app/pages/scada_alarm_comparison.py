@@ -79,7 +79,7 @@ def stat_card_comparison(title: str, value: rx.Var, subtitle: str = "", color: s
                 title,
                 size="2",
                 weight="bold",
-                color="#111827"  # gray-900
+                color="#E8F0FA"  # gray-900
             ),
             rx.text(
                 value,
@@ -90,12 +90,12 @@ def stat_card_comparison(title: str, value: rx.Var, subtitle: str = "", color: s
             rx.text(
                 subtitle,
                 size="1",
-                color="#6b7280"  # gray-500
+                color="#8DA2C0"  # gray-500
             ),
             spacing="1",
             align="center"
         ),
-        bg="white",
+        bg="var(--ks-panel)",
         border=f"1px solid {rx.color(color, 4)}",
         class_name="hover:shadow-lg transition-all duration-200"
     )
@@ -111,12 +111,12 @@ def comparison_page_content() -> rx.Component:
                     "AI Alarms Comparison",
                     size="7",
                     weight="bold",
-                    color="#111827"
+                    color="#E8F0FA"
                 ),
                 rx.text(
                     "Rule-based vs AI-based alarm comparison and analysis",
                     size="3",
-                    color="#6b7280"
+                    color="#8DA2C0"
                 ),
                 spacing="1",
                 align="start"
@@ -126,7 +126,7 @@ def comparison_page_content() -> rx.Component:
                 rx.text(
                     f"Total: {ScadaAlarmComparisonState.total_pairs} pairs",
                     size="2",
-                    color="#6b7280"
+                    color="#8DA2C0"
                 ),
                 rx.button(
                     rx.icon("refresh-cw", size=16),
@@ -179,7 +179,7 @@ def comparison_page_content() -> rx.Component:
         # 비교 테이블
         rx.card(
             rx.vstack(
-                rx.heading("Comparison Details", size="4", color="#111827"),
+                rx.heading("Comparison Details", size="4", color="#E8F0FA"),
 
                 rx.box(
                     rx.table.root(
@@ -204,14 +204,14 @@ def comparison_page_content() -> rx.Component:
                                             item["timestamp"],
                                             size="2",
                                             font_family="monospace",
-                                            color="#374151"
+                                            color="#8DA2C0"
                                         )
                                     ),
                                     # 센서
                                     rx.table.cell(
                                         rx.vstack(
                                             rx.badge(item["tag_name"], variant="outline", color_scheme="blue"),
-                                            rx.text(item["sensor_type"], size="1", color="#9ca3af"),
+                                            rx.text(item["sensor_type"], size="1", color="#6E8093"),
                                             spacing="1",
                                             align="start"
                                         )
@@ -221,7 +221,7 @@ def comparison_page_content() -> rx.Component:
                                         rx.text(
                                             f"{item['value']}{item['unit']}",
                                             weight="bold",
-                                            color="#111827"
+                                            color="#E8F0FA"
                                         )
                                     ),
                                     # 레벨
@@ -231,7 +231,7 @@ def comparison_page_content() -> rx.Component:
                                     # Rule 메시지
                                     rx.table.cell(
                                         rx.vstack(
-                                            rx.text(item["rule_message"], size="2", color="#111827"),
+                                            rx.text(item["rule_message"], size="2", color="#E8F0FA"),
                                             rx.text(
                                                 f"Cause: {item['rule_cause']}",
                                                 size="1",
@@ -249,7 +249,7 @@ def comparison_page_content() -> rx.Component:
                                     # AI 메시지
                                     rx.table.cell(
                                         rx.vstack(
-                                            rx.text(item["ai_message"], size="2", color="#111827"),
+                                            rx.text(item["ai_message"], size="2", color="#E8F0FA"),
                                             rx.text(
                                                 f"Cause: {item['ai_cause']}",
                                                 size="1",
@@ -274,13 +274,13 @@ def comparison_page_content() -> rx.Component:
                                                 color="#8b5cf6",  # purple-500
                                                 weight="medium"
                                             ),
-                                            rx.text("N/A", size="2", color="#9ca3af")
+                                            rx.text("N/A", size="2", color="#6E8093")
                                         )
                                     ),
                                     bg=rx.cond(
                                         item["is_new"],
-                                        "#fef3c7",  # yellow-100 for new items
-                                        "white"
+                                        "rgba(255,180,84,0.10)",  # yellow-100 for new items
+                                        "transparent"
                                     ),
                                     class_name="hover:bg-gray-50 transition-colors duration-150"
                                 )
@@ -292,23 +292,23 @@ def comparison_page_content() -> rx.Component:
                     ),
                     max_height="500px",
                     overflow_y="auto",
-                    border="1px solid #e5e7eb",
+                    border="1px solid #22384E",
                     border_radius="8px"
                 ),
 
                 spacing="3",
                 width="100%"
             ),
-            bg="white"
+            bg="var(--ks-panel)"
         ),
 
         # 분석 섹션
         rx.grid(
             rx.card(
                 rx.vstack(
-                    rx.heading("Message Quality Analysis", size="4", color="#111827"),
+                    rx.heading("Message Quality Analysis", size="4", color="#E8F0FA"),
                     rx.hstack(
-                        rx.text("Average Length:", size="2", color="#6b7280"),
+                        rx.text("Average Length:", size="2", color="#8DA2C0"),
                         rx.text(
                             f"Rule: {ScadaAlarmComparisonState.avg_rule_length} chars",
                             size="2",
@@ -326,11 +326,11 @@ def comparison_page_content() -> rx.Component:
                     spacing="2",
                     align="start"
                 ),
-                bg="white"
+                bg="var(--ks-panel)"
             ),
             rx.card(
                 rx.vstack(
-                    rx.heading("Performance Comparison", size="4", color="#111827"),
+                    rx.heading("Performance Comparison", size="4", color="#E8F0FA"),
                     rx.vstack(
                         rx.text(
                             f"AI Avg Response: {ScadaAlarmComparisonState.avg_ai_response}s",
@@ -350,7 +350,7 @@ def comparison_page_content() -> rx.Component:
                     spacing="2",
                     align="start"
                 ),
-                bg="white"
+                bg="var(--ks-panel)"
             ),
             columns="2",
             spacing="4",

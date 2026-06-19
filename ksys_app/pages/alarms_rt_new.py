@@ -28,7 +28,7 @@ def alarms_rt_page() -> rx.Component:
                     "🔴 Alarm Dashboard",
                     size="5",
                     weight="bold",
-                    color="#111827",
+                    color="#E8F0FA",
                 ),
                 rx.spacer(),
                 rx.flex(
@@ -129,17 +129,17 @@ def alarms_rt_page() -> rx.Component:
                     # No data state
                     rx.center(
                         rx.vstack(
-                            rx.icon("inbox", size=48, color="#9ca3af"),
+                            rx.icon("inbox", size=48, color="#6E8093"),
                             rx.text(
                                 "알람이 없습니다",
                                 size="4",
                                 weight="bold",
-                                color="#6b7280",
+                                color="#8DA2C0",
                             ),
                             rx.text(
                                 "필터를 조정하거나 새로고침하세요",
                                 size="2",
-                                color="#9ca3af",
+                                color="#6E8093",
                             ),
                             spacing="3",
                         ),
@@ -154,7 +154,7 @@ def alarms_rt_page() -> rx.Component:
                 rx.text(
                     f"Showing {A.total_alarm_count} alarms",
                     size="2",
-                    color="#6b7280",
+                    color="#8DA2C0",
                 ),
                 rx.button(
                     "Next",
@@ -165,7 +165,7 @@ def alarms_rt_page() -> rx.Component:
                 justify="between",
                 align="center",
                 padding="3",
-                bg="#f9fafb",
+                bg="#192D40",
                 border_radius="md",
                 width="100%",
             ),
@@ -173,7 +173,7 @@ def alarms_rt_page() -> rx.Component:
             spacing="4",
             padding="4",
             width="100%",
-            class_name="bg-white min-h-screen",
+            class_name="min-h-screen",
         ),
         active_route="/alarms_rt_new",
         on_mount=A.on_load,

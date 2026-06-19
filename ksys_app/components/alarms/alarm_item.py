@@ -67,7 +67,7 @@ def alarm_item(alarm: Dict) -> rx.Component:
                     rx.text(
                         alarm["timestamp"],
                         size="1",
-                        color="#6b7280",
+                        color="#8DA2C0",
                     ),
                     rx.text(
                         "|",
@@ -77,7 +77,7 @@ def alarm_item(alarm: Dict) -> rx.Component:
                     rx.text(
                         alarm["duration"],
                         size="1",
-                        color="#6b7280",
+                        color="#8DA2C0",
                     ),
                     rx.button(
                         "Acknowledge",
@@ -105,14 +105,14 @@ def alarm_item(alarm: Dict) -> rx.Component:
                 alarm["message"],
                 size="2",
                 weight="medium",
-                color="#111827",
+                color="#E8F0FA",
             ),
 
             # Sensor info row
             rx.flex(
                 # Sensor tag
                 rx.flex(
-                    rx.text("Sensor:", size="1", color="#9ca3af"),
+                    rx.text("Sensor:", size="1", color="#6E8093"),
                     rx.badge(
                         alarm["tag_name"],
                         variant="soft",
@@ -125,18 +125,18 @@ def alarm_item(alarm: Dict) -> rx.Component:
 
                 # Value vs Threshold
                 rx.flex(
-                    rx.text("Value:", size="1", color="#9ca3af"),
+                    rx.text("Value:", size="1", color="#6E8093"),
                     rx.text(
                         f"{alarm['value']}",
                         size="1",
                         weight="bold",
-                        color="#111827",
+                        color="#E8F0FA",
                     ),
-                    rx.text("Threshold:", size="1", color="#9ca3af"),
+                    rx.text("Threshold:", size="1", color="#6E8093"),
                     rx.text(
                         alarm["threshold"],
                         size="1",
-                        color="#6b7280",
+                        color="#8DA2C0",
                     ),
                     gap="2",
                     align="center",
@@ -144,11 +144,11 @@ def alarm_item(alarm: Dict) -> rx.Component:
 
                 # Location
                 rx.flex(
-                    rx.text("Location:", size="1", color="#9ca3af"),
+                    rx.text("Location:", size="1", color="#6E8093"),
                     rx.text(
                         alarm["location"],
                         size="1",
-                        color="#111827",
+                        color="#E8F0FA",
                     ),
                     gap="1",
                     align="center",
@@ -162,8 +162,8 @@ def alarm_item(alarm: Dict) -> rx.Component:
         ),
         padding="4",
         border_radius="md",
-        bg="white",
-        border="1px solid #e5e7eb",
+        bg="var(--ks-panel)",
+        border="1px solid #22384E",
         _hover={"border_color": "#3b82f6", "box_shadow": "0 1px 3px 0 rgba(0, 0, 0, 0.1)"},
         width="100%",
     )

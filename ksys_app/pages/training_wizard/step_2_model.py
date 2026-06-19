@@ -57,7 +57,7 @@ def step_2_model() -> rx.Component:
                     bg=rx.cond(
                         TrainingWizardState.selected_model == "auto_arima",
                         rx.color("green", 2),
-                        rx.color("gray", 1)
+                        rx.color("slate", 3)
                     ),
                     width="100%",
                     min_width="0",
@@ -91,7 +91,7 @@ def step_2_model() -> rx.Component:
                     bg=rx.cond(
                         TrainingWizardState.selected_model == "prophet",
                         rx.color("blue", 2),
-                        rx.color("gray", 1)
+                        rx.color("slate", 3)
                     ),
                     width="100%",
                     min_width="0",
@@ -125,7 +125,7 @@ def step_2_model() -> rx.Component:
                     bg=rx.cond(
                         TrainingWizardState.selected_model == "xgboost",
                         rx.color("purple", 2),
-                        rx.color("gray", 1)
+                        rx.color("slate", 3)
                     ),
                     width="100%",
                     min_width="0",

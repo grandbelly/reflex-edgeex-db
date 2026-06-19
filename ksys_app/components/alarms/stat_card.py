@@ -29,11 +29,11 @@ def stat_card(
 
     # Color schemes for Light Mode
     color_schemes = {
-        "gray": {"icon_bg": "#f3f4f6", "icon_color": "#6b7280"},
+        "gray": {"icon_bg": "#192D40", "icon_color": "#8DA2C0"},
         "red": {"icon_bg": "#fef2f2", "icon_color": "#ef4444"},
         "orange": {"icon_bg": "#fff7ed", "icon_color": "#f97316"},
-        "blue": {"icon_bg": "#eff6ff", "icon_color": "#3b82f6"},
-        "green": {"icon_bg": "#d1fae5", "icon_color": "#10b981"},
+        "blue": {"icon_bg": "rgba(77,163,255,0.10)", "icon_color": "#3b82f6"},
+        "green": {"icon_bg": "rgba(54,226,192,0.10)", "icon_color": "#10b981"},
     }
 
     scheme = color_schemes.get(color, color_schemes["gray"])
@@ -51,7 +51,7 @@ def stat_card(
                 rx.spacer(),
                 rx.cond(
                     trend is not None,
-                    rx.text(trend, size="1", color="#6b7280", weight="medium"),
+                    rx.text(trend, size="1", color="#8DA2C0", weight="medium"),
                     rx.box(),
                 ),
                 justify="between",
@@ -63,7 +63,7 @@ def stat_card(
                 value,
                 size="6",
                 weight="bold",
-                color="#111827",
+                color="#E8F0FA",
             ),
 
             # Title
@@ -71,7 +71,7 @@ def stat_card(
                 title,
                 size="1",
                 weight="medium",
-                color="#6b7280",
+                color="#8DA2C0",
             ),
 
             spacing="2",
@@ -79,6 +79,6 @@ def stat_card(
         ),
         padding="4",
         size="2",
-        bg="white",
-        border="1px solid #e5e7eb",
+        bg="var(--ks-panel)",
+        border="1px solid #22384E",
     )

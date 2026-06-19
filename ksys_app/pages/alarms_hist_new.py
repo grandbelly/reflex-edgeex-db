@@ -214,9 +214,9 @@ def alarms_hist_page() -> rx.Component:
                                     class_name="hover:bg-gray-50"
                                 )
                             ),
-                            class_name="bg-white divide-y divide-gray-200"
+                            class_name="bg-white divide-y divide-[#22384e]"
                         ),
-                        class_name="min-w-full divide-y divide-gray-200"
+                        class_name="min-w-full divide-y divide-[#22384e]"
                     ),
                     class_name="overflow-x-auto"
                 ),

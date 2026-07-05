@@ -24,18 +24,12 @@ class BaseState(rx.State):
     # Sidebar state - shared across all pages
     sidebar_collapsed: bool = False
 
-    # Theme state - shared across all pages
-    theme_mode: str = "dark"  # "dark" or "light"
+    # Theme: handled by Reflex native color mode (rx.color_mode) — no state here.
 
     @rx.event
     def toggle_sidebar(self):
         """Toggle sidebar collapse state"""
         self.sidebar_collapsed = not self.sidebar_collapsed
-
-    @rx.event
-    def toggle_theme(self):
-        """Toggle between dark and light theme"""
-        self.theme_mode = "light" if self.theme_mode == "dark" else "dark"
 
     @rx.event(background=True)
     async def start_polling(self, interval: Optional[int] = None):

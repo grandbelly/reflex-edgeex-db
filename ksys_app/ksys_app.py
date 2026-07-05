@@ -127,9 +127,12 @@ except Exception as e:
 
 
 app = rx.App(
-    # RO control-room theme — dark instrument console (frontend-design).
+    # design-optimization Phase 1: follow the native color mode (next-themes,
+    # <html class="dark">) instead of pinning dark — 254 rx.color() calls and
+    # the --am-* token layer flip together. Dark stays the default via the
+    # localStorage seed below.
     theme=rx.theme(
-        appearance="dark",
+        appearance="inherit",
         accent_color="teal",   # instrument aqua/permeate
         gray_color="slate",
         radius="medium",
@@ -145,10 +148,10 @@ app = rx.App(
         }
     },
     head_components=[
-        # Control-room app has no theme toggle — pin dark so prior visitors
-        # who still have `theme: light` in localStorage also get the new theme.
+        # Seed dark as the DEFAULT only — do not overwrite a user's choice,
+        # the sidebar color-mode toggle owns it from here on.
         rx.script(
-            "try{localStorage.setItem('theme','dark');"
+            "try{if(!localStorage.getItem('theme')){localStorage.setItem('theme','dark');}"
             "localStorage.removeItem('chakra-ui-color-mode');}catch(e){}"
         ),
     ],

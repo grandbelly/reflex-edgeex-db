@@ -148,6 +148,14 @@ def collapsed_sidebar() -> rx.Component:
             align="stretch",
             padding_top="1rem",
         ),
+        rx.spacer(),
+        rx.flex(
+            rx.color_mode.button(size="1", variant="ghost"),
+            justify="center",
+            width="100%",
+            padding_top="0.5rem",
+            border_top="1px solid var(--ks-line)",
+        ),
         height="100vh",
         width="64px",
         flex_shrink="0",
@@ -206,6 +214,15 @@ def sidebar(active: str = "/") -> rx.Component:
 
         # Spacer
         rx.spacer(),
+
+        # 다크/라이트 토글 — Reflex 네이티브 color mode (html.dark 클래스 토글)
+        rx.flex(
+            rx.color_mode.button(size="2", variant="ghost"),
+            justify="center",
+            width="100%",
+            padding_top="0.75rem",
+            border_top="1px solid var(--ks-line)",
+        ),
 
         height="100vh",
         width="240px",

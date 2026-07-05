@@ -1,0 +1,6 @@
+{
+  "name": "Metrics Dashboard",
+  "description": "A high-performance monitoring dashboard inspired by Grafana and crafted with premium Apple-inspired design aesthetics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

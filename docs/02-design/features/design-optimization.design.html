@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디자인 최적화 (design-optimization) — Design</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px; line-height: 1.65; max-width: 1320px; margin-left: auto; margin-right: auto; }
+  h1 { font-size: 34px; border-bottom: 2px solid #30363d; padding-bottom: 14px; margin-bottom: 8px;
+       background: linear-gradient(135deg, #2ea043 0%, #79c0ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: #8b949e; font-size: 15px; margin-bottom: 28px; }
+  h2 { font-size: 24px; color: #2ea043; margin-top: 44px; border-left: 4px solid #2ea043; padding-left: 14px; }
+  h3 { font-size: 18px; color: #ffa657; margin-top: 28px; }
+  code { background: #161b22; color: #ff7b72; padding: 2px 7px; border-radius: 4px; font-size: 0.92em; }
+  pre { background: #161b22; padding: 16px; border-radius: 8px; overflow-x: auto; border: 1px solid #30363d; font-size: 12.5px; }
+  pre code { background: transparent; color: #e6edf3; padding: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13.5px; }
+  th, td { border: 1px solid #30363d; padding: 10px 12px; text-align: left; vertical-align: top; }
+  th { background: #161b22; color: #2ea043; font-weight: 600; }
+  tr:nth-child(even) { background: #0d1117; } tr:nth-child(odd) { background: #131923; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 24px 0; }
+  .kpi { background: linear-gradient(135deg, #1c2128 0%, #161b22 100%); border: 1px solid #30363d; border-radius: 12px; padding: 18px; }
+  .kpi .v { font-size: 27px; font-weight: 700; color: #79c0ff; } .kpi .l { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .kpi.green .v { color: #3fb950; } .kpi.red .v { color: #f85149; } .kpi.orange .v { color: #ffa657; } .kpi.purple .v { color: #a371f7; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; margin-right: 6px; }
+  .tag-p0 { background: #f85149; color: #fff; } .tag-p1 { background: #1f6feb; color: #fff; } .tag-p2 { background: #6e7681; color: #fff; }
+  .tag-new { background: #a371f7; color: #fff; } .tag-fix { background: #ff7b72; color: #fff; } .tag-ok { background: #2ea043; color: #fff; }
+  .callout { background: #1c2128; border-left: 4px solid #d29922; padding: 14px 18px; margin: 16px 0; border-radius: 6px; }
+  .callout.success { border-left-color: #3fb950; background: #0e2417; } .callout.danger { border-left-color: #f85149; background: #2b1414; }
+  .callout.info { border-left-color: #79c0ff; background: #0a1f33; } .callout.purple { border-left-color: #a371f7; background: #1b1530; }
+  .phase { background: #161b22; border: 1px solid #30363d; border-left: 5px solid #79c0ff; border-radius: 8px; padding: 18px 22px; margin: 14px 0; }
+  .phase.p1 { border-left-color: #79c0ff; } .phase.p2 { border-left-color: #a371f7; } .phase.p3 { border-left-color: #2ea043; } .phase.p4 { border-left-color: #ffa657; }
+  .good { color: #3fb950; font-weight: 700; } .bad { color: #f85149; font-weight: 700; } .warn { color: #d29922; font-weight: 700; }
+  .meta { color: #8b949e; font-size: 13px; }
+  .ac-block { background: #0e2417; border-left: 3px solid #3fb950; padding: 8px 14px; border-radius: 4px; margin-top: 10px; font-size: 13px; }
+  hr { border: none; border-top: 1px dashed #30363d; margin: 36px 0; }
+  ul li, ol li { margin-bottom: 6px; }
+  .mono { font-family: ui-monospace, "SF Mono", monospace; color: #79c0ff; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<h1>🎨 디자인 최적화 — Design</h1>
+<p class="subtitle">Feature <code>design-optimization</code> · Generated 2026-06-30 · Phase <strong>design</strong> · Plan 참조: <code>docs/01-plan/features/design-optimization.plan.html</code> · <span class="meta">근거: 6-agent design 워크플로우 (Probe×4[코드+context7+reflex docs] → Synthesize → Critique[세션한도로 미완]). 핵심 메커니즘은 컴파일된 <code>.web</code> 출력으로 실증.</span></p>
+
+<div class="callout success"><strong>확정 결정(사용자):</strong> ① SCADA 전용 화면도 <strong>Apple-mode 전환</strong> · ② 라이트 모드 <strong>1급 노출</strong> · ③ <strong>Radix appearance 반응형 바인딩</strong> — 셋 다 "전 화면 듀얼테마"를 향하며, ③의 네이티브 색모드가 이를 실현.</div>
+
+<h2>Executive Summary</h2>
+<h3>1.1 개요</h3>
+<table>
+  <tr><th>항목</th><th>내용</th></tr>
+  <tr><td>설계 방침</td><td>수동 <code>data-theme</code> 배선·<code>BaseState.theme_mode</code> 재발명을 <strong>폐기</strong>하고 Reflex 네이티브 color mode(next-themes, <code>attribute:"class"</code>)를 1급 메커니즘으로 채택</td></tr>
+  <tr><td>커스텀 표면</td><td>배경/카드/배지/검색/차트 시리즈는 <code>--am-*</code> 토큰 — 라이트 <code>:root</code>, 다크 <code>.dark</code> 스코프(<span class="warn">A.1의 <code>[data-theme]</code> 정정</span>)</td></tr>
+  <tr><td>컴포넌트</td><td><code>am_card/am_badge/am_button/am_search/am_kpi_tile</code> → 단일 <code>design_system/am.py</code>, 7종 중복 카드 종결</td></tr>
+  <tr><td>커버리지</td><td>SCADA·위저드·알람 포함 <strong>누락 0</strong>, 라이트 1급 시민</td></tr>
+</table>
+
+<h3>1.2 결과 요약 (Design 산출)</h3>
+<div class="kpi-grid">
+  <div class="kpi green"><div class="v">native</div><div class="l">color mode 채택 (.web 출력 실증)</div></div>
+  <div class="kpi"><div class="v">254</div><div class="l">rx.color() 호출 <b>공짜</b> 자동 flip</div></div>
+  <div class="kpi purple"><div class="v">5</div><div class="l">am_* 공용 컴포넌트 (1 모듈)</div></div>
+  <div class="kpi orange"><div class="v">7→1</div><div class="l">KPI/카드 중복 종결</div></div>
+  <div class="kpi"><div class="v">9</div><div class="l">실행 시퀀스 단계</div></div>
+  <div class="kpi red"><div class="v">0</div><div class="l">FOUC (next-themes 빌트인)</div></div>
+</div>
+
+<h3>1.3 Value Delivered (4-Perspective)</h3>
+<table>
+  <tr><th>관점</th><th>내용</th></tr>
+  <tr><td><strong>Problem</strong></td><td>다크전용 <code>--ks-*</code> + Radix <code>appearance='dark'</code> 정적 핀. 254 <code>rx.color()</code> 가 토큰 무관하게 Radix 스케일에 종속. <code>--am-*</code> 가이드와 앱 단절.</td></tr>
+  <tr><td><strong>Solution</strong></td><td>네이티브 color mode(next-themes, class) 활성(<code>appearance="inherit"</code>) → Radix 스케일 자동 재스코핑. 커스텀 표면은 <code>--am-*</code>(<code>.dark</code> 스코프). 수동 배선·dead state 제거, <code>am_*</code> 단일 모듈.</td></tr>
+  <tr><td><strong>Function · UX</strong></td><td>헤더 네이티브 sun/moon 토글, 254 rx.color + 커스텀 표면 동시 flip, FOUC 0, localStorage 영속, 제어실 다크 기본 시드, 전 화면(SCADA 포함)+라이트.</td></tr>
+  <tr><td><strong>Core Value</strong></td><td>네이티브 우선 = <strong>최소 변경·최대 커버리지</strong> + 단일 토큰/컴포넌트 소스. 빌트인 FOUC/영속/하이드레이션 재사용으로 커스텀 코드·버그 표면 축소.</td></tr>
+</table>
+
+<hr>
+
+<h2>2. 핵심 — 테마 메커니즘 (검증됨)</h2>
+<div class="callout success"><strong>실증 경로</strong>(컴파일된 <code>.web</code> 출력 인용): <code>.web/app/root.jsx:52</code> <code>&lt;ThemeProvider attribute="class"&gt;</code> + <code>.web/components/reflex/radix_themes_color_mode_provider.js</code>. 즉 Reflex는 <code>&lt;html class="dark"&gt;</code> 를 emit하며 <span class="bad"><code>[data-theme]</code> 가 아님</span> — 설계의 모든 다크 스코프는 <code>.dark</code> 로 정정.</div>
+
+<h3>2.1 동작 원리</h3>
+<ol>
+  <li><b>Pre-hydration:</b> next-themes가 <code>localStorage('theme')</code> 읽어 하이드레이션 전 <code>&lt;html class="light|dark"&gt;</code> 동기 설정 → <span class="good">FOUC 없음(빌트인)</span>.</li>
+  <li><b>Radix 재스코핑:</b> <code>radix_themes_color_mode_provider.js</code> 의 useEffect가 <code>.radix-themes[data-is-root-theme]</code> 의 class를 <code>remove('light','dark')+add(resolved)</code>. 이 class가 Radix 색스케일을 뒤집어 <code>rx.color("teal",9)→var(--teal-9)</code> <b>254개가 자동 전환</b>(별도 토큰 치환 불필요).</li>
+  <li><b>커스텀 표면:</b> <code>--am-*</code> 를 동일 <code>.dark</code> 스코프에 묶어 Radix와 같은 타이밍에 flip.</li>
+  <li><b>토글:</b> <code>toggleColorMode()</code> → <code>setTheme()</code> → next-themes가 localStorage 영속 + html class 갱신.</li>
+</ol>
+
+<h3>2.2 핵심 API</h3>
+<pre><code># ksys_app.py — 정적 핀 해제 (네이티브에 class 토글 위임)
+rx.theme(appearance="inherit")          # was appearance="dark"
+
+# 헤더 토글 (OQ2 사용자 노출)
+rx.color_mode.button()                  # 네이티브 sun/moon
+# 대안: from reflex.style import toggle_color_mode; rx.icon_button(on_click=toggle_color_mode)
+
+# per-mode 자산 스왑(로고/이미지 등 CSS 변수로 못 덮는 것만)
+rx.color_mode_cond(light=..., dark=...)
+
+# 기존 254 rx.color 호출은 유지 — class 토글로 자동 듀얼
+# 신규 코드: 표면색은 var(--am-*), 의미색만 rx.color 허용</code></pre>
+
+<h3>2.3 styles.css 스코핑</h3>
+<table>
+  <tr><th>현재 규칙</th><th>이전 대상</th></tr>
+  <tr><td>라이트 기본값</td><td><code>:root { --am-* light }</code> (design_guide A.1 라이트값)</td></tr>
+  <tr><td>다크 오버라이드</td><td><code>.dark { --am-* dark }</code> <span class="warn">(A.1의 <code>[data-theme="dark"]</code> → <code>.dark</code> 정정)</span></td></tr>
+  <tr><td>styles.css 27-31 (.radix-themes navy push)</td><td><code>.dark .radix-themes</code></td></tr>
+  <tr><td>33-46 (html/body bg + radial + 계기판 그리드)</td><td><code>.dark</code> 스코프</td></tr>
+  <tr><td>53-59 (.rt-Card navy !important)</td><td><code>.dark .rt-Card</code></td></tr>
+  <tr><td>62-88 (Tailwind .bg-white/.text-black 등 49 !important)</td><td><code>.dark</code> 프리픽스 (OPT-14) — <span class="bad">미스코핑 시 라이트 전역 파괴</span></td></tr>
+  <tr><td>--ks-* 블록</td><td><code>:root</code> 유지(마이그레이션 폴백). <code>--am-*</code> 를 <code>--ks-*</code> 뒤 선언 → 캐스케이드 우위</td></tr>
+</table>
+
+<h2>3. Plan 대비 설계 정정 (Design이 검증 중 수정)</h2>
+<table>
+  <tr><th>Plan 가정</th><th>Design 정정 (근거)</th></tr>
+  <tr><td>다크 스코프 = <code>[data-theme="dark"]</code></td><td><span class="bad">→ <code>.dark</code></span> (root.jsx <code>attribute:"class"</code> 검증)</td></tr>
+  <tr><td>OPT-02: 커스텀 FOUC-safe pre-hydration 브릿지 신설</td><td><span class="good">→ 불필요</span> (next-themes 빌트인 blocking script). dark-pin 스크립트는 1회성 시드로 치환만</td></tr>
+  <tr><td>OPT-03: <code>BaseState.toggle_theme</code> 배선</td><td><span class="bad">→ theme_mode/toggle_theme 삭제</span> (0 callers, dead). 네이티브 <code>rx.color_mode.button()</code> 로 대체</td></tr>
+  <tr><td>OPT-13: (a)반응형 appearance vs (b)수동 이전 미결</td><td><span class="good">→ (a) 확정</span>. 단 "State var 반응형 바인딩"이 아니라 <code>appearance="inherit"</code> + 네이티브 class 토글. <code>rx.theme(appearance)</code> 는 빌드타임 리터럴이라 var 바인딩 불가</td></tr>
+</table>
+
+<h2>4. 컴포넌트 계약 (<code>design_system/am.py</code> 단일 모듈)</h2>
+<table>
+  <tr><th>컴포넌트</th><th>시그니처</th><th>동작 요지</th></tr>
+  <tr><td><code>am_card</code></td><td><code>am_card(*children, raised=False, **props)</code></td><td>rx.box 래퍼. bg <code>var(--am-card[-2])</code>, border <code>--am-border</code>, radius 18px, transition <code>--am-dur/ease</code>. 색을 모름 → <code>.dark</code>에서 토큰만 flip.</td></tr>
+  <tr><td><code>am_badge</code></td><td><code>am_badge(label, severity="info", **props)</code></td><td>severity∈{info,success,warning,error,alarm}. bg <code>color-mix(--am-{sev} 12%)</code>, color <code>--am-{sev}</code>, pill. SCADA 심각도 매핑처.</td></tr>
+  <tr><td><code>am_button</code></td><td><code>am_button(label, variant="primary", on_click=None)</code></td><td>primary/secondary/ghost. accent/border/transparent. focus <code>boxShadow 0 0 0 2px var(--am-focus)</code>. rx.button override.</td></tr>
+  <tr><td><code>am_search</code></td><td><code>am_search(placeholder="", value=None, on_change=None)</code></td><td>rx.input 래퍼. bg <code>--am-select</code>, focus ring <code>--am-focus</code> <span class="warn">(time_selector 하드코딩 focus:ring-blue-500 정정 대상)</span>. 좌측 search 아이콘.</td></tr>
+  <tr><td><code>am_kpi_tile</code></td><td><code>am_kpi_tile(label, value, unit=None, status="normal", delta=None)</code></td><td><code>am_card(raised=True)</code> 위. value mono, status→dot/accent(emerald/warning/error), delta ▲▼. <b>7종 카드 단일화.</b></td></tr>
+</table>
+
+<h2>5. State 변경</h2>
+<ul>
+  <li><code>ksys_app/states/base_state.py</code> — <code>theme_mode</code>(28) + <code>toggle_theme()</code>(35-38) <b>삭제</b>(0 callers). 나머지(toggle_sidebar/polling) 유지.</li>
+  <li><code>ksys_app/ksys_app.py</code> — <code>appearance "dark"→"inherit"</code>(132). dark-pin 스크립트(150-153)→1회성 다크 기본 시드: <code class="mono">try{if(!localStorage.getItem('theme'))localStorage.setItem('theme','dark');localStorage.removeItem('chakra-ui-color-mode')}catch(e){}</code></li>
+  <li>테마 상태 소유권: next-themes <code>localStorage('theme')</code>. BaseState 비관여.</li>
+</ul>
+
+<h2>6. 단계별 파일 변경맵</h2>
+<div class="phase p1"><h3>Phase 1 — 토큰 + 네이티브 토글 + rx.color 결판 <span class="meta">(OPT-01,14,02,03,13)</span></h3>
+<ul>
+<li><code>assets/styles.css</code> — <code>:root{--am-* 라이트}</code> + <code>.dark{--am-* 다크}</code> 추가; 27-88 다크전용 규칙 <code>.dark</code> 프리픽스(OPT-14).</li>
+<li><code>ksys_app/ksys_app.py</code> — appearance <code>inherit</code> + dark-pin→1회성 시드.</li>
+<li><code>components/layout_v2.py</code> — 헤더 <code>rx.color_mode.button()</code> 토글(OQ2).</li>
+<li><code>states/base_state.py</code> — theme_mode/toggle_theme 삭제.</li>
+<li><code>components/cards/kpi_card.py</code> — <b>OPT-13 PoC</b>: rx.color 1화면 양테마 자동 flip 실증(게이트).</li>
+</ul>
+<div class="ac-block"><strong>Outcome:</strong> 헤더 토글로 <code>&lt;html class&gt;</code> 라이트↔다크, <code>--am-*</code>+254 rx.color 동시 flip 실증, FOUC 0, 무회귀.</div></div>
+
+<div class="phase p2"><h3>Phase 2 — 공용 컴포넌트 토큰화 <span class="meta">(OPT-04,05,07)</span></h3>
+<ul>
+<li><code>design_system/am.py</code> 신설 — 5종 am_* (전부 <code>var(--am-*)</code>).</li>
+<li><code>components/layout_v2.py · layout.py</code> — 셸 <code>--ks-*→--am-*</code> 재배선(active rx.color('purple',11)→<code>--am-accent</code>).</li>
+<li><code>dashboard/kpi_tile.py · cards/kpi_card.py · design_system/components.py</code> — 7종 카드 <code>am_kpi_tile/am_card</code> 통합, dead/orphan + <code>class_name="bg-slate-800/bg-white"</code> 하드코딩 제거.</li>
+</ul>
+<div class="ac-block"><strong>Outcome:</strong> am_* 단일 모듈 가동, 전역 셸 양테마, 중복 카드 종결.</div></div>
+
+<div class="phase p3"><h3>Phase 3 — 1차 화면(대시보드+트렌드) <span class="meta">(OPT-06,15)</span></h3>
+<ul>
+<li><code>views/dashboard_realtime_view.py · dashboard_view.py</code> — am_* 채택, 표면 <code>var(--am-*)</code>, rx.color 의미색 유지(자동 flip).</li>
+<li><code>components/trends/charts/trend_chart.py · cards/kpi_card.py</code> — 차트 컨테이너 am_card, 시리즈색 <code>--am-series-*</code>, grid/axis <code>--am-grid/--am-axis</code>.</li>
+<li><code>components/performance_charts.py</code> — rx.color 차트색 분류(자동 flip 가능분 vs <code>--am-series-*</code>).</li>
+</ul>
+<div class="ac-block"><strong>Outcome:</strong> 대시보드·트렌드 양테마 무파손, 복제용 레퍼런스 패턴 확정.</div></div>
+
+<div class="phase p4"><h3>Phase 4 — 보조·SCADA 전화면 <span class="meta">(OQ1, OPT-08~12,15 잔여)</span></h3>
+<ul>
+<li><code>pages/scada_alarm_viewer.py · scada_alarm_comparison.py</code> — am_card/am_badge, <code>--ks-*</code> 아쿠아는 <code>.dark</code> 시그니처만, 라이트는 <code>--am-accent</code>.</li>
+<li><code>pages/workflow.py</code> — SVG 아일랜드 하드코딩 hex → <code>var(--am-*)</code>(노드 fill <code>--am-card</code>+stroke <code>--am-border</code>, 경로 <code>--am-axis</code>).</li>
+<li><code>pages/alarms.py · alarms_rt_*.py · alarms_hist_*.py</code> — am_badge 심각도, am_card, <code>.bg-white</code> 제거.</li>
+<li><code>pages/training_wizard/* · model_performance · communication · forecast_player</code> — rx.color 자동 flip 신뢰, 표면/Tailwind 하드코딩만 토큰화.</li>
+<li><code>trends/inputs/time_selector</code> — OPT-10 정정: <code>focus:ring-blue-500</code>→<code>var(--am-focus)</code>.</li>
+<li><code>rxconfig.py</code> — <code>--am-*</code> 는 Tailwind 유틸 미노출, 컴포넌트는 raw <code>var()</code> 사용 명시.</li>
+</ul>
+<div class="ac-block"><strong>Outcome:</strong> 전 화면(SCADA 포함) 듀얼테마 일관 + 라이트 1급, focus/모션 토큰 정합.</div></div>
+
+<h2>7. SCADA + 라이트 커버리지 (OQ1)</h2>
+<div class="callout info">SCADA 화면의 실제 수선 표면은 <b>SVG 하드코딩 hex 뿐</b> — rx.color 부분은 네이티브 class 토글로 공짜 전환. 컨테이너→am_card, 텍스트→<code>--am-text/--am-muted</code>, 심각도→am_badge(<code>--ks-alarm/amber/aqua</code>→<code>--am-error/warning/success</code> 의미 매핑). 시그니처 아쿠아(<code>--ks-aqua</code>)는 <code>.dark</code>에서만 보존, 라이트는 <code>--am-accent</code>(#0066cc)로 치환해 라이트 WCAG 대비 확보. 양테마 스크린샷으로 라이트(흰 배경 위 라인/노드 대비)·다크(계기판 정체성 무회귀) 검증.</div>
+
+<h2>8. 검증 계획 (Test Plan)</h2>
+<div class="ac-block">
+<strong>T1 양테마 스크린샷 회귀</strong> — 전 라우트(dashboard/trend/scada×2/workflow/alarms×N/wizard/model/comm/forecast) 라이트·다크 캡처, 깨진 대비·네이비 잔존·투명 위젯 0.<br>
+<strong>T2 셀렉터 가드</strong> — 토글 시 <code>&lt;html class="dark"&gt;</code>·<code>.radix-themes[data-is-root-theme].dark</code> 확인(<code>.dark</code> 전제 보호, data-theme 아님 명시).<br>
+<strong>T3 rx.color 자동 flip</strong> — kpi_card/trend_chart에서 토글 후 <code>var(--teal-9)</code> computed 값 변화 inspect(토큰 수동치환 없이 전환 = OPT-13 게이트).<br>
+<strong>T4 FOUC</strong> — 라이트/다크 하드 리로드(throttle), 플래시 0(커스텀 브릿지 없이).<br>
+<strong>T5 영속</strong> — 라이트 토글→리로드→유지; 신규 브라우저→다크 기본 시드.<br>
+<strong>T6 빌드</strong> — 컨테이너 prod 재컴파일 클린, 콘솔 0, 미해결 <code>var()</code> 0.<br>
+<strong>T7 단일 소스</strong> — am_kpi_tile 채택 후 기존 7종 카드 import 0(grep).
+</div>
+
+<h2>9. 리스크 & 완화</h2>
+<table>
+  <tr><th>리스크</th><th>완화</th></tr>
+  <tr><td><span class="bad">셀렉터 불일치</span> — A.1/Plan이 <code>[data-theme]</code> 가정, 네이티브는 <code>.dark</code> emit → 다크 <code>--am-*</code> 미발화.</td><td>다크 오버라이드 <code>.dark</code> 스코핑(본 설계 결정) + T2 가드. design_guide A.1 정오표 갱신.</td></tr>
+  <tr><td><code>appearance="inherit"</code> 전환 시 Radix 서피스 변동(현재 navy push 무조건).</td><td>27-31 surface push를 <code>.dark</code> 로 이전. 4단계 PoC에서 양테마 Radix 카드 확인 후 확산.</td></tr>
+  <tr><td><code>defaultColorMode</code> 가 light/system이면 제어실 첫 진입 라이트.</td><td>1회성 <code>localStorage 'theme'='dark'</code> 시드(미존재 시만). openItem에서 storageKey='theme' 확정.</td></tr>
+  <tr><td>workflow SVG 하드코딩 hex 다수 → 토큰화 누락.</td><td>Phase 4 착수 전 fill/stroke hex grep 인벤토리. <code>currentColor</code>+부모 <code>--am-text</code> 로 표면 축소.</td></tr>
+  <tr><td><code>am_badge color-mix(in srgb)</code> RPi 키오스크 미지원 가능.</td><td>대상 브라우저 버전 확인 후 미지원 시 사전계산 rgba 폴백 토큰.</td></tr>
+  <tr><td><code>--ks-*</code>↔<code>--am-*</code> :root 공존 혼선.</td><td><code>--am-*</code> 를 뒤에 선언(캐스케이드 우위). <code>--ks-*</code> 는 <code>.dark</code> 폴백 한정, 이전 완료 후 폐기.</td></tr>
+</table>
+
+<h2>10. 미해결 / 검증 게이트 (Open Items)</h2>
+<ol>
+  <li>Reflex 0.8.16 <code>defaultColorMode</code> 설정 경로 + next-themes <code>storageKey</code>='theme' 확정 — 컨테이너 <code>.web/utils/context.js</code> 확인.</li>
+  <li><code>appearance="inherit"</code> 시 Radix가 <code>.radix-themes</code> class에 정확 반응하는지 PoC 1회 실측.</li>
+  <li>color-mix 미지원 키오스크(RPi 브라우저 버전 미확인) 대비 am_badge 폴백 필요 여부.</li>
+  <li>workflow.py SVG 하드코딩 색 인벤토리(개수·위치) — Phase 4 견적용.</li>
+  <li><code>--ks-*</code> 완전 폐기 타임라인 — 전 화면 이전 완료 시점 정의.</li>
+</ol>
+
+<hr>
+<div class="callout danger"><strong>⚠️ 적대적 Critique 미완:</strong> design 워크플로우의 critique 에이전트가 세션 한도로 실패(now reset). 단 핵심 메커니즘은 컴파일된 <code>.web</code> 출력으로 자체 실증했고, 위 Open Items가 검증 게이트 역할. <b>구현(do) 착수 전 별도 critique 1회 권장</b> — 특히 ①②(defaultColorMode/inherit 실측)는 Phase 1 PoC에서 선검증.</div>
+
+<p class="meta">다음: <code>/pdca do design-optimization</code> (Phase 1부터 구현) — 단, Open Item ①② 는 Phase 1 PoC에서 선검증 권장. · 근거 산출물: design/probe (5 agents, critique 제외).</p>
+</body>
+</html>

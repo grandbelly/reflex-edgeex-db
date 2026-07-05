@@ -60,8 +60,11 @@
 
 /* ponytail: Phase 1 stopgap — components still hardcode var(--ks-*) inline
    (sidebar, pills…). Remap the legacy names to light equivalents in light mode
-   so the app stays legible until Phase 2/3 migrates them to --am-*. */
-html:not(.dark) {
+   so the app stays legible until Phase 2/3 migrates them to --am-*.
+   NB: `.radix-themes` redeclares --ks-* on its own node, so the remap must
+   also win there — hence the second selector. */
+html:not(.dark),
+html:not(.dark) .radix-themes {
   --ks-ink:    var(--am-page);
   --ks-ink-2:  var(--am-header);
   --ks-panel:  var(--am-card);
@@ -143,6 +146,18 @@ html.dark, .dark body {
 .dark .border-red-200 { border-color: rgba(255,86,110,.30) !important; }
 .dark .border-amber-200, .dark .border-yellow-200, .dark .border-orange-200 { border-color: rgba(255,180,84,.30) !important; }
 .dark .border-green-200, .dark .border-emerald-200 { border-color: rgba(54,226,192,.30) !important; }
+
+/* ── light-only: neutralize hardcoded DARK Tailwind utilities (mirror of the
+   .dark block above — components like stat_card still ship bg-slate-800/
+   text-white; Phase 2/3 migrates them to --am-*, then both blocks go) ── */
+html:not(.dark) .bg-slate-800, html:not(.dark) .bg-slate-900,
+html:not(.dark) .bg-gray-800, html:not(.dark) .bg-gray-900,
+html:not(.dark) .bg-black { background-color: var(--am-card) !important; }
+html:not(.dark) .text-white { color: var(--am-text) !important; }
+html:not(.dark) .text-slate-300, html:not(.dark) .text-slate-400,
+html:not(.dark) .text-gray-300, html:not(.dark) .text-gray-400 { color: var(--am-muted) !important; }
+html:not(.dark) .border-slate-700, html:not(.dark) .border-slate-800,
+html:not(.dark) .border-gray-700 { border-color: var(--am-border-strong) !important; }
 
 /* ── scrollbars ── */
 ::-webkit-scrollbar { width: 10px; height: 10px; }

@@ -71,4 +71,5 @@ graphify-out/
 .bkit/
 
 # Claude Code worktree metadata (per-session sandbox, not project state)
-.claude/worktrees/
+.claude/
+.playwright-mcp/

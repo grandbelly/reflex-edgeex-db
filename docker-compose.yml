@@ -40,6 +40,9 @@ services:
     - TS_DSN=${TS_DSN:?TS_DSN is required}
     - POSTGRES_CONNECTION_STRING=${POSTGRES_CONNECTION_STRING:?POSTGRES_CONNECTION_STRING is required}
     - APP_ENV=${APP_ENV:-production}
+    # perf research 2026-06-04 #6 (로컬검증 PASS): prod에서 per-state-update 크기검사 오버헤드 제거.
+    # dev(docker-compose.dev.yml)는 미설정 → 기본 WARN 유지해 과대 state 조기 발견.
+    - REFLEX_PERF_MODE=${REFLEX_PERF_MODE:-OFF}
     - TZ=${TZ:-Asia/Seoul}
     - VERSION_TYPE=${VERSION_TYPE:-FULL}
     - ENABLE_AI_FEATURES=${ENABLE_AI_FEATURES:-true}

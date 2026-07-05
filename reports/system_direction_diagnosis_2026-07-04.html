@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시스템 개발 방향 재진단 — 2026-07-04</title>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c2129;--border:#30363d;--text:#e6edf3;--muted:#8b949e;
+    --accent:#58a6ff;--red:#f85149;--amber:#d29922;--green:#3fb950;--violet:#bc8cff;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI','Malgun Gothic',sans-serif;line-height:1.65;padding:40px 20px}
+  .wrap{max-width:1000px;margin:0 auto}
+  h1{font-size:26px;background:linear-gradient(90deg,#58a6ff,#bc8cff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:28px}
+  h2{font-size:19px;margin:36px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+  h3{font-size:15px;margin:20px 0 8px;color:var(--accent)}
+  p{margin:8px 0;font-size:14px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  td{background:var(--panel)}
+  code{background:var(--panel2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:'Cascadia Code','JetBrains Mono',monospace;font-size:12px;color:#79c0ff}
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+  .kpi{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .kpi .v{font-size:24px;font-weight:700;font-family:'Cascadia Code',monospace}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .crit .v{color:var(--red)} .warn .v{color:var(--amber)} .ok .v{color:var(--green)} .info .v{color:var(--accent)}
+  .callout{border-left:4px solid var(--red);background:rgba(248,81,73,.08);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:14px}
+  .callout.amber{border-color:var(--amber);background:rgba(210,153,34,.08)}
+  .callout.green{border-color:var(--green);background:rgba(63,185,80,.08)}
+  .tag{display:inline-block;padding:1px 9px;border-radius:999px;font-size:11px;font-weight:600;margin-right:4px}
+  .t-crit{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.4)}
+  .t-high{background:rgba(210,153,34,.15);color:var(--amber);border:1px solid rgba(210,153,34,.4)}
+  .t-med{background:rgba(88,166,255,.15);color:var(--accent);border:1px solid rgba(88,166,255,.4)}
+  .t-good{background:rgba(63,185,80,.15);color:var(--green);border:1px solid rgba(63,185,80,.4)}
+  ol,ul{margin:8px 0 8px 22px;font-size:14px}
+  li{margin:4px 0}
+  .step{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin:10px 0;display:flex;gap:14px;align-items:flex-start}
+  .step .n{min-width:32px;height:32px;border-radius:50%;background:var(--panel2);border:1px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-family:monospace}
+  .foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--border);color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>시스템 개발 방향 재진단</h1>
+<div class="sub">reflex-rpi 풍도 로컬 배포 · 브랜치 <code>refactor/secrets-externalize-day1</code> · 2026-07-04 · Fable 5 진단</div>
+
+<div class="kpi-row">
+  <div class="kpi crit"><div class="v">51</div><div class="l">master 대비 미머지 커밋</div></div>
+  <div class="kpi crit"><div class="v">49</div><div class="l">미추적/수정 파일 (uncommitted)</div></div>
+  <div class="kpi warn"><div class="v">6주</div><div class="l">HANDOFF.md 정지 (05-20 이후)</div></div>
+  <div class="kpi ok"><div class="v">-8.2k</div><div class="l">audit로 삭제된 dead LOC (건강 신호)</div></div>
+</div>
+
+<div class="callout">
+<strong>한 줄 진단:</strong> 개발의 <em>내용</em>(audit → 수술 → 검증 사이클)은 건강하다. 문제는 <em>물류</em>다 —
+6주치 작업 51커밋이 "day1"이라는 이름의 시크릿 브랜치에 갇혀 있고, 그 위에 미커밋 파일 49개가 얹혀 있으며,
+그중 일부는 <strong>추적 파일이 import하는 미추적 파일</strong>이라 지금 이 순간 새 클론에서는 앱이 부팅조차 안 된다.
+</div>
+
+<h2>진단 ① 추적 코드가 미추적 파일에 의존 — 클론하면 깨진다 <span class="tag t-crit">CRITICAL</span></h2>
+<p>grep으로 import 체인을 실측한 결과:</p>
+<table>
+  <tr><th>미추적 파일 (??)</th><th>이것을 import하는 <em>추적</em> 파일</th><th>의미</th></tr>
+  <tr><td><code>ksys_app/states/_connection.py</code></td><td><code>base_state.py</code>, <code>dashboard_realtime.py</code>, <code>scada_alarm_state.py</code>, <code>forecast_player_state/state.py</code> (모두 M 상태, +3줄 diff = import 전환)</td><td>핵심 DB 연결 경로 전체가 미커밋 파일에 의존</td></tr>
+  <tr><td><code>services/feature_config_service.py</code></td><td><code>training_state/state.py</code>, <code>training_wizard_state.py</code></td><td>학습 위저드가 미커밋 파일에 의존</td></tr>
+  <tr><td><code>migrations/013_fix_cagg_refresh_policies.sql</code></td><td>(DB에는 적용됨 — cagg 빈차트 수정)</td><td>DB 상태와 repo 상태 불일치</td></tr>
+</table>
+<p>현재 유일한 백업은 Synology 파일 동기화. <code>git clone && reflex run</code>은 <strong>ImportError로 즉사</strong>한다.
+git 이력의 목적(재현 가능한 상태) 자체가 깨져 있는 상태.</p>
+
+<h2>진단 ② 브랜치의 트렁크화 — 시크릿 로테이션 30분이 51커밋을 인질로 잡음 <span class="tag t-crit">CRITICAL</span></h2>
+<p><code>refactor/secrets-externalize-day1</code>의 원래 목적(시크릿 코드 외부화)은 완료됐다. 머지 블로커는 코드가 아니라
+<strong>외부 대시보드에서의 사람 작업</strong>: Cloudflare Tunnel 토큰 회수·재발급, upstream DB 비밀번호 변경,
+SSH 패스워드 <code>!eonware</code> → 키 인증 전환 (git 이력 <code>879abff</code>에 노출). 이 30분짜리 작업이 미뤄지는 동안:</p>
+<ul>
+  <li>audit #1~#6 (스키마 드리프트, 트랜잭션 오염, cagg 발화, AI 엔진 복구) — 전부 이 브랜치에</li>
+  <li>dead code 삭제 -8,222 LOC (3회) — 전부 이 브랜치에</li>
+  <li>다크 테마 리테마 + 워크플로우 시각화 — 전부 이 브랜치에</li>
+</ul>
+<p>즉 master는 6주 전 화석이고, RPI 운영본(192.168.0.80)은 그보다 더 뒤다. 운영 장애 시 hotfix를 낼 기준선이 사실상 없다.</p>
+
+<h2>진단 ③ audit가 지운 중복을 미추적으로 다시 만드는 중 <span class="tag t-high">HIGH</span></h2>
+<p>audit #5가 dead 병렬 코드 15파일(-4,904 LOC)을 지웠는데, 미추적 영역에 <strong>아무도 import하지 않는 orphan 클러스터</strong>가 다시 자라고 있다 (import 실측 결과 0 참조):</p>
+<table>
+  <tr><th>orphan 미추적 파일</th><th>패턴</th></tr>
+  <tr><td><code>alarms_enhanced.py</code> · <code>trend_state_enhanced.py</code> · <code>dashboard_realtime_grouped.py</code> · <code>sensor_card_enhanced.py</code></td><td>"_enhanced/_grouped" 병렬 버전 — HANDOFF 백로그의 "alarms_* 7버전" 재발</td></tr>
+  <tr><td><code>feature_config_service_v2.py</code> (test 스크립트만 참조) · <code>model_config_service.py</code></td><td>"_v2" 병렬 버전</td></tr>
+  <tr><td><code>tag_hierarchy_state.py</code> · <code>hierarchical_tag_selector.py</code> (orphan끼리만 상호참조)</td><td>고아 서브시스템</td></tr>
+  <tr><td><code>stock_chart.py</code> · <code>dashboard_view.py</code> · <code>design_system_demo.py</code> · <code>states/data.py</code> · <code>controllers/</code></td><td>미등록 실험물</td></tr>
+</table>
+<p>이대로 커밋되면 다음 audit가 또 지운다. <strong>삭제가 기본값</strong> — 살릴 의도가 있는 것만 이유와 함께 커밋.</p>
+
+<h2>진단 ④ design-optimization — 방향은 맞고, 순서가 틀렸다 <span class="tag t-med">MEDIUM</span></h2>
+<p>Plan+Design은 완료됐고 설계 품질도 좋다(컴파일된 <code>.web</code> 출력으로 네이티브 color mode 실증, 254개 <code>rx.color()</code> 무료 flip 확인).
+그러나 <code>/pdca do</code>는 254개 call site와 styles.css를 건드리는 광역 diff다. 미커밋 49개 위에서 실행하면
+리테마 diff와 기존 작업이 뒤섞여 리뷰·롤백이 불가능해진다. <strong>트리 정리가 선행 조건.</strong></p>
+
+<h2>진단 ⑤ 문서 부패 <span class="tag t-med">MEDIUM</span></h2>
+<p>HANDOFF.md 최종 갱신 2026-05-20. CLAUDE.md의 자체 규칙("작업 종료 시 HANDOFF.md 갱신")을 6주째 위반.
+세션 인계가 compact 요약과 auto-memory에만 의존 중 — 이 둘은 유실 가능한 매체다.</p>
+
+<h2>잘 가고 있는 것 <span class="tag t-good">KEEP</span></h2>
+<ul>
+  <li><strong>audit → 수술 → 검증 사이클</strong>: 4차원 병렬 audit가 "대시보드 마비는 빙산의 일각"을 찾아내고 #1~#6으로 전부 수술. 이 문화가 이 프로젝트의 최대 자산.</li>
+  <li><strong>삭제 지향</strong>: 3회에 걸쳐 -8,222 LOC. 방향 정확.</li>
+  <li><strong>검증 기반 설계</strong>: design-optimization 설계가 추측이 아니라 컴파일 출력 실측 위에 서 있음.</li>
+  <li><strong>HTML 보고서 체계</strong>: reports/ 45건 — 추적 가능한 의사결정 이력.</li>
+</ul>
+
+<h2>처방 — 실행 순서</h2>
+<div class="step"><div class="n">1</div><div><strong>시크릿 로테이션 (오늘, 사람 작업 ~30분)</strong><br>
+Cloudflare 대시보드에서 Tunnel 토큰 회수·재발급 → upstream DB 비밀번호 변경 → RPI SSH 키 인증 전환 + <code>!eonware</code> 무효화. 이것 하나가 병목 전체를 푼다.</div></div>
+<div class="step"><div class="n">2</div><div><strong>미커밋 49개 triage 커밋 (1시간)</strong><br>
+LIVE 즉시 커밋: <code>_connection.py</code> + M 4종, <code>feature_config_service.py</code>, <code>migration 013</code>, <code>designs/</code>, PDCA 문서 2건, AGENTS.md 12건. orphan 13종은 삭제(사유 기록). → 클론-부팅 가능 상태 복원.</div></div>
+<div class="step"><div class="n">3</div><div><strong>PR 머지 → master 복귀 (반나절)</strong><br>
+51커밋 PR을 master로. 이후 작업은 짧은 기능 브랜치로 — "day1" 같은 장수 브랜치 금지.</div></div>
+<div class="step"><div class="n">4</div><div><strong>HANDOFF.md 갱신 (30분)</strong> — 5/20 이후 6주치(audit 사이클, DB 정상화, 다크 테마, design-optimization P+D)를 반영.</div></div>
+<div class="step"><div class="n">5</div><div><strong><code>/pdca do design-optimization</code> (클린 트리에서)</strong> — Phase 1 PoC로 Open Item ①②(defaultColorMode, appearance="inherit" 실측) 선검증.</div></div>
+<div class="step"><div class="n">6</div><div><strong>RPI 배포 동기화 결정</strong> — master 안정화 후 RPI 반영 범위·시점 결정 (전체 rebuild vs 선별 scp).</div></div>
+
+<div class="callout amber">
+<strong>원칙 제안:</strong> 이후 "브랜치 수명 ≤ 1 기능", "추적 파일이 미추적 파일을 import하는 상태로 세션 종료 금지",
+"병렬 _v2/_enhanced 파일은 만들 때 기존 파일 교체 계획을 같이" — 이 세 줄이면 오늘 진단의 ①②③은 재발하지 않는다.
+</div>
+
+<div class="foot">생성: Claude Code (Fable 5) · 근거: git log/status 실측, import 체인 grep 실측, HANDOFF.md, PDCA status, reports/ 45건 · 2026-07-04</div>
+</div>
+</body>
+</html>

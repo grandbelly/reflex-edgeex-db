@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bkit pdca-iterator 감사+시험 보고서 | 2026-06-24</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI','Noto Sans KR',sans-serif;background:linear-gradient(135deg,#0A1018,#13212F);color:#E8F0FA;line-height:1.65;padding:2rem}
+  .wrap{max-width:1180px;margin:0 auto}
+  .hdr{text-align:center;padding:2.5rem 0;border-bottom:2px solid #36E2C0;margin-bottom:1.5rem}
+  .hdr h1{font-size:2.2rem;color:#36E2C0;margin-bottom:.4rem}
+  .hdr .sub{color:#8DA2C0}
+  .grade{text-align:center;margin:1.5rem 0 2rem}
+  .grade .g{display:inline-block;font-size:4.2rem;font-weight:800;color:#FFD27A;background:rgba(255,210,122,.1);border:2px solid #FFD27A;border-radius:14px;padding:.4rem 2.2rem;line-height:1}
+  .grade .why{color:#8DA2C0;margin-top:.7rem;max-width:760px;margin-left:auto;margin-right:auto}
+  .card{background:rgba(19,33,47,.6);border:1px solid #22384E;border-radius:10px;padding:1.6rem 1.8rem;margin-bottom:1.4rem}
+  .card h2{color:#36E2C0;font-size:1.35rem;margin-bottom:1rem;padding-bottom:.4rem;border-bottom:1px solid #22384E}
+  .card h3{color:#4DA3FF;font-size:1.05rem;margin:1rem 0 .5rem}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .stat{background:linear-gradient(135deg,rgba(54,226,192,.08),rgba(77,163,255,.08));border:1px solid #22384E;border-radius:8px;padding:1rem;text-align:center}
+  .stat .v{font-size:1.9rem;color:#36E2C0;font-weight:700}
+  .stat .l{color:#8DA2C0;font-size:.82rem}
+  .badge{display:inline-block;padding:.12rem .55rem;border-radius:5px;font-size:.74rem;font-weight:700;vertical-align:middle}
+  .b-critical{background:#FF566E;color:#0A1018}
+  .b-high{background:#FF8A5C;color:#0A1018}
+  .b-medium{background:#FFD27A;color:#0A1018}
+  .b-low{background:#8DA2C0;color:#0A1018}
+  .b-info{background:#22384E;color:#E8F0FA}
+  .b-pass{background:#36E2C0;color:#0A1018}
+  .b-fail{background:#FF566E;color:#0A1018}
+  table{width:100%;border-collapse:collapse;margin:.6rem 0;font-size:.88rem}
+  th,td{padding:.55rem .6rem;border:1px solid #22384E;text-align:left;vertical-align:top}
+  th{background:rgba(77,163,255,.16);color:#4DA3FF}
+  tr:nth-child(even){background:rgba(255,255,255,.018)}
+  td.idx{color:#8DA2C0;font-weight:700;text-align:center;white-space:nowrap}
+  code{background:rgba(54,226,192,.1);color:#36E2C0;padding:.08rem .4rem;border-radius:4px;font-family:Consolas,monospace;font-size:.85rem}
+  pre{background:#0A1018;border:1px solid #22384E;border-radius:8px;padding:1rem;overflow-x:auto;font-size:.82rem;color:#E8F0FA;margin:.5rem 0}
+  .risk{border-left:4px solid #FF566E;background:rgba(255,86,110,.07);padding:.9rem 1.1rem;border-radius:0 8px 8px 0;margin:.7rem 0}
+  .risk b{color:#FF8A5C}
+  .top{border-left:4px solid #36E2C0;background:rgba(54,226,192,.07);padding:.9rem 1.1rem;border-radius:0 8px 8px 0;margin:.7rem 0}
+  .top .n{color:#36E2C0;font-weight:700}
+  .meta{color:#6E8093;font-size:.8rem;text-align:center;margin-top:1rem}
+  .ok{color:#36E2C0}.no{color:#FF566E}
+  .small{font-size:.82rem;color:#8DA2C0}
+  ul.tick{list-style:none;padding-left:.2rem}
+  ul.tick li{padding:.18rem 0}
+  ul.tick li::before{content:"✓ ";color:#36E2C0;font-weight:700}
+  ul.cross li::before{content:"✗ ";color:#FF566E;font-weight:700}
+</style>
+</head>
+<body><div class="wrap">
+
+<div class="hdr">
+  <h1>🧪 bkit <code style="background:none;padding:0">pdca-iterator</code> 감사 + 시험 보고서</h1>
+  <div class="sub">대상: <code>agents/pdca-iterator.md</code> v1.6.1 · 4차원 병렬 감사 + 적대적 검증 + 라이브 기능 시험 · 2026-06-24</div>
+</div>
+
+<div class="grade">
+  <div class="g">C+</div>
+  <div class="why">단일 평가자(gap-detector) 경로는 정상 동작하고 라이브 시험에서 결함 탐지→수정→재평가가 한 번에 성공. 그러나 <b>본문이 약속한 4개 평가자 중 3개가 tools에 미부여</b>(<code>--full</code>/quality 모드 구조적 불가), <b>성공 판정이 평가자 재채점이 아닌 자유 텍스트 정규식에 의존</b>, <b>"3연속 무개선 정지" 규칙이 스펙에만 있고 구현에 없음</b>. 기본 경로는 살아있으나 다중평가자·자동종료 계약은 문서-코드 갈림.</div>
+</div>
+
+<div class="grid2">
+  <div class="stat"><div class="v">37</div><div class="l">구동 에이전트</div></div>
+  <div class="stat"><div class="v">21 / 30</div><div class="l">확인 결함 (위양성 9 기각)</div></div>
+  <div class="stat"><div class="v">~0% → 100%</div><div class="l">라이브 시험 (BMI fixture)</div></div>
+  <div class="stat"><div class="v">1.4M tok / 11분</div><div class="l">워크플로우 비용</div></div>
+</div>
+
+<div class="card">
+  <h2>1. 시험 결과</h2>
+  <div class="grid2">
+    <div>
+      <h3>기계적 계약 시험 <span class="badge b-pass">PASSED (정적)</span></h3>
+      <ul class="tick">
+        <li>Frontmatter 파싱 OK (tools/hooks/permissionMode/model/memory)</li>
+        <li>Stop hook <code>iterator-stop.js</code> 존재 · <code>node --check</code> EXIT=0</li>
+        <li><code>Task(Explore)</code>(내장) · <code>Task(gap-detector)</code>(파일 존재) 해상</li>
+      </ul>
+      <ul class="tick cross">
+        <li><span class="no">✗</span> 본문 평가자 4종 중 <b>3종 미부여</b>: code-analyzer / qa-monitor / design-validator</li>
+        <li><span class="no">✗</span> 서브에이전트 경로에서 자체 Stop hook <b>비기동</b> (메인 루프 턴 종료 시만)</li>
+      </ul>
+    </div>
+    <div>
+      <h3>라이브 기능 시험 <span class="badge b-pass">PASSED</span></h3>
+      <p class="small">실제 <code>bkit:pdca-iterator</code>를 <code>C:/tmp/pdca-iter-test</code> fixture(BMI 모듈)에 구동, 최대 1회 반복.</p>
+      <ul class="tick">
+        <li><b>Before ~0%</b>: 오답 공식(<code>weight/height</code>), 반올림 누락, ValueError 검증 없음, <code>classify()</code> 결실</li>
+        <li><b>수정</b>: 공식 <code>weight_kg/height_m²</code>+반올림, ValueError 가드, <code>classify()</code> 4밴드, <code>__main__</code> 자기검증</li>
+        <li><b>After 100%</b>: <code>calculate_bmi(70,1.75)==22.9</code>, <code>classify(31)=='Obese'</code>, 경계(18.4/25/29.9) 통과</li>
+        <li>1회 반복 준수 · fixture 외 파일 미건드림</li>
+      </ul>
+    </div>
+  </div>
+  <p class="small" style="margin-top:.8rem">※ 3개 verify 에이전트는 rate-limit(429)로 누락 — 해당 발견은 감사엔 남아있고 종합에 반영됨.</p>
+</div>
+
+<div class="card">
+  <h2>2. 확인된 결함 21건</h2>
+  <table>
+    <tr><th>#</th><th>차원</th><th>심각도</th><th>결함</th><th>수정제안 (핵심)</th></tr>
+    <tr><td class="idx">1</td><td>consistency</td><td><span class="badge b-low">low</span></td><td>자동호출 임계값 자기모순 (frontmatter &lt;90% vs 본문 &lt;70%)</td><td>90% 단일화, 본문 70% 삭제</td></tr>
+    <tr><td class="idx">2</td><td>consistency</td><td><span class="badge b-low">low</span></td><td>정의 없는 "critical issues" 트리거</td><td>정량화(예: complexity&gt;15) 또는 삭제</td></tr>
+    <tr><td class="idx">3</td><td>consistency</td><td><span class="badge b-low">low</span></td><td>threshold 예시(90%) vs 자동호출(70%) 사각지대</td><td>임계값 정렬 후 사각지대 명시</td></tr>
+    <tr><td class="idx">4</td><td>tools</td><td><span class="badge b-medium">medium</span></td><td><b>평가자 3종(code-analyzer/qa-monitor/design-validator)이 tools에 없음</b></td><td><code>Task(...)</code> 3종 추가 — <code>--full</code>/quality 모드 유일한 해법</td></tr>
+    <tr><td class="idx">5</td><td>tools</td><td><span class="badge b-info">info</span></td><td>Task(gap-detector) 부여+파일 존재 (정상)</td><td>—</td></tr>
+    <tr><td class="idx">6</td><td>tools</td><td><span class="badge b-info">info</span></td><td>Stop hook 존재+구문 유효 (정상)</td><td>—</td></tr>
+    <tr><td class="idx">7</td><td>tools</td><td><span class="badge b-info">info</span></td><td>permissionMode/model/memory 값 모두 유효 (정상)</td><td>—</td></tr>
+    <tr><td class="idx">8</td><td>tools</td><td><span class="badge b-low">low</span></td><td>report-generator 참조하나 tools에 없 (다운스트림)</td><td>자동스폰이면 추가, 제안만이면 의도 명시</td></tr>
+    <tr><td class="idx">9</td><td>over-eng</td><td><span class="badge b-medium">medium</span></td><td>자동호출 조건 3곳 충돌 임계값 반복</td><td>키워드만 남기고 prose 블록 2개 삭제</td></tr>
+    <tr><td class="idx">10</td><td>over-eng</td><td><span class="badge b-medium">medium</span></td><td>이터레이션 상한 이중(5/10)+정지규칙 충돌(5/10/3)</td><td><code>CRITICAL_MAX=10</code>·3-stagnation 절 삭제, 1줄화</td></tr>
+    <tr><td class="idx">11</td><td>over-eng</td><td><span class="badge b-low">low</span></td><td>심볼 편집 안 하는 에이전트에 LSP 도구</td><td>tools에서 LSP 제거</td></tr>
+    <tr><td class="idx">12</td><td>over-eng</td><td><span class="badge b-low">low</span></td><td>4평가자 오케스트레이션+<code>--evaluator/--full</code> 투기적</td><td>Task() 바인딩 있는 gap-detector만 잔류</td></tr>
+    <tr><td class="idx">13</td><td>over-eng</td><td><span class="badge b-low">low</span></td><td>v1.5.8/v1.6.1 릴리스 노트가 에이전트 정의에 잔류</td><td>CHANGELOG로 이동</td></tr>
+    <tr><td class="idx">14</td><td>over-eng</td><td><span class="badge b-low">low</span></td><td><code>--threshold/--max-iterations</code> 호출자 없는 플래그</td><td>플래그 삭제, 단일 하드코드값</td></tr>
+    <tr><td class="idx">15</td><td>pdca-logic</td><td><span class="badge b-medium">medium</span></td><td><b>"3연속 무개선 FAILURE"가 prose에만 있고 구현 없음</b></td><td>matchRate 히스토리+stagnation 카운터 구현 또는 스펙 삭제</td></tr>
+    <tr><td class="idx">16</td><td>pdca-logic</td><td><span class="badge b-medium">medium</span></td><td><b>completionPattern 정규식 관대 — 산발 prose로 SUCCESS</b></td><td>Complete/passed/성공 베어워드 제거, <code>matchRate≥thr</code>만 completed</td></tr>
+    <tr><td class="idx">17</td><td>pdca-logic</td><td><span class="badge b-medium">medium</span></td><td><b>루프 자동화 아님 — 매 반복 클릭 필요, 재평가·리포트 보장 아님</b></td><td>fix 후 gap-detector 재평가 비선택화, improved 가지서 Complete 제거</td></tr>
+    <tr><td class="idx">18</td><td>pdca-logic</td><td><span class="badge b-low">low</span></td><td>acceptEdits + 광범위 Edit/Write/Bash에 파일스코프 가드 없음</td><td>편집을 gap 리포트 파일로 제한, 최소 Bash 제거</td></tr>
+    <tr><td class="idx">19</td><td>pdca-logic</td><td><span class="badge b-medium">medium</span></td><td><b>fix-후-성공선언 순서 구멍 (단일 턴 fix+완료단어 시 재평가 전 completed)</b></td><td>상태머신(EVAL→FIX→REEVAL_REQ→REEVAL_DONE) 전이 게이트</td></tr>
+    <tr><td class="idx">20</td><td>pdca-logic</td><td><span class="badge b-low">low</span></td><td>PARTIAL 결과 스펙에만 있고 Stop hook이 절대 생성 안 함</td><td>스펙 삭제 또는 <code>status='partial'</code> 가지 추가</td></tr>
+    <tr><td class="idx">21</td><td>pdca-logic</td><td><span class="badge b-low">low</span></td><td>자동호출 임계값 모순 재차 (90/70/gap-detector값 3종)</td><td>단일 임계값·단일 장소</td></tr>
+  </table>
+  <p class="small">심각도는 적대적 검증에서 재조정됨 (대부분 high→medium/low 하향: 영향 범위가 비실행 프롬프트 문서에 국한). 위양성 9건은 제외(예: 5/10 상한=정상 예산패턴, ASCII 출력표=포맷 계약 등).</p>
+</div>
+
+<div class="card">
+  <h2>3. 재발 / 위험 포인트</h2>
+  <div class="risk"><b>① Loop thrash / 거짓 성공 (#15·#16·#19)</b> — Stop hook이 matchRate 히스토리 미저장. <code>completionPattern</code>(완료/Complete/passed/성공)이 산발 prose에 매칭되면 단일 턴에서 fix+완료 문장 출력 시 재평가 없이 <code>completePdcaFeature()</code> 실행. 90→91→92 런도 "성공" 가능; 89% 고정은 오직 maxIterations=5 바닥에서만 정지.</div>
+  <div class="risk"><b>② acceptEdits + 무가드 편집 (#18)</b> — 읽기 전용 평가자(gap-detector)는 plan+Edit/Write 금지로 잠겨있으나, 정작 코드를 바꾸는 iterator가 전 저장소 자동수락. 편집이 gap 리포트 파일에 묶이지 않음. Bash는 fix 루프에 불필요.</div>
+  <div class="risk"><b>③ 다중 평가자 계약 미달성 (#4·#12·#17)</b> — 본문이 4평가자·<code>--full</code>·<code>--evaluator quality</code> 약속하나 gap-detector만 부여 → spawn 시점 실패. 재평가·리포트 생성이 사용자 클릭(AskUserQuestion)에 의존.</div>
+  <div class="risk"><b>④ 서브에이전트 경로 Stop hook 비기동</b> — 워크플로우/Task로 스폰 시 <code>iterator-stop.js</code> 무효. "자동 반복" 기대 호출자에 함정.</div>
+  <div class="risk"><b>⑤ 임계값·정지규칙 다중 출처 (#1·#3·#9·#10·#21)</b> — 자동호출 90/70/gap-detector값 3종, 상한 5/10/3 분산 → 운영자가 "언제 자동호출·정지" 예측 불가.</div>
+</div>
+
+<div class="card">
+  <h2>4. 우선수정 Top 3</h2>
+  <div class="top"><span class="n">① [결함 #4]</span> tools에 평가자 3종 부여 — <code>Task(code-analyzer)</code>, <code>Task(qa-monitor)</code>, <code>Task(design-validator)</code>. 부재 시 code-quality/functional 평가자 spawn 실패, <code>--full</code> 불가. 다중평가자 계약을 만족하는 유일 수정이자 #8·#12의 전제.</div>
+  <div class="top"><span class="n">② [결함 #16 + #19]</span> 성공 판정을 평가자 재채점 기반으로 단일화 + 상태머신 도입 — <code>completionPattern</code>에서 베어워드 제거, <code>matchRate≥threshold</code>(gap-detector 산출물)만 completed 전이 조건. PDCA 상태를 EVAL_DONE→FIX_APPLIED→REEVAL_REQ→REEVAL_DONE으로 게이트. "적용 후 자기보고로 성공" 근본 원인 수정.</div>
+  <div class="top"><span class="n">③ [결함 #15]</span> "3연속 무개선 정지" 스펙-구현 정합 — matchRate 히스토리 배열 + stagnation 카운터("개선"=delta≥1점) 구현, 또는 스펙에서 삭제. 현재 거짓 약속; 구현 시 정체 런이 maxIterations 바닥까지 무의미하게 도는 것 방지.</div>
+  <p class="small" style="margin-top:.6rem">보조: #18(Bash 제거·편집 범위 가드), #10(상한 단일화) 동반 시 루프 안전성·예측성 동시 확보.</p>
+</div>
+
+<div class="card">
+  <h2>5. 검증된 정상 동작 (info)</h2>
+  <ul class="tick">
+    <li>단일 평가자(gap-detector) 기본 경로 정상 — 라이브 시험으로 입증</li>
+    <li>Stop hook 스크립트 존재·유효·올바르게 wired (정적)</li>
+    <li>Frontmatter 필드값 모두 유효 (acceptEdits/sonnet/project)</li>
+    <li>과잉엔지니어링 결함 6건은 문서-투기-기능 과잉이며 runtime 영향 없음</li>
+  </ul>
+</div>
+
+<div class="meta">bkit pdca-iterator v1.6.1 · ultracode 워크플로우 wf_47b2bc4c-a3e · 37 agents · 2026-06-24 · reports/pdca_iterator_audit_2026-06-24.html</div>
+
+</div></body></html>

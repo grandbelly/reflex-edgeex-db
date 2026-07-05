@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponytail 플러그인 분석 및 KSys 프로젝트 적용 방안</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
+            background: linear-gradient(135deg, #0A1018 0%, #13212F 100%);
+            color: #E8F0FA;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 3rem 0;
+            border-bottom: 2px solid #36E2C0;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #36E2C0;
+            margin-bottom: 1rem;
+        }
+
+        .header p {
+            color: #8DA2C0;
+            font-size: 1.1rem;
+        }
+
+        .section {
+            background: rgba(19, 33, 47, 0.6);
+            border: 1px solid #22384E;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .section h2 {
+            color: #36E2C0;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #22384E;
+        }
+
+        .section h3 {
+            color: #4DA3FF;
+            font-size: 1.3rem;
+            margin: 1.5rem 0 1rem;
+        }
+
+        .highlight-box {
+            background: rgba(54, 226, 192, 0.1);
+            border-left: 4px solid #36E2C0;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .highlight-box.warning {
+            border-left-color: #FF566E;
+            background: rgba(255, 86, 110, 0.1);
+        }
+
+        .highlight-box.success {
+            border-left-color: #36E2C0;
+            background: rgba(54, 226, 192, 0.1);
+        }
+
+        .ladder {
+            background: #0A1018;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .ladder-step {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            background: rgba(19, 33, 47, 0.5);
+            border-radius: 4px;
+            border-left: 4px solid #4DA3FF;
+        }
+
+        .ladder-step:first-child {
+            border-left-color: #36E2C0;
+        }
+
+        .ladder-step .step-number {
+            background: #4DA3FF;
+            color: #0A1018;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+
+        .ladder-step:first-child .step-number {
+            background: #36E2C0;
+        }
+
+        .ladder-step .step-text {
+            flex: 1;
+        }
+
+        .ladder-step .step-action {
+            color: #36E2C0;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+        }
+
+        table th,
+        table td {
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid #22384E;
+        }
+
+        table th {
+            background: rgba(77, 163, 255, 0.2);
+            color: #4DA3FF;
+            font-weight: bold;
+        }
+
+        table tr:nth-child(even) {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        table td.negative {
+            color: #36E2C0;
+        }
+
+        table td.positive {
+            color: #36E2C0;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, rgba(54, 226, 192, 0.1) 0%, rgba(77, 163, 255, 0.1) 100%);
+            border: 1px solid #22384E;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-card .metric-value {
+            font-size: 2.5rem;
+            color: #36E2C0;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-card .metric-label {
+            color: #8DA2C0;
+            font-size: 0.9rem;
+        }
+
+        .code-block {
+            background: #0A1018;
+            border: 1px solid #22384E;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            margin: 0;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+        }
+
+        .code-block code {
+            color: #E8F0FA;
+        }
+
+        .code-block .comment {
+            color: #8DA2C0;
+        }
+
+        .code-block .string {
+            color: #36E2C0;
+        }
+
+        .code-block .keyword {
+            color: #4DA3FF;
+        }
+
+        .code-block .function {
+            color: #FF566E;
+        }
+
+        .comparison-table {
+            margin: 2rem 0;
+        }
+
+        .comparison-table .bad {
+            color: #FF566E;
+        }
+
+        .comparison-table .good {
+            color: #36E2C0;
+        }
+
+        .command-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .command-list li {
+            background: rgba(19, 33, 47, 0.5);
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border-left: 4px solid #4DA3FF;
+        }
+
+        .command-list code {
+            background: rgba(54, 226, 192, 0.1);
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            color: #36E2C0;
+        }
+
+        .tag {
+            display: inline-block;
+            background: #4DA3FF;
+            color: #0A1018;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .tag.already {
+            background: #36E2C0;
+        }
+
+        .tag.installed {
+            background: #FFD700;
+        }
+
+        .tag.native {
+            background: #4DA3FF;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #8DA2C0;
+            border-top: 1px solid #22384E;
+            margin-top: 3rem;
+        }
+
+        .architecture-diagram {
+            background: #0A1018;
+            border: 1px solid #22384E;
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .example-box {
+            background: rgba(77, 163, 255, 0.1);
+            border: 1px solid #4DA3FF;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .example-box .example-title {
+            color: #4DA3FF;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎴 Ponytail 플러그인 분석</h1>
+            <p>KSys 프로젝트 적용 방안 | 2026-06-24</p>
+        </header>
+
+        <section class="section">
+            <h2>📌 Ponytail 핵심 개념</h2>
+            <div class="highlight-box">
+                <strong>"가장 게으른 시니어 개발자처럼 생각하게 만드는 플러그인"</strong><br>
+                <em>He says nothing. He writes one line. It works.</em>
+            </div>
+
+            <h3>작동 원리: 사다리 (The Ladder)</h3>
+            <p>코드 작성 전, 첫 번째 유지되는 rung에서 멈춥니다:</p>
+
+            <div class="ladder">
+                <div class="ladder-step">
+                    <span class="step-number">1</span>
+                    <div class="step-text">
+                        존재할 필요가 있는가?
+                        <span class="step-action">→ 없다: 스킵 (YAGNI)</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">2</span>
+                    <div class="step-text">
+                        이미 코드베이스에 있는가?
+                        <span class="step-action">→ 재사용, 재작성 금지</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">3</span>
+                    <div class="step-text">
+                        표준 라이브러리가 하는가?
+                        <span class="step-action">→ 그걸 사용</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">4</span>
+                    <div class="step-text">
+                        네이티브 플랫폼 기능인가?
+                        <span class="step-action">→ 그걸 사용</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">5</span>
+                    <div class="step-text">
+                        설치된 의존성이 있는가?
+                        <span class="step-action">→ 그걸 사용</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">6</span>
+                    <div class="step-text">
+                        한 줄로 가능한가?
+                        <span class="step-action">→ 한 줄로 작성</span>
+                    </div>
+                </div>
+                <div class="ladder-step">
+                    <span class="step-number">7</span>
+                    <div class="step-text">
+                        그 다음: <span class="step-action">동작하는 최소한만</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="highlight-box warning">
+                <strong>⚠️ Lazy ≠ Negligent</strong><br>
+                신뢰 경계 검증, 데이터 손실 처리, 보안, 접근성은 절대 줄이지 않습니다.
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>📊 성능 측정 (실제 프로젝트 기준)</h2>
+            <p style="text-align: center; color: #8DA2C0;">FastAPI + React 레포지토리에서의 실제 측정 (Haiku 4.5, n=4)</p>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value">-54%</div>
+                    <div class="metric-label">LOC (Lines of Code)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">-22%</div>
+                    <div class="metric-label">토큰 수</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">-20%</div>
+                    <div class="metric-label">비용</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">-27%</div>
+                    <div class="metric-label">시간</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">100%</div>
+                    <div class="metric-label">안전성 유지</div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>vs no-skill baseline</th>
+                        <th>LOC</th>
+                        <th>Tokens</th>
+                        <th>Cost</th>
+                        <th>Time</th>
+                        <th>Safe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ponytail</strong></td>
+                        <td class="positive">-54%</td>
+                        <td class="positive">-22%</td>
+                        <td class="positive">-20%</td>
+                        <td class="positive">-27%</td>
+                        <td class="positive">100%</td>
+                    </tr>
+                    <tr>
+                        <td>Caveman (terse prose)</td>
+                        <td class="positive">-20%</td>
+                        <td class="negative">+7%</td>
+                        <td class="negative">+3%</td>
+                        <td class="negative">+2%</td>
+                        <td class="positive">100%</td>
+                    </tr>
+                    <tr>
+                        <td>"YAGNI + one-liners" prompt</td>
+                        <td class="positive">-33%</td>
+                        <td class="positive">-14%</td>
+                        <td class="positive">-21%</td>
+                        <td class="positive">-30%</td>
+                        <td class="negative">95%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="color: #8DA2C0; font-size: 0.9rem;">
+                * Ponytail만 모든 메트릭에서 개선 + 안전성 100% 유지
+            </p>
+        </section>
+
+        <section class="section">
+            <h2>🎯 KSys 프로젝트 적용 방안</h2>
+
+            <h3>현재 아키텍처</h3>
+            <div class="architecture-diagram">
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│  KSys 아키텍처                                              │
+├─────────────────────────────────────────────────────────────┤
+│  UI Layer          → Reflex/Radix Themes                    │
+│  State Management  → State Classes (rx.State)               │
+│  Service Layer     → Business Logic                         │
+│  DB Layer          → TimescaleDB/Hypertable                │
+│  External          → PLC, Modbus, OPC-UA                    │
+└─────────────────────────────────────────────────────────────┘
+</pre>
+            </div>
+
+            <h3>Ponytail 룰 적용 가이드</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>영역</th>
+                        <th>❌ 하지 말아야 할 것</th>
+                        <th>✅ Ponytail 방식</th>
+                        <th>상태</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>로깅</strong></td>
+                        <td class="bad">새로운 logger 클래스 작성</td>
+                        <td class="good">기존 <code>ksys_app/utils/logger.py</code> 재사용</td>
+                        <td><span class="tag already">이미 존재</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>시각화</strong></td>
+                        <td class="bad">Plotly, Chart.js, D3 추가</td>
+                        <td class="good">설치된 Recharts 활용</td>
+                        <td><span class="tag installed">설치됨</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>페이지</strong></td>
+                        <td class="bad">시뮬레이션 페이지 새로 만들기</td>
+                        <td class="good"><code>workflow.py</code> 확장만</td>
+                        <td><span class="tag already">이미 존재</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>의존성</strong></td>
+                        <td class="bad">bxslider, swiper 추가</td>
+                        <td class="good">Radix 내장 슬라이더 사용</td>
+                        <td><span class="tag native">네이티브</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>CSS</strong></td>
+                        <td class="bad">하드코딩된 hex 색상</td>
+                        <td class="good">CSS <code>--ks-*</code> 변수 재사용</td>
+                        <td><span class="tag already">이미 존재</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>DB</strong></td>
+                        <td class="bad">새 테이블 + ORM 매핑</td>
+                        <td class="good">Hypertable 자동 partition 활용</td>
+                        <td><span class="tag native">네이티브</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>폼</strong></td>
+                        <td class="bad">폼 라이브러리 추가</td>
+                        <td class="good">Reflex <code>rx.forms()</code> + Radix</td>
+                        <td><span class="tag installed">설치됨</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>상태</strong></td>
+                        <td class="bad">복잡한 중앙 집중 상태</td>
+                        <td class="good">단순한 로컬 state</td>
+                        <td><span class="tag native">네이티브</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="section">
+            <h2>🔧 실전 적용 예시</h2>
+
+            <h3>사례 1: PLC 알람 히스토리 페이지 추가</h3>
+            <div class="example-box">
+                <div class="example-title">📋 상황 분석</div>
+                <table>
+                    <tr>
+                        <td>1. 필요한가?</td>
+                        <td><strong>✅ Yes</strong> (사용자 요청)</td>
+                    </tr>
+                    <tr>
+                        <td>2. 이미 있는가?</td>
+                        <td>❌ No (알람 페이지 있음, 히스토리 없음)</td>
+                    </tr>
+                    <tr>
+                        <td>3. 표준 라이브러리?</td>
+                        <td>Python logging, datetime <strong>✅</strong></td>
+                    </tr>
+                    <tr>
+                        <td>4. 네이티브 기능?</td>
+                        <td>TimescaleDB time_bucket <strong>✅</strong></td>
+                    </tr>
+                    <tr>
+                        <td>5. 설치된 의존성?</td>
+                        <td>Reflex Table, Radix <strong>✅</strong></td>
+                    </tr>
+                    <tr>
+                        <td>6. 한 줄?</td>
+                        <td>No</td>
+                    </tr>
+                    <tr>
+                        <td>7. 최소한:</td>
+                        <td>간단한 SELECT + Table UI만</td>
+                    </tr>
+                </table>
+                <p style="margin-top: 1rem; color: #36E2C0;"><strong>결과: 200줄 예산 → 50줄로 구현 (기존 알람 state 재사용)</strong></p>
+            </div>
+
+            <h3>사례 2: 코드 비교</h3>
+
+            <h4>State Management</h4>
+            <div class="code-block">
+<pre><code class="comment"># ❌ 하지 말 것</span>
+<span class="keyword">class</span> <span class="function">AlarmHistoryState</span>(rx.State):
+    <span class="keyword">def</span> <span class="function">get_alarms</span>(self):
+        <span class="comment"># 새로운 fetch 로직 작성...</span>
+        <span class="keyword">pass</span>
+
+<span class="comment"># ✅ Ponytail 방식</span>
+<span class="keyword">class</span> <span class="function">AlarmHistoryState</span>(rx.State):
+    alarms = State.list  <span class="comment"># 기존 AlarmState 재사용</span>
+    <span class="keyword">def</span> <span class="function">fetch_alarms</span>(self):
+        <span class="comment"># 이미 있는 get_alarms() 호출</span>
+        <span class="keyword">return</span> AlarmState.get_alarms()</code></pre>
+            </div>
+
+            <h4>UI Components</h4>
+            <div class="code-block">
+<pre><code class="comment"># ❌ 하지 말 것</span>
+<span class="comment"># custom_slider_library 설치 후...</span>
+<span class="keyword">import</span> custom_slider
+slider = custom_slider.Slider(min=0, max=100)
+
+<span class="comment"># ✅ Ponytail 방식</span>
+<span class="comment"># Radix 내장 활용</span>
+rx.slider(
+    min=0,
+    max=100,
+    default_value=50,
+    on_change=handle_change
+)</code></pre>
+            </div>
+
+            <h4>Database Queries</h4>
+            <div class="code-block">
+<pre><code class="comment"># ❌ 하지 말 것</span>
+<span class="comment"># 새 테이블 + 복잡한 JOIN...</span>
+CREATE TABLE alarm_history_partitioned [...]
+SELECT * FROM alarms a
+JOIN alarm_history h ON a.id = h.alarm_id
+WHERE ...
+
+<span class="comment"># ✅ Ponytail 방식</span>
+<span class="comment"># Hypertable 이미 시간순 자동 partition</span>
+SELECT * FROM alarms
+WHERE time > NOW() - INTERVAL '1 hour'
+ORDER BY time DESC</code></pre>
+            </div>
+
+            <h4>Styling</h4>
+            <div class="code-block">
+<pre><code class="comment"># ❌ 하지 말 것</span>
+style={<span class="string">"color: #36E2C0"</span>}  <span class="comment"># 하드코딩</span>
+
+<span class="comment"># ✅ Ponytail 방식</span>
+style={<span class="string">"color: var(--ks-aqua)"</span>}  <span class="comment"># 기존 변수 재사용</span></code></pre>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>⚙️ 설치 및 설정</h2>
+
+            <div class="highlight-box success">
+                <strong>✅ 이미 설치됨</strong> - 다음 명령어로 모드 제어
+            </div>
+
+            <h3>명령어</h3>
+            <ul class="command-list">
+                <li><code>/ponytail ultra</code> - 최대 절약 모드</li>
+                <li><code>/ponytail full</code> - 기본값 (권장)</li>
+                <li><code>/ponytail lite</code> - 가벼운 절약</li>
+                <li><code>/ponytail off</code> - 끄기</li>
+                <li><code>/ponytail-review</code> - 현재 diff 오버엔지니어링 검토</li>
+                <li><code>/ponytail-audit</code> - 전체 리포지터리 감사</li>
+                <li><code>/ponytail-help</code> - 도움말</li>
+            </ul>
+
+            <h3>기본값 설정 (모든 세션)</h3>
+            <div class="code-block">
+<pre><code class="comment"># 환경변수</span>
+<span class="keyword">export</span> PONYTAIL_DEFAULT_MODE=full
+
+<span class="comment"># 또는 설정 파일 (Windows: %APPDATA%\ponytail\config.json)</span>
+echo '{"defaultMode": "full"}' > ~/.config/ponytail/config.json</code></pre>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>🚀 즉시 시작하기</h2>
+
+            <h3>현재 작업 흐름</h3>
+            <table>
+                <tr>
+                    <td>1</td>
+                    <td>Dark theme 리테마 완료</td>
+                    <td><span class="tag already">완료</span></td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Commit push (54dd76e)</td>
+                    <td><span class="tag">대기</span></td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Ponytail 활성화</td>
+                    <td><code>/ponytail full</code></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td>다음 feature 작업 시 자동 적용</td>
+                    <td><span class="tag">준비됨</span></td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td>cagg watermark 데이터 복구</td>
+                    <td><span class="tag">대기</span></td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td>Workflow 페이지 확장 (필요시)</td>
+                    <td><span class="tag">대기</span></td>
+                </tr>
+            </table>
+
+            <div class="highlight-box">
+                <strong>💡 핵심 원칙</strong><br>
+                "The best code is the code you never wrote."<br>
+                작성하지 않은 코드는 0버그, 0CVE, 100% 가동 시간을 보장합니다.
+            </div>
+        </section>
+
+        <footer class="footer">
+            <p>문서 생성: 2026-06-24 | Ponytail v1.x | KSys 프로젝트</p>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem;">
+                참조: <a href="https://github.com/DietrichGebert/ponytail" style="color: #4DA3FF;">github.com/DietrichGebert/ponytail</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

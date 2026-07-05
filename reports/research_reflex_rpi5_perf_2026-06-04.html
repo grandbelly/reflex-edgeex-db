@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Research — Reflex 0.8 RPI5 성능 최적화</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#c9d1d9; --muted:#8b949e;
+          --ok:#3fb950; --warn:#d29922; --bad:#f85149; --accent:#58a6ff; --dead:#6e2222; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--fg); font-family:-apple-system,"Segoe UI",Roboto,"Malgun Gothic",sans-serif;
+         line-height:1.65; margin:0; padding:0 0 80px; }
+  .wrap { max-width:1080px; margin:0 auto; padding:32px 24px; }
+  h1 { font-size:26px; border-bottom:2px solid var(--accent); padding-bottom:12px; margin-bottom:6px; }
+  h2 { font-size:20px; margin-top:40px; border-left:4px solid var(--accent); padding-left:12px; }
+  h3 { font-size:16px; color:var(--accent); margin-bottom:6px; }
+  .meta { color:var(--muted); font-size:13px; }
+  code { background:#1f2630; padding:2px 6px; border-radius:4px; font-size:13px; color:#79c0ff; }
+  pre { background:#1f2630; padding:12px 14px; border-radius:8px; overflow-x:auto; font-size:13px; }
+  .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px; margin:16px 0; }
+  .kpi-grid { display:flex; flex-wrap:wrap; gap:12px; margin:18px 0; }
+  .kpi { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 18px; flex:1; min-width:120px; text-align:center; }
+  .kpi .v { font-size:26px; font-weight:700; }
+  .kpi .l { font-size:12px; color:var(--muted); margin-top:4px; }
+  .kpi.ok .v{color:var(--ok)} .kpi.bad .v{color:var(--bad)} .kpi.warn .v{color:var(--warn)}
+  table { width:100%; border-collapse:collapse; margin:14px 0; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:#1f2630; }
+  .finding { border-left:4px solid var(--ok); }
+  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; }
+  .b-ok{background:#12361f;color:var(--ok)} .b-warn{background:#3a2d0a;color:var(--warn)}
+  .b-bad{background:#3d1414;color:var(--bad)} .b-pri{background:#0d2a4d;color:var(--accent)}
+  .callout { border-radius:8px; padding:12px 16px; margin:14px 0; }
+  .callout.good { background:#0d1f12; border:1px solid #238636; }
+  .callout.warn { background:#2b2410; border:1px solid #9e7a1a; }
+  .callout.bad  { background:#2b1414; border:1px solid #9e2a1a; }
+  a { color:var(--accent); }
+  .src { font-size:12px; color:var(--muted); word-break:break-all; }
+  ul { margin:6px 0; padding-left:22px; }
+  .tag-do{color:var(--ok);font-weight:600} .tag-test{color:var(--warn);font-weight:600} .tag-skip{color:var(--bad);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>🔬 Deep Research — Reflex 0.8 IoT 대시보드 RPI5 성능 최적화</h1>
+<p class="meta">생성 2026-06-04 · deep-research 워크플로우 (109 에이전트 · 26 소스 · 105 claim 추출 · <strong>25 적대적 3표 검증 → 9 confirmed → 5 합성</strong>) · 3표 중 2표 반박 시 폐기</p>
+
+<div class="callout good">
+<strong>이 리포트의 핵심 가치 = "믿을 것 / 직접 측정할 것" 분리.</strong> 그럴듯하지만 출처가 약한 조언 16건(Granian 워커 설정, 풀 사이징 공식, <code>REFLEX_STATE_SIZE_LIMIT</code> env var, RPI cgroup 함정 등)은 적대적 검증에서 <strong>kill</strong>됐습니다. 아래 ✅ 5건만 primary 출처로 살아남았고, 나머지는 "이 Pi에서 직접 벤치마크할 것"으로 분류됩니다.
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi ok"><div class="v">5</div><div class="l">confirmed 권고<br>(primary 출처)</div></div>
+  <div class="kpi bad"><div class="v">16</div><div class="l">refuted/미검증<br>(믿지 말 것)</div></div>
+  <div class="kpi warn"><div class="v">3</div><div class="l">open questions<br>(1건 로컬 closed)</div></div>
+  <div class="kpi"><div class="v">26</div><div class="l">소스<br>(primary 8)</div></div>
+</div>
+
+<h2>① 요약 (Executive Summary)</h2>
+<div class="panel">
+RPI5(ARM64) Docker 위 실시간 IoT 대시보드의 2025-2026 최고 레버리지 4가지:
+<ol>
+<li><strong>프론트엔드는 Reflex 0.8의 Vite + Rolldown 파이프라인으로 빌드</strong> — 구 Next.js 대비 벤더 주장 2-3배 빠르고 빌드 메모리 훨씬 적음(중립 벤치 ~3배, 피크 메모리 ~75%↓). 4-8GB Pi에서 결정적.</li>
+<li><strong>ARM64 이미지를 QEMU 에뮬레이션으로 빌드하지 말 것</strong> — cross-compile로. 에뮬은 모든 명령을 런타임 변환해 ~7배 느림. "여러 RPI에 복제 배포" 목표에 직결.</li>
+<li><strong>asyncpg/SQLAlchemy 풀은 작게</strong>(엔진당 기본 pool_size=5 + max_overflow=10 = 15, 지연 생성이라 유휴 낭비 0) + <strong>timescaledb-tune</strong>으로 PostgreSQL 메모리/병렬/WAL을 Pi의 RAM·코어에 자동 맞춤.</li>
+<li><strong>Reflex 내장 delta 프로토콜</strong>(변경된 dirty var만 WS 전송)에 기대고, 고빈도 이벤트엔 <code>.throttle()</code>로 페이로드 트래픽 절감.</li>
+</ol>
+</div>
+
+<h2>② ✅ 검증 통과 권고 5건 (confirmed)</h2>
+
+<div class="panel finding">
+<h3>1. Reflex 0.8 Vite+Rolldown 빌드로 전환 <span class="badge b-ok">high · merged 3-0 / 2-1</span></h3>
+<p>0.8이 Next.js 빌드를 Vite+Rolldown으로 교체 — 벤더 "2-3배 빠르고 메모리 훨씬 적음". 중립 벤치 corroborate: rolldown-vite 4.16s vs Next+Turbopack 12.88s(~3.1배), Rolldown 피크 메모리 ~1.2GB vs Rollup ~4.8GB(~75%↓). <strong>4GB Pi에서 빌드 메모리를 봉투 안에 가두는 가장 큰 레버.</strong></p>
+<p class="src">출처(primary): https://reflex.dev/blog/reflex-080/ · 주의: 2-3배는 벤더 릴리스 수치(Rolldown beta), 단 magnitude는 중립 소스가 재현.</p>
+</div>
+
+<div class="panel finding">
+<h3>2. ARM64 이미지는 cross-compile, QEMU 금지 <span class="badge b-ok">high · 3-0</span></h3>
+<p>Docker 공식 엔지니어링 블로그(재현 벤치): 2번째 아키텍처를 cross-compile하면 빌드시간 +70%지만, QEMU 에뮬이면 "거의 7배". 학술 QEMU TCG 측정 2.5-21배(geomean ~7.7배). 실사례: ARM64 빌드 15분→2분(QEMU 탈출). <strong>여러 RPI 복제 배포 → BuildKit cross-compile 또는 ARM 러너/Pi 네이티브 빌드.</strong></p>
+<p class="src">출처(primary): https://www.docker.com/blog/faster-multi-platform-builds-dockerfile-cross-compilation-guide/ · 주의: 7x/70% 수치는 단일 Go 워크로드 — 언어/빌드별 배수 변동, 방향은 robust.</p>
+</div>
+
+<div class="panel finding">
+<h3>3. DB 풀은 보수적으로 (엔진당 5+10=15, 지연 생성) <span class="badge b-ok">high · 3-0</span></h3>
+<p>SQLAlchemy 2.0 공식: pool_size 기본 5, max_overflow 기본 10, 동시 최대 = 15/엔진. "어떤 구현도 사전 생성 안 함 — 첫 사용까지 대기". async 엔진은 AsyncAdaptedQueuePool이지만 5+10 동일. <strong>엔진당 풀 작게 유지 + 총 잠재 연결(= 워커수 × 풀)을 Pi의 PostgreSQL max_connections 한참 아래로.</strong></p>
+<p class="src">출처(primary): https://docs.sqlalchemy.org/en/20/core/pooling.html · /engines.html</p>
+</div>
+
+<div class="panel finding">
+<h3>4. timescaledb-tune로 PostgreSQL 자동 right-size <span class="badge b-ok">high · 3-0</span></h3>
+<p>감지된 CPU/RAM 기준으로 shared_buffers, effective_cache_size, maintenance_work_mem, work_mem, <code>timescaledb.max_background_workers</code>, WAL 조정. 아키텍처 무관 Go 바이너리 → ARM64 적용. <strong>Pi에서 timescaledb-tune 실행(또는 컨테이너 한도에 맞춰 <code>--memory</code>/<code>--cpus</code> 명시) 후 쿼리 벤치마크.</strong></p>
+<p class="src">출처(primary): https://github.com/timescale/timescaledb-tune · 주의: <code>--memory/--cpus</code> 오버라이드 경로는 약한 지지(1-0) — 플래그는 존재하나 본 검증선 미확정.</p>
+</div>
+
+<div class="panel finding">
+<h3>5. delta 프로토콜 활용 + .throttle() <span class="badge b-ok">high · merged 3-0 / 2-0</span></h3>
+<p>primary 문서 + <strong>이 repo의 .venv 설치 소스</strong>로 확인: Reflex가 핸들러 중 dirty_vars 추적 → get_delta()가 변경 var만으로 WS 페이로드 구성 → _clean() 리셋. docstring "state가 커져도 성능 유지". <code>.throttle(ms)</code>은 초과 트리거를 폐기(on_scroll/on_mouse_move 명시). <strong>차트/스크롤/마우스 이벤트 throttle + var당 state 작게 + 큰 blob을 단일 var에 넣지 말 것.</strong></p>
+<p class="src">출처(primary): reflex.dev/docs/.../how-reflex-works · /events/event-actions · .venv/.../reflex/state.py(설치본 검증)</p>
+</div>
+
+<h2>③ ⚠️ 본 프로젝트 적용 매핑</h2>
+<table>
+<tr><th>발견</th><th>이 프로젝트(KSys)에서 할 일</th><th>분류</th></tr>
+<tr><td>Vite+Rolldown</td><td>현재 Reflex 버전 확인 → 0.8 미만이면 업그레이드. 빌드는 이미 컨테이너에서 — 빌드 메모리/시간 before/after 측정</td><td><span class="tag-do">DO</span></td></tr>
+<tr><td>cross-compile</td><td>현재 ARM 이미지 빌드 방식 점검. QEMU 멀티아치면 → ARM 러너/Pi 네이티브 or BuildKit cross-compile. "한 달 내 다른 RPI 배포"에 직접 기여</td><td><span class="tag-do">DO</span></td></tr>
+<tr><td>풀 보수적</td><td>get_async_session()/asyncpg 풀 크기 확인 → 워커수 × 풀 총합이 TimescaleDB max_connections 아래인지 산정</td><td><span class="tag-do">DO</span></td></tr>
+<tr><td>timescaledb-tune</td><td>pgai-db 컨테이너에서 timescaledb-tune 실행 후 continuous aggregate/인덱스 쿼리 벤치</td><td><span class="tag-do">DO</span></td></tr>
+<tr><td>throttle/delta</td><td>대시보드 실시간 차트·센서 스트리밍 이벤트에 .throttle() 적용 검토. state var당 payload 크기 점검</td><td><span class="tag-do">DO</span></td></tr>
+<tr style="background:#0d1f12"><td>PERF_MODE (로컬검증)</td><td>RPI 프로덕션 compose에 <code>REFLEX_PERF_MODE=OFF</code> env 추가 → per-update 크기검사 오버헤드 제거 (개발은 WARN 유지)</td><td><span class="tag-do">DO</span></td></tr>
+</table>
+
+<h2>④ 🔴 믿지 말 것 — 적대적 검증에서 kill (16건)</h2>
+<div class="callout bad">
+<strong>아래는 웹에 흔하지만 본 검증에서 primary 출처로 확증되지 않았습니다.</strong> "권고 없음"이 아니라 "이 Pi에서 직접 측정 전엔 신뢰 불가"로 다루세요. 특히 질문의 백엔드 런타임 파트가 대거 탈락 — folklore일 수 있음.
+</div>
+<table>
+<tr><th>주장(요약)</th><th>표결</th><th>왜 위험</th></tr>
+<tr><td>Granian 단일워커 + Gunicorn/Uvicorn 멀티스레드가 Reflex 최적 (<code>gunicorn --workers 1 --worker-class uvicorn... --threads 4</code>)</td><td>0-0</td><td>단일 블로그, Reflex 0.7.4 기준</td></tr>
+<tr><td>Granian이 Reflex 서버로 안 됨</td><td>0-0</td><td>0.7.4 기준 — 0.8 미확인</td></tr>
+<tr><td>풀 = (코어×2)+스핀들 공식 → 4코어 = 9 연결</td><td>0-0</td><td>HikariCP 일반론, RPI/asyncpg 미확인</td></tr>
+<tr><td>풀 200 vs 10에서 처리량 절반(4500 vs 8100 TPS)</td><td>0-0</td><td>일반 PG 벤치, 본 하드웨어 아님</td></tr>
+<tr><td>총 연결 = N_workers×(pool+overflow)</td><td>0-0</td><td>산술은 맞지만 출처 검증 실패</td></tr>
+<tr style="background:#0d1f12"><td><code>REFLEX_STATE_SIZE_LIMIT</code> 기본 1000KB env var</td><td>0-0 → <strong style="color:var(--ok)">로컬 검증 참 ✔</strong></td><td>검증 abstain은 툴 실패였음. 설치 소스 <code>environment.py:641 env_var(1000)</code> 실재</td></tr>
+<tr style="background:#0d1f12"><td><code>REFLEX_PERF_MODE</code> WARN/RAISE/OFF (OFF로 오버헤드 제거)</td><td>0-0 → <strong style="color:var(--ok)">로컬 검증 참 ✔</strong></td><td><code>environment.py:638 env_var(WARN)</code> + <code>state.py:83/2338 if PERF_MODE != OFF</code> 확인</td></tr>
+<tr><td>python-socketio 기본 WS 버퍼 1MB</td><td>0-0</td><td>미확인</td></tr>
+<tr><td>이벤트 핸들러 실행 시 모든 substate+parent 로드</td><td>0-0</td><td>state 구조 추정, 미확인</td></tr>
+<tr><td>@rx.var 포함 state는 항상 재계산 로드</td><td>0-0</td><td>미확인</td></tr>
+<tr><td><code>NODE_OPTIONS=--max-old-space-size=1024</code>로 빌드 OOM 해결</td><td>0-0</td><td>Vite 일반론, RPI 미확인</td></tr>
+<tr><td>RPI Docker "No memory/swap limit support" cgroup 함정</td><td>0-0</td><td>구 커널 글 — RPI5/현행 OS 미확인</td></tr>
+<tr><td>.debounce가 최종값만 전송</td><td>0-0</td><td>동작 미확인</td></tr>
+<tr><td>Reflex 기본 1이벤트씩 순차 처리</td><td>1-0</td><td>약한 지지, 미확정</td></tr>
+<tr><td>timescaledb-tune <code>--memory/--cpus</code> 오버라이드로 작은 봉투 튜닝</td><td>1-0</td><td>플래그 존재하나 검증 약함</td></tr>
+</table>
+
+<h2>⑤ 🟡 Open Questions — 이 Pi에서 직접 측정</h2>
+<div class="panel">
+<ol>
+<li><strong>백엔드 런타임:</strong> Reflex 0.8을 4코어 ARM Pi5에서 띄울 최적 서버(Granian vs Uvicorn/Gunicorn)와 워커/스레드 수? Granian이 0.8과 호환되나? (유일 데이터가 0.7.4 기준 refuted)</li>
+<li><strong>풀 사이징:</strong> N개 앱 워커가 같은 Pi의 TimescaleDB 하나를 칠 때 엔진당 pool_size/max_overflow를 얼마로? (공식·처리량 절벽 미검증 → 실측)</li>
+<li style="text-decoration:line-through;opacity:.6"><strong>Reflex state 컨트롤:</strong> <code>REFLEX_STATE_SIZE_LIMIT</code>/<code>REFLEX_PERF_MODE</code> 실재 여부 — <strong style="color:var(--ok);text-decoration:none;opacity:1">✔ CLOSED 2026-06-04 (로컬 검증)</strong></li>
+<li><strong>컨테이너 한도:</strong> RPI5 + 현행 Raspberry Pi OS 커널에서 Docker memory/swap cgroup 한도가 기본 적용되나? 4GB 유닛에서 빌드 OOM 막는 swap + Node/bun 힙 설정은?</li>
+</ol>
+</div>
+<div class="callout good">
+✔ <strong>#3 로컬 검증 완료 (2026-06-04, 설치 reflex 소스):</strong> 두 env var 모두 실재.
+<code>environment.py:638 REFLEX_PERF_MODE=env_var(WARN)</code> (enum WARN/RAISE/OFF),
+<code>:641 REFLEX_STATE_SIZE_LIMIT=env_var(1000)</code> (KB),
+<code>state.py:85 임계 = LIMIT*1024 bytes</code>, <code>:83/:2338 if PERF_MODE != OFF</code> → 검사 스킵.
+<br><strong>RPI 적용:</strong> 프로덕션 컨테이너에 <code>REFLEX_PERF_MODE=OFF</code> 설정 시 per-state-update 크기검사 오버헤드 제거(개발 중엔 WARN 유지해 과대 state 조기 발견). <code>REFLEX_STATE_SIZE_LIMIT</code>로 임계 조정. → deep-research의 adversarial verifier가 툴 실패로 abstain한 3건을 로컬 소스로 복구한 사례.
+</div>
+
+<h2>⑥ Caveats (방법론 한계)</h2>
+<div class="panel meta">
+Rolldown은 아직 beta — 2-3배는 벤더 릴리스 수치(magnitude는 중립 재현). delta 프로토콜은 <em>설치된</em> 버전 소스로 검증 → 해당 pinned 버전엔 정확하나 미래 릴리스서 drift 가능. Docker 7x/70%는 단일 Go 워크로드. 소스 품질은 전반적으로 강함(Reflex·SQLAlchemy·TimescaleDB·Docker primary + 설치 소스 + 중립 벤치). 백엔드 런타임/풀 공식/state 내부/cgroup 함정은 확증 실패 — confirmed 가이드로 제시 금지.
+</div>
+
+<h2>⑦ 소스 (26개 · 품질 등급)</h2>
+<table>
+<tr><th>품질</th><th>URL</th><th>각도</th><th>claims</th></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">reflex.dev/blog/reflex-080</td><td>Reflex 빌드</td><td>4</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">docker.com/blog/faster-multi-platform-builds...</td><td>ARM64 빌드</td><td>5</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">docs.sqlalchemy.org/en/20/core/pooling.html</td><td>풀 사이징</td><td>5</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">github.com/timescale/timescaledb-tune</td><td>TimescaleDB</td><td>5</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">reflex.dev/docs/.../how-reflex-works</td><td>WS payload</td><td>5</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">reflex.dev/docs/events/event-actions</td><td>WS payload</td><td>4</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">github.com/reflex-dev/reflex/pull/4392</td><td>WS payload</td><td>4</td></tr>
+<tr><td><span class="badge b-pri">primary</span></td><td class="src">reflex.dev/docs/state-structure/overview</td><td>WS payload</td><td>5</td></tr>
+<tr><td><span class="badge b-warn">blog</span></td><td class="src">davidmuraya.com/.../optimizing-reflex-on-google-cloud-run</td><td>Reflex 배포</td><td>5</td></tr>
+<tr><td><span class="badge b-warn">blog</span></td><td class="src">ideia.me/time-series-benchmark-timescaledb-raspberry-pi</td><td>TimescaleDB/Pi</td><td>5</td></tr>
+<tr><td><span class="badge b-warn">blog</span></td><td class="src">oneuptime.com/blog/.../2026-01-27-timescaledb-iot</td><td>TimescaleDB IoT</td><td>5</td></tr>
+<tr><td><span class="badge b-warn">blog</span></td><td class="src">pocketclaw.dev/.../raspberry-pi-5-self-hosted-ai-90-day-benchmark</td><td>Edge 배포</td><td>4</td></tr>
+<tr><td colspan="4" class="meta">+ 나머지 14개(blog/forum/unreliable) — 본 5 confirmed엔 primary만 채택. 전체 목록은 워크플로우 결과 JSON 참조.</td></tr>
+</table>
+
+<p class="meta" style="text-align:center;margin-top:48px;padding-top:16px;border-top:1px solid var(--border)">
+deep-research wf_88c5e2b6-59a · 6각도 fan-out → 26소스 → 105 claim → 25 적대적 검증(3표) → 9 confirmed → 5 합성 · 1.7M tokens · 생성 2026-06-04
+</p>
+
+</div>
+</body>
+</html>

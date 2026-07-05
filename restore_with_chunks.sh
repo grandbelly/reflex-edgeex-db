@@ -52,6 +52,33 @@ docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp -c "
 SELECT timescaledb_post_restore();
 "
 
+echo "=== Step 6b: Disable lingering restore mode (cagg refresh killer) ==="
+# 복원 후 timescaledb.restoring 이 켜져 있으면 background worker 가 job 을 안 돌려
+# cagg 가 멈추고 트렌드 차트가 빈다. 영구 해법의 일부.
+docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp <<'EOF'
+ALTER DATABASE ecoanp SET timescaledb.restoring = 'off';
+SET timescaledb.restoring = 'off';
+EOF
+
+echo "=== Step 6c: Normalize caggs (real-time + correct refresh policy) ==="
+# dump 가 bad config(end_offset=NULL, materialized_only=true)를 가져와 매 복원마다
+# 재발. real-time 전환으로 refresh job 실패에도 차트가 안 비게 하고, 정책을
+# non-null end_offset 으로 강제. (migrations/013_fix_cagg_refresh_policies.sql)
+docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp -v ON_ERROR_STOP=0 <<'EOF'
+ALTER MATERIALIZED VIEW influx_agg_1m  SET (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW influx_agg_10m SET (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW influx_agg_1h  SET (timescaledb.materialized_only = false);
+ALTER MATERIALIZED VIEW influx_agg_1d  SET (timescaledb.materialized_only = false);
+SELECT remove_continuous_aggregate_policy('influx_agg_1m',  if_exists => true);
+SELECT remove_continuous_aggregate_policy('influx_agg_10m', if_exists => true);
+SELECT remove_continuous_aggregate_policy('influx_agg_1h',  if_exists => true);
+SELECT remove_continuous_aggregate_policy('influx_agg_1d',  if_exists => true);
+SELECT add_continuous_aggregate_policy('influx_agg_1m',  start_offset => INTERVAL '2 hours', end_offset => INTERVAL '1 minute',  schedule_interval => INTERVAL '1 minute',  if_not_exists => true);
+SELECT add_continuous_aggregate_policy('influx_agg_10m', start_offset => INTERVAL '2 hours', end_offset => INTERVAL '10 minutes', schedule_interval => INTERVAL '10 minutes', if_not_exists => true);
+SELECT add_continuous_aggregate_policy('influx_agg_1h',  start_offset => INTERVAL '7 days',  end_offset => INTERVAL '1 hour',    schedule_interval => INTERVAL '1 hour',    if_not_exists => true);
+SELECT add_continuous_aggregate_policy('influx_agg_1d',  start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 day',     schedule_interval => INTERVAL '1 day',     if_not_exists => true);
+EOF
+
 echo "=== Step 7: Analyze database ==="
 docker exec rpi-finished-pgai-db psql -U postgres -d ecoanp -c "ANALYZE;"
 

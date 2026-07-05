@@ -1275,10 +1275,13 @@ class ForecastPlayerState(BaseState):
                 yield
 
         # Streaming loop with countdown timer
+        from ksys_app.states._connection import client_connected
         while self.is_streaming:
+            if not client_connected(self):
+                break  # tab closed — stop polling instead of spamming dead client
             # Countdown loop (decrement every second)
             for remaining in range(self.update_interval, 0, -1):
-                if not self.is_streaming:
+                if not self.is_streaming or not client_connected(self):
                     break
 
                 async with self:
@@ -1601,7 +1604,10 @@ class ForecastPlayerState(BaseState):
         # Only update UI when checking for new forecasts (30-second intervals)
         # Exit condition: Check is_streaming flag to prevent infinite loops
         poll_counter = 0
+        from ksys_app.states._connection import client_connected
         while self.is_streaming:  # ✅ Exit when user leaves page or stops streaming
+            if not client_connected(self):
+                break  # tab closed — stop polling instead of spamming dead client
             await asyncio.sleep(30)  # ✅ Update every 30 seconds (minimize UI thrashing)
             poll_counter += 1
 

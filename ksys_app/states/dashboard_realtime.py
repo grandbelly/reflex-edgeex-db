@@ -94,7 +94,10 @@ class DashboardRealtimeState(BaseState):
                 yield
 
         # Streaming loop
+        from ksys_app.states._connection import client_connected
         while self.is_streaming:
+            if not client_connected(self):
+                break  # tab closed — stop polling instead of spamming dead client
             await asyncio.sleep(self.update_interval)
 
             try:

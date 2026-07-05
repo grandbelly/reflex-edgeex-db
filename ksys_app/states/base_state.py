@@ -56,7 +56,10 @@ class BaseState(rx.State):
 
         console.info(f"{self.__class__.__name__} polling started (interval: {self._polling_interval}s)")
 
+        from ksys_app.states._connection import client_connected
         while self._polling_active:
+            if not client_connected(self):
+                break  # tab closed — stop polling instead of spamming dead client
             try:
                 # Use timeout to prevent long-running queries
                 await asyncio.wait_for(

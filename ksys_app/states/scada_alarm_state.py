@@ -251,7 +251,10 @@ class ScadaAlarmState(rx.State):
     async def _keep_listening(self):
         """연결 유지 및 리스닝"""
         try:
+            from ksys_app.states._connection import client_connected
             while self.is_streaming:
+                if not client_connected(self):
+                    break  # tab closed — stop listening instead of spamming dead client
                 await asyncio.sleep(1)
                 # 주기적으로 알람 로그 새로고침
                 if datetime.now().second % 5 == 0:

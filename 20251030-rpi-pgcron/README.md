@@ -19,14 +19,14 @@ RPI 환경에 pg_cron extension을 영구적으로 설치하여 Virtual Tag 계�
 ### 1. RPI에 파일 배포
 ```bash
 # 로컬에서 Git push
-cd C:\reflex\reflex-ksys-refactor\db\20251030-rpi-pgcron
+cd C:\reflex\reflex-edgeex-refactor\db\20251030-rpi-pgcron
 git add .
 git commit -m "feat: Add pg_cron support for RPI"
 git push origin main
 
 # RPI에서 Pull
 ssh tion@192.168.1.80
-cd /home/tion/deployment/reflex-ksys-db
+cd /home/tion/deployment/reflex-edgeex-db
 git pull origin main
 ```
 
@@ -36,7 +36,7 @@ git pull origin main
 docker exec pgai-db pg_dump -U postgres -d ecoanp -F c -f /backup/before_pgcron_$(date +%Y%m%d_%H%M%S).dump
 
 # 이미지 빌드
-cd /home/tion/deployment/reflex-ksys-db/20251030-rpi-pgcron
+cd /home/tion/deployment/reflex-edgeex-db/20251030-rpi-pgcron
 docker build -f Dockerfile.rpi-pgcron -t pgai-db-pgcron:latest ..
 
 # 컨테이너 재생성
@@ -67,7 +67,7 @@ docker exec pgai-db psql -U postgres -d ecoanp -c "SELECT * FROM cron.job;"
 - 컨테이너명: `pgai-db` (기존과 동일)
 - 포트: `5432:5432` (기존과 동일)
 - 볼륨: `pgai_data` (기존과 동일)
-- 네트워크: `ksys-network` (기존과 동일)
+- 네트워크: `edgeex-network` (기존과 동일)
 
 ## 예상 결과
 

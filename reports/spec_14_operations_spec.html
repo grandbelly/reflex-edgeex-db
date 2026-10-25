@@ -82,12 +82,12 @@
 
 <h2>1. 인프라 개요 — Compose 서비스 토폴로지</h2>
 
-<p>현재 운영 단위는 <strong>단일 Raspberry Pi 5 (ARM64, Debian Bookworm) 1대</strong>당 1 stack. 6 서비스가 단일 docker network (<code>ksys-network</code>, external) 위에 올라가며, 외부 노출은 Cloudflare Tunnel egress-only 방식. 인바운드 포트는 LAN 한정 (14000/14001/5432).</p>
+<p>현재 운영 단위는 <strong>단일 Raspberry Pi 5 (ARM64, Debian Bookworm) 1대</strong>당 1 stack. 6 서비스가 단일 docker network (<code>edgeex-network</code>, external) 위에 올라가며, 외부 노출은 Cloudflare Tunnel egress-only 방식. 인바운드 포트는 LAN 한정 (14000/14001/5432).</p>
 
 <div class="ascii">┌──────────────────────────────────────────────────────────────────────────┐
 │ Raspberry Pi 5 (ARM64, Debian Bookworm)                                  │
 │ Repo: /home/tion/deployment/20251030-rpi-finished/                       │
-│ Compose network: ksys-network (external bridge)                          │
+│ Compose network: edgeex-network (external bridge)                          │
 │                                                                          │
 │   ┌─────────────────────┐         ┌──────────────────────┐               │
 │   │ rpi-finished-       │  ─────▶ │ rpi-finished-        │   LAN: 14000  │
@@ -104,7 +104,7 @@
 │            │     │                           ▼                           │
 │   ┌────────┴───┐ │              ┌──────────────────────┐                 │
 │   │ rpi-finish-│ │              │ cloudflared-tunnel    │ ─── egress ──▶ │
-│   │ ed-        │ │              │ image: cloudflare/    │   *.ksys.kr   │
+│   │ ed-        │ │              │ image: cloudflare/    │   *.ksys.kr /* TODO(오너 확인) */   │
 │   │ forecast-  │ │              │ cloudflared:latest    │   (public)    │
 │   │ scheduler  │ │              │ depends_on: reflex-app│               │
 │   │ 10min loop │ │              └──────────────────────┘               │
@@ -315,7 +315,7 @@ rsync -avz --remove-source-files tion@&lt;old-rpi&gt;:/tmp/ecoanp.dump /tmp/</pr
 <li><span class="bad">Cloudflare 토큰 재사용 금지</span> — 기존 RPI 토큰 그대로 쓰면 두 노드가 같은 hostname으로 등록되어 라우팅 불안정.</li>
 <li><span class="warn">pg_cron 1.6.7 + PG17 ABI 미스매치</span> — <code>Dockerfile.rpi-pgcron</code> 그대로 사용 (HANDOFF.md 참조). 임의 pg_cron 업그레이드 금지.</li>
 <li><span class="warn">parallel pg_restore 금지</span> — TimescaleDB hypertable이 TRUNCATE ONLY와 호환 안 됨. restore_db.sh는 single-thread 고정.</li>
-<li><code>ksys-network</code>가 external이므로 첫 기동 전 <code>docker network create ksys-network</code> 필요.</li>
+<li><code>edgeex-network</code>가 external이므로 첫 기동 전 <code>docker network create edgeex-network</code> 필요.</li>
 </ul>
 </div>
 
@@ -327,7 +327,7 @@ rsync -avz --remove-source-files tion@&lt;old-rpi&gt;:/tmp/ecoanp.dump /tmp/</pr
 <tr><td>분류</td><td>Provisioning / 수시</td></tr>
 <tr><td>책임</td><td>DevOps</td></tr>
 <tr><td>예상 소요</td><td>3분</td></tr>
-<tr><td>전제조건</td><td>변경 파일이 <code>ksys_app/</code> 또는 <code>rxconfig.py</code> 내부 (bind-mount 대상) — requirements.txt 변경시 OP-003 사용</td></tr>
+<tr><td>전제조건</td><td>변경 파일이 <code>edgeex_app/</code> 또는 <code>rxconfig.py</code> 내부 (bind-mount 대상) — requirements.txt 변경시 OP-003 사용</td></tr>
 <tr><td>관련 도구</td><td>rsync, scp, docker restart</td></tr>
 </table>
 
@@ -337,14 +337,14 @@ rsync -avz --remove-source-files tion@&lt;old-rpi&gt;:/tmp/ecoanp.dump /tmp/</pr
 <pre>docker compose -f docker-compose.local.yml up -d
 curl http://localhost:14000/</pre></li>
 <li>변경 파일만 rsync (CLAUDE.md 정의 표준 명령):
-<pre>scp "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/states/forecast_player_state.py" \
-    tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/states/</pre>
+<pre>scp "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/edgeex_app/states/forecast_player_state.py" \
+    tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/edgeex_app/states/</pre>
 또는 전체 디렉터리:
 <pre>rsync -avz --delete \
   --exclude __pycache__ --exclude '*.pyc' --exclude .web --exclude saved_models \
-  "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/" \
-  tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/</pre></li>
-<li>compose의 <code>./ksys_app:/app/ksys_app</code> bind-mount가 즉시 반영되지만 Reflex SSR 캐시 갱신을 위해 재시작:
+  "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/edgeex_app/" \
+  tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/edgeex_app/</pre></li>
+<li>compose의 <code>./edgeex_app:/app/edgeex_app</code> bind-mount가 즉시 반영되지만 Reflex SSR 캐시 갱신을 위해 재시작:
 <pre>ssh tion@192.168.0.80 "docker restart rpi-finished-reflex-app"</pre></li>
 <li>State 클래스 변경시 forecast-scheduler도 재시작 (공유 import):
 <pre>ssh tion@192.168.0.80 "docker restart rpi-finished-forecast-scheduler"</pre></li>
@@ -359,7 +359,7 @@ curl http://localhost:14000/</pre></li>
 
 <h4>롤백</h4>
 <pre>cd /home/tion/deployment/20251030-rpi-finished/
-git checkout HEAD~1 -- ksys_app/states/forecast_player_state.py
+git checkout HEAD~1 -- edgeex_app/states/forecast_player_state.py
 docker restart rpi-finished-reflex-app</pre>
 
 <h4>알려진 함정</h4>
@@ -719,7 +719,7 @@ done</pre></li>
 <pre>df -h /
 docker system df</pre></li>
 <li>큰 디렉터리 top 5:
-<pre>du -sh /home/tion/deployment/20251030-rpi-finished/{logs,backup,saved_models,.web,ksys_app} 2&gt;/dev/null \
+<pre>du -sh /home/tion/deployment/20251030-rpi-finished/{logs,backup,saved_models,.web,edgeex_app} 2&gt;/dev/null \
   | sort -h | tail -5</pre></li>
 <li>SD card I/O (baseline 비교):
 <pre>./scripts/measure_rpi_baseline.sh
@@ -902,7 +902,7 @@ docker compose up -d</pre></li>
 <tr><td>분류</td><td>Incident / 이벤트성</td></tr>
 <tr><td>책임</td><td>NetOps</td></tr>
 <tr><td>예상 소요</td><td>10분</td></tr>
-<tr><td>전제조건</td><td>외부 https://&lt;subdomain&gt;.ksys.kr 접속 실패, 내부 14000은 정상</td></tr>
+<tr><td>전제조건</td><td>외부 https://&lt;subdomain&gt;.ksys.kr /* TODO(오너 확인) */ 접속 실패, 내부 14000은 정상</td></tr>
 <tr><td>관련 도구</td><td>docker logs, Cloudflare Zero Trust dashboard</td></tr>
 </table>
 
@@ -917,7 +917,7 @@ docker compose up -d</pre></li>
 </ul></li>
 <li>로컬 네트워크 확인:
 <pre>ping -c 3 1.1.1.1
-nslookup ksys.kr 1.1.1.1
+nslookup ksys.kr /* TODO(오너 확인) */ 1.1.1.1
 curl -I https://cloudflare.com</pre></li>
 <li>재시작:
 <pre>docker restart cloudflared-tunnel
@@ -1321,19 +1321,19 @@ docker restart rpi-finished-reflex-app  # 다음 build trigger</pre></li>
 <tr>
   <td><code>pd-site-001</code> (검증)</td><td>풍도 현장</td><td>192.168.0.80</td>
   <td>14000</td><td>14001</td><td>5432</td>
-  <td>ksys-tunnel-prod</td><td>2026-05-21</td><td>2026-05-19</td>
+  <td>edgeex-tunnel-prod</td><td>2026-05-21</td><td>2026-05-19</td>
   <td>2025-10-30</td>
 </tr>
 <tr>
   <td><code>pd-site-002</code> (계획)</td><td>—</td><td>—</td>
   <td>14010</td><td>14011</td><td>5433</td>
-  <td>ksys-tunnel-site002</td><td>—</td><td>—</td>
+  <td>edgeex-tunnel-site002</td><td>—</td><td>—</td>
   <td>—</td>
 </tr>
 <tr>
   <td><code>pd-dev-001</code> (계획)</td><td>개발실</td><td>—</td>
   <td>14020</td><td>14021</td><td>5434</td>
-  <td>ksys-tunnel-dev</td><td>—</td><td>—</td>
+  <td>edgeex-tunnel-dev</td><td>—</td><td>—</td>
   <td>—</td>
 </tr>
 </table>
@@ -1460,7 +1460,7 @@ docker restart rpi-finished-reflex-app  # 다음 build trigger</pre></li>
 │   ├── health_*.txt               # OP-020 일일 결과
 │   ├── log_audit_*.txt            # OP-021 일일 결과
 │   └── incident_*.md              # 비상시 incident 노트
-└── ksys_app/                      # bind-mount, 코드 hot reload</pre>
+└── edgeex_app/                      # bind-mount, 코드 hot reload</pre>
 
 <h2>부록 A — 운영 시나리오 카테고리별 분포 요약</h2>
 

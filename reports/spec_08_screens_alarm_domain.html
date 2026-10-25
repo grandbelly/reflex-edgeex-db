@@ -31,7 +31,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <p><strong>작성일</strong>: 2026-05-28<br />
 <strong>버전</strong>: 1.0<br />
 <strong>대상</strong>: 디자이너, 프론트엔드 개발자, QA<br />
-<strong>근거 소스</strong>: ksys_app/pages/alarms<em>.py, scada_alarm</em>.py + 대응 state 파일 전체 실측</p>
+<strong>근거 소스</strong>: edgeex_app/pages/alarms<em>.py, scada_alarm</em>.py + 대응 state 파일 전체 실측</p>
 <blockquote>
 <p>이 문서는 SI 수준의 화면 설계서입니다. 각 페이지를 재구현하거나 수정할 때 단일 참조 출처(Single Source of Truth)로 사용합니다.</p>
 </blockquote>
@@ -115,10 +115,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-1-alarms-kr">Page 1: <code>/alarms</code> — 통합 알람 대시보드 (KR)</h2>
 <h3 id="_2">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/alarms.py</code> (LoC: 465)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/alarms.py</code> (LoC: 465)</li>
 <li><strong>@rx.page decorator</strong>: line 233, <code>route="/alarms"</code>, <code>title="Alarms"</code>, <code>on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming]</code></li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/alarms.py</code> (LoC: 608+, class: <code>AlarmsState</code>)</li>
-<li><strong>보조 State</strong>: <code>ksys_app/states/dashboard_realtime.py</code> (class: <code>DashboardRealtimeState</code>)</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/alarms.py</code> (LoC: 608+, class: <code>AlarmsState</code>)</li>
+<li><strong>보조 State</strong>: <code>edgeex_app/states/dashboard_realtime.py</code> (class: <code>DashboardRealtimeState</code>)</li>
 <li><strong>등록 상태</strong>: ✓ live</li>
 </ul>
 <h3 id="_3">화면 레이아웃</h3>
@@ -276,7 +276,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td>search/severity/status</td>
 <td>set_search_query, set_severity_filter, set_status_filter</td>
 <td>-</td>
-<td><code>ksys_app/components/alarms/filter_bar.py</code></td>
+<td><code>edgeex_app/components/alarms/filter_bar.py</code></td>
 </tr>
 <tr>
 <td>Info bar (조건부)</td>
@@ -735,9 +735,9 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-2-alarms_rt-v1-kr">Page 2: <code>/alarms_rt</code> — 실시간 알람 대시보드 v1 (KR)</h2>
 <h3 id="_7">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_rt_simple.py</code> (LoC: 401)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/alarms_rt_simple.py</code> (LoC: 401)</li>
 <li><strong>@rx.page decorator</strong>: line 19, <code>route="/alarms_rt"</code>, <code>title="실시간 알람 상태"</code>, <code>on_load=[A.load_all_data]</code></li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_rt_state.py</code> (LoC: 282, class: <code>AlarmRTState</code>, alias <code>A</code>)</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/alarm_rt_state.py</code> (LoC: 282, class: <code>AlarmRTState</code>, alias <code>A</code>)</li>
 <li><strong>등록 상태</strong>: ⚠️ duplicate — <code>/alarms</code> Active 탭과 기능 중복. canonical 후보 아님.</li>
 </ul>
 <h3 id="_8">화면 레이아웃</h3>
@@ -1123,10 +1123,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-3-alarms_rt_new-v2-kr">Page 3: <code>/alarms_rt_new</code> — 실시간 알람 대시보드 v2 (KR)</h2>
 <h3 id="_12">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_rt_new.py</code> (LoC: 180)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/alarms_rt_new.py</code> (LoC: 180)</li>
 <li><strong>@rx.page decorator</strong>: line 20, <code>route="/alarms_rt_new"</code>, <code>title="실시간 알람 (개선)"</code></li>
 <li><strong>on_load/on_mount</strong>: <code>on_mount=A.on_load</code> (shell 파라미터)</li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_rt_state.py</code> (AlarmRTState, alias <code>A</code>) — /alarms_rt와 동일 state 공유</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/alarm_rt_state.py</code> (AlarmRTState, alias <code>A</code>) — /alarms_rt와 동일 state 공유</li>
 <li><strong>등록 상태</strong>: ⚠️ duplicate — v1 대비 All Sensor Grid 섹션 제거, alarm_item 컴포넌트 활용. /alarms_rt보다 경량.</li>
 </ul>
 <h3 id="_13">화면 레이아웃</h3>
@@ -1351,10 +1351,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-4-alarms_hist-v1-kr">Page 4: <code>/alarms_hist</code> — 알람 이력 분석 v1 (KR)</h2>
 <h3 id="_17">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_hist_simple.py</code> (LoC: 287)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/alarms_hist_simple.py</code> (LoC: 287)</li>
 <li><strong>@rx.page decorator</strong>: line 26, <code>route="/alarms_hist"</code>, <code>title="알람 이력 분석"</code></li>
 <li><strong>on_mount</strong>: <code>on_mount=AlarmHistState.on_load</code> (vstack prop — shell 미사용)</li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_hist_state.py</code> (LoC: 331, class: <code>AlarmHistState</code>)</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/alarm_hist_state.py</code> (LoC: 331, class: <code>AlarmHistState</code>)</li>
 <li><strong>등록 상태</strong>: ⚠️ duplicate — shell 레이아웃 미사용 (사이드바 없음). /alarms History 탭과 중복.</li>
 </ul>
 <h3 id="_18">화면 레이아웃</h3>
@@ -1683,10 +1683,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-5-alarms_hist_new-v2-kr">Page 5: <code>/alarms_hist_new</code> — 알람 이력 조회 v2 (KR)</h2>
 <h3 id="_22">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/alarms_hist_new.py</code> (LoC: 286)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/alarms_hist_new.py</code> (LoC: 286)</li>
 <li><strong>@rx.page decorator</strong>: line 7, <code>route="/alarms_hist_new"</code>, <code>title="알람 이력 (개선)"</code></li>
 <li><strong>on_mount</strong>: <code>on_mount=AlarmHistState.on_load</code> (shell 파라미터)</li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/alarm_hist_state.py</code> (AlarmHistState) — /alarms_hist와 동일 state</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/alarm_hist_state.py</code> (AlarmHistState) — /alarms_hist와 동일 state</li>
 <li><strong>등록 상태</strong>: ⚠️ duplicate — v1 대비 필터 UI 보강, 테이블 형식 채택 (카드 → 표)</li>
 </ul>
 <h3 id="_23">화면 레이아웃</h3>
@@ -1972,10 +1972,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-6-scada-alarms-scada-kr">Page 6: <code>/scada-alarms</code> — SCADA 알람 실시간 로그 뷰어 (KR)</h2>
 <h3 id="_27">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/scada_alarm_viewer.py</code> (LoC: 220)</li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/scada_alarm_viewer.py</code> (LoC: 220)</li>
 <li><strong>@rx.page decorator</strong>: line 212, <code>route="/scada-alarms"</code>, <code>title="SCADA 알람 로그"</code></li>
 <li><strong>on_mount</strong>: <code>on_mount=ScadaAlarmState.initialize</code> (vstack prop — shell 미사용)</li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/scada_alarm_state.py</code> (LoC: 293, class: <code>ScadaAlarmState</code>)</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/scada_alarm_state.py</code> (LoC: 293, class: <code>ScadaAlarmState</code>)</li>
 <li><strong>등록 상태</strong>: ✓ live — SCADA 도메인 전용. alarm_history 테이블에서 scenario_id, level, AI 분석 필드 표시.</li>
 </ul>
 <h3 id="_28">화면 레이아웃</h3>
@@ -2376,10 +2376,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="page-7-scada-alarm-comparison-scada-vs-kr">Page 7: <code>/scada-alarm-comparison</code> — SCADA vs 시스템 알람 대조 (KR)</h2>
 <h3 id="_32">기본 정보</h3>
 <ul>
-<li><strong>모듈</strong>: <code>ksys_app/pages/scada_alarm_comparison.py</code> (LoC: 373)</li>
-<li><strong>@rx.page decorator</strong>: line 366, <code>route="/scada-alarm-comparison"</code>, <code>title="AI Alarms | KSYS"</code></li>
+<li><strong>모듈</strong>: <code>edgeex_app/pages/scada_alarm_comparison.py</code> (LoC: 373)</li>
+<li><strong>@rx.page decorator</strong>: line 366, <code>route="/scada-alarm-comparison"</code>, <code>title="AI Alarms | edgeEX"</code></li>
 <li><strong>on_mount</strong>: <code>on_mount=ScadaAlarmComparisonState.initialize</code> (shell 파라미터)</li>
-<li><strong>State 모듈</strong>: <code>ksys_app/states/scada_alarm_comparison_state.py</code> (LoC: 174, class: <code>ScadaAlarmComparisonState</code>)</li>
+<li><strong>State 모듈</strong>: <code>edgeex_app/states/scada_alarm_comparison_state.py</code> (LoC: 174, class: <code>ScadaAlarmComparisonState</code>)</li>
 <li><strong>등록 상태</strong>: ✓ live — Rule-based vs AI-based 알람 비교 전용 페이지.</li>
 </ul>
 <h3 id="_33">화면 레이아웃</h3>
@@ -2762,32 +2762,32 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </table>
 <hr />
 <h2 id="a">부록 A: 공통 컴포넌트 참조</h2>
-<h3 id="stat_card-ksys_appcomponentscardsstat_cardpy">stat_card (<code>ksys_app/components/cards/stat_card.py</code>)</h3>
+<h3 id="stat_card-edgeex_appcomponentscardsstat_cardpy">stat_card (<code>edgeex_app/components/cards/stat_card.py</code>)</h3>
 <ul>
 <li>Props: title, value, icon, color</li>
 <li>사용: alarms.py (row 2, 4 ISA), alarms_rt_simple.py (row 2, 4), alarms_rt_new.py (row 2)</li>
 </ul>
-<h3 id="filter_bar-ksys_appcomponentsalarmsfilter_barpy">filter_bar (<code>ksys_app/components/alarms/filter_bar.py</code>)</h3>
+<h3 id="filter_bar-edgeex_appcomponentsalarmsfilter_barpy">filter_bar (<code>edgeex_app/components/alarms/filter_bar.py</code>)</h3>
 <ul>
 <li>Props: search_value, severity_filter, status_filter, on_search, on_severity_change, on_status_change</li>
 <li><strong>주의</strong>: alarms.py에서만 state binding 정상. alarms_rt_*.py에서는 하드코딩</li>
 </ul>
-<h3 id="pagination-ksys_appcomponentsalarmspaginationpy">pagination (<code>ksys_app/components/alarms/pagination.py</code>)</h3>
+<h3 id="pagination-edgeex_appcomponentsalarmspaginationpy">pagination (<code>edgeex_app/components/alarms/pagination.py</code>)</h3>
 <ul>
 <li>Props: current_page, total_pages, total_items, page_size, has_prev_page, has_next_page, on_prev, on_next</li>
 <li>사용: alarms.py (history view)</li>
 </ul>
-<h3 id="live_indicator-ksys_appcomponentsalarms__init__py">live_indicator (<code>ksys_app/components/alarms/__init__.py</code> 경유)</h3>
+<h3 id="live_indicator-edgeex_appcomponentsalarms__init__py">live_indicator (<code>edgeex_app/components/alarms/__init__.py</code> 경유)</h3>
 <ul>
 <li>Props: is_live, last_update</li>
 <li>사용: alarms_rt_simple.py, alarms_rt_new.py</li>
 </ul>
-<h3 id="alarm_item-ksys_appcomponentsalarms__init__py">alarm_item (<code>ksys_app/components/alarms/__init__.py</code>)</h3>
+<h3 id="alarm_item-edgeex_appcomponentsalarms__init__py">alarm_item (<code>edgeex_app/components/alarms/__init__.py</code>)</h3>
 <ul>
 <li>Props: alarm (Dict)</li>
 <li>alarms_rt_new.py에서만 사용 (v2에서 인라인 lambda → 컴포넌트 분리)</li>
 </ul>
-<h3 id="shell-ksys_appcomponentslayoutpy">shell (<code>ksys_app/components/layout.py</code>)</h3>
+<h3 id="shell-edgeex_appcomponentslayoutpy">shell (<code>edgeex_app/components/layout.py</code>)</h3>
 <ul>
 <li>Props: *content, active_route, on_mount</li>
 <li>좌측 사이드바 + 상단 nav 포함</li>

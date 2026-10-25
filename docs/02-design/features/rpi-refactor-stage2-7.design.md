@@ -157,17 +157,17 @@ ai_engine/agents/
 
 ```python
 # 기존 외부 코드:
-from ksys_app.states.dashboard import DashboardState  # ← 깨지면 안 됨
+from edgeex_app.states.dashboard import DashboardState  # ← 깨지면 안 됨
 
 # 새 구조:
-ksys_app/states/dashboard/__init__.py:
+edgeex_app/states/dashboard/__init__.py:
     from .state import DashboardState
     __all__ = ["DashboardState"]
 
 # 같은 import 경로 그대로 동작 ✅
 ```
 
-`states/dashboard.py` (단일 파일) → `states/dashboard/__init__.py` + `state.py` (패키지). Python은 둘 다 `from ksys_app.states.dashboard import DashboardState` 로 import 가능. **호환성 100%**.
+`states/dashboard.py` (단일 파일) → `states/dashboard/__init__.py` + `state.py` (패키지). Python은 둘 다 `from edgeex_app.states.dashboard import DashboardState` 로 import 가능. **호환성 100%**.
 
 ---
 
@@ -176,7 +176,7 @@ ksys_app/states/dashboard/__init__.py:
 ### 3.1 디렉토리 트리 (Stage 4 완료 후)
 
 ```
-ksys_app/
+edgeex_app/
 ├── states/
 │   ├── dashboard/              # was 1,826 LoC single file
 │   │   ├── __init__.py
@@ -252,7 +252,7 @@ ksys_app/
 ### Sprint 2 (Day 2): ML pipeline (state 아님, 더 쉬움)
 2. **ml/pipeline_v2_hybrid.py (1,659 LoC)** ← multi-class, 분할 가장 단순
    - 클래스별로 파일 split (P2 패턴)
-   - `from ksys_app.ml.pipeline_v2_hybrid import X` 호환성 위해 `ml/pipeline_v2_hybrid.py` 를 re-export shim으로 유지 (또는 import 경로 업데이트)
+   - `from edgeex_app.ml.pipeline_v2_hybrid import X` 호환성 위해 `ml/pipeline_v2_hybrid.py` 를 re-export shim으로 유지 (또는 import 경로 업데이트)
    - **검증**: training_state.fitter / forecast_scheduler 동작 확인
 
 ### Sprint 3 (Day 3): 큰 State 둘
@@ -326,7 +326,7 @@ async def load(self):
 
 각 sprint 끝 검증:
 1. **Static**: `python -c "import ast; ast.parse(open(f).read())"` 모든 새 파일
-2. **Import**: `python -c "from ksys_app.states.dashboard import DashboardState"` (호환성)
+2. **Import**: `python -c "from edgeex_app.states.dashboard import DashboardState"` (호환성)
 3. **Build**: `docker compose -f docker-compose.local.yml build reflex-app`
 4. **Runtime**: `docker compose up -d reflex-app && curl http://localhost:14001/_health` (Reflex backend ping)
 5. **UI smoke**: 분할 대상 페이지 (/, /forecast, /training-wizard 등) HTTP 200 + 화면 보이기
@@ -347,7 +347,7 @@ async def load(self):
 | 리스크 | 확률 | 영향 | 완화 |
 |---|---|---|---|
 | Reflex State 분리 패턴이 reactivity 깨뜨림 | 중 | 높음 | training_state(가장 작음)로 PoC 후 dashboard/forecast 적용. self.* mutation은 반드시 @rx.event 안에서만. |
-| `from ksys_app.states.dashboard import DashboardState` 호환성 깨짐 | 낮음 | 높음 | `__init__.py`에서 명시 re-export. import 경로 변경 시 grep으로 모든 호출 site 일괄 업데이트. |
+| `from edgeex_app.states.dashboard import DashboardState` 호환성 깨짐 | 낮음 | 높음 | `__init__.py`에서 명시 re-export. import 경로 변경 시 grep으로 모든 호출 site 일괄 업데이트. |
 | ml/pipeline 분할 후 statsforecast Plugin이 importlib 발견 못 함 | 낮음 | 중 | `model_registry.pickle_data` 가 plugin 객체를 unpickle 할 때 class 위치 import path 변경 영향. Shim file로 backward import 유지. |
 | 분할 작업 중 stale cache (Reflex의 .web/, .states/) 이상 동작 | 중 | 낮 | 각 sprint 시작 시 `.web/`, `.states/` 삭제 후 reflex run. |
 | 메서드 의존성 추적 누락으로 NameError | 중 | 중 | 분할 후 즉시 `docker compose build` + import test. 깨지면 revert. |
@@ -358,7 +358,7 @@ async def load(self):
 
 - [AC4-1] 1,000+ LoC 파일 = 0
 - [AC4-2] 분할된 파일 모두 ≤ 500 LoC (research.py, xgboost.py 같은 단일 책임 예외 허용)
-- [AC4-3] `python -c "from ksys_app.states.dashboard import DashboardState"` 외 모든 기존 import 경로 동작
+- [AC4-3] `python -c "from edgeex_app.states.dashboard import DashboardState"` 외 모든 기존 import 경로 동작
 - [AC4-4] `docker compose build reflex-app` 성공
 - [AC4-5] 분할 대상 페이지 (/, /forecast, /training-wizard, /model-performance) 정상 부팅 + 데이터 로드
 - [AC4-6] git log: sprint 단위 atomic commit (5 또는 4 commits)
@@ -371,7 +371,7 @@ async def load(self):
 2. **OQ4-2**: `ForecastPlayerState(BaseState)` — `BaseState` 가 어디서 import되는지, 추상화 패턴 명확한지 확인. Stage 6 BaseState 통일 시 영향.
 3. **OQ4-3**: Reflex 0.8.16의 `rx.lock()` 사용 패턴 — 분할 후 helper async 함수 안에서 lock 잡으면 안 됨 (State 메서드에서만). 모든 분할 시 검증.
 4. **OQ4-4**: ai_engine/agents/ — 현재 사용처 (/ai 라우트는 Stage 1에서 제거됨). 정말 살아있는 코드인지 별도 검토. Dead라면 Stage 4 분해 대신 Stage 2식 통째 삭제.
-5. **OQ4-5**: states/dashboard/ 분할 후 view_helpers.py 와 ksys_app/views/ (이미 존재) 의 책임 경계.
+5. **OQ4-5**: states/dashboard/ 분할 후 view_helpers.py 와 edgeex_app/views/ (이미 존재) 의 책임 경계.
 
 ---
 
@@ -380,7 +380,7 @@ async def load(self):
 - Plan: `docs/01-plan/features/rpi-refactor-stage2-7.plan.md` §4 Stage 4
 - Refactor proposal: `reports/refactor_proposal_2026-05-19.html`
 - Current state: 8 commits on `refactor/rpi-baseline-sync` branch (e397d8f...b52ec6b)
-- 1000+ LoC inventory: Stage 1+2+3.5 결과 `find ksys_app -name "*.py" -exec wc -l {} \;`
+- 1000+ LoC inventory: Stage 1+2+3.5 결과 `find edgeex_app -name "*.py" -exec wc -l {} \;`
 
 ---
 

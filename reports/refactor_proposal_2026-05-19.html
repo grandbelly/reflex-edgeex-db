@@ -55,7 +55,7 @@
 <body>
 
 <h1>🛠️ RPI 최적 리팩토링 제안서</h1>
-<p class="meta">생성일 2026-05-19 · baseline: <code>C:\sync\01_remote_ksys\2026-03-24\deployment\20251030-rpi-finished</code> · 대상: ksys_app (Reflex 0.8.16 + TimescaleDB + statsforecast)</p>
+<p class="meta">생성일 2026-05-19 · baseline: <code>C:\sync\01_remote_edgeex\2026-03-24\deployment\20251030-rpi-finished</code> · 대상: edgeex_app (Reflex 0.8.16 + TimescaleDB + statsforecast)</p>
 
 <div class="callout">
 <strong>요약 한 줄:</strong> 코드 <strong>50% 이상이 통째 중복/데드</strong>. 먼저 잡초 제거(Stage 1-2, 3일)만 해도 LoC 136K → 약 50K. 그 뒤에야 RPI 효율/모듈화/품질 개선이 의미 있음.
@@ -66,7 +66,7 @@
 <div class="kpi-grid">
   <div class="kpi"><div class="v">519</div><div class="l">.py 파일</div></div>
   <div class="kpi"><div class="v">136,681</div><div class="l">총 LoC</div></div>
-  <div class="kpi"><div class="v">268 / 274</div><div class="l">ksys_app_clean MD5 동일</div></div>
+  <div class="kpi"><div class="v">268 / 274</div><div class="l">edgeex_app_clean MD5 동일</div></div>
   <div class="kpi"><div class="v">14</div><div class="l">등록 안 된 페이지</div></div>
   <div class="kpi"><div class="v">30+</div><div class="l">.backup/.bak/.disabled 파일</div></div>
   <div class="kpi"><div class="v">8</div><div class="l">1,000+ LoC 비대 파일</div></div>
@@ -77,7 +77,7 @@
   <tr><th>#</th><th>문제</th><th>증거</th><th>RPI 영향</th></tr>
   <tr>
     <td>1</td><td><span class="tag tag-p1">P1</span>전체 통째 중복</td>
-    <td><code>ksys_app_clean/</code> 274 파일 중 268개가 <code>ksys_app/</code>와 MD5 정확히 동일</td>
+    <td><code>edgeex_app_clean/</code> 274 파일 중 268개가 <code>edgeex_app/</code>와 MD5 정확히 동일</td>
     <td>Docker 이미지 +50MB, RAM 낭비, 개발자 혼란</td>
   </tr>
   <tr>
@@ -92,7 +92,7 @@
   </tr>
   <tr>
     <td>4</td><td><span class="tag tag-p2">P2</span>모놀리식 State/App</td>
-    <td><code>ksys_app.py</code> 1,057 LoC, <code>states/dashboard.py</code> 1,717 LoC, <code>forecast_player_state.py</code> 1,440 LoC</td>
+    <td><code>edgeex_app.py</code> 1,057 LoC, <code>states/dashboard.py</code> 1,717 LoC, <code>forecast_player_state.py</code> 1,440 LoC</td>
     <td>RPI 부팅 시 모든 state 즉시 로드 → 메모리 압박</td>
   </tr>
   <tr>
@@ -110,7 +110,7 @@
   <h3>Stage 1 — 잡초 제거 (Zero-risk delete) <span class="effort">⏱ 0.5일</span> <span class="tag tag-p1">P1</span></h3>
   <p><strong>액션:</strong></p>
   <ul>
-    <li><code>ksys_app_clean/</code> 폴더 통째 삭제 (268/274 MD5 동일, 나머지 6개는 diff 확인 후 cherry-pick)</li>
+    <li><code>edgeex_app_clean/</code> 폴더 통째 삭제 (268/274 MD5 동일, 나머지 6개는 diff 확인 후 cherry-pick)</li>
     <li><code>git rm</code> 으로 다음 패턴 삭제: <code>*.backup</code>, <code>*.bak</code>, <code>*.bak2</code>, <code>*.disabled</code>, <code>*_OLD.py</code>, <code>*.backup_2025*</code></li>
     <li><code>communication_new_backup.py</code>, <code>training_wizard_plotly_backup.py</code>, <code>dashboard_realtime_OLD.py</code> 등 명시 삭제</li>
   </ul>
@@ -123,7 +123,7 @@ docker compose -f docker-compose.local.yml build reflex-app
 
 <div class="stage s2">
   <h3>Stage 2 — 죽은 페이지 정리 <span class="effort">⏱ 1일</span> <span class="tag tag-p1">P1</span></h3>
-  <p><strong>액션:</strong> ksys_app.py에 import/add_page 안 된 페이지 14개 처리</p>
+  <p><strong>액션:</strong> edgeex_app.py에 import/add_page 안 된 페이지 14개 처리</p>
   <table>
     <tr><th>파일</th><th>상태</th><th>처리</th></tr>
     <tr><td><code>pages/forecast_player.py</code> 1,038 LoC</td><td>운영본은 <code>forecast_player_fixed.py</code></td><td>🗑 삭제</td></tr>
@@ -141,7 +141,7 @@ docker compose -f docker-compose.local.yml build reflex-app
 
 <div class="stage s3">
   <h3>Stage 3 — 라우트 등록 통일 <span class="effort">⏱ 0.5일</span> <span class="tag tag-p2">P2</span></h3>
-  <p><strong>문제:</strong> <code>ksys_app.py</code>에 라우트 등록 3가지 방식 혼재:</p>
+  <p><strong>문제:</strong> <code>edgeex_app.py</code>에 라우트 등록 3가지 방식 혼재:</p>
   <ul>
     <li><code>app.add_page(scada_alarm_viewer, route="/scada-alarms", title=...)</code> — 명시</li>
     <li><code>from .pages import alarms_rt_simple  # Import to trigger @rx.page decorator</code> — 데코레이터</li>
@@ -151,10 +151,10 @@ docker compose -f docker-compose.local.yml build reflex-app
   <p><strong>액션:</strong></p>
   <ul>
     <li>한 방식으로 통일 — 추천: <code>@rx.page</code> 데코레이터 + 페이지 모듈 자동 디스커버리</li>
-    <li><code>ksys_app/routes.py</code> 신규: 등록 로직만 분리</li>
+    <li><code>edgeex_app/routes.py</code> 신규: 등록 로직만 분리</li>
     <li>주석 라우트 전부 제거 (죽은 코드는 git history 에)</li>
   </ul>
-  <pre><code># Before (ksys_app.py 안)
+  <pre><code># Before (edgeex_app.py 안)
 from .pages.alarms import alarms_page
 app.add_page(alarms_page, route="/alarms", on_load=[AlarmsState.initialize, ...])
 
@@ -163,7 +163,7 @@ app.add_page(alarms_page, route="/alarms", on_load=[AlarmsState.initialize, ...]
 def alarms_page():
     ...
 
-# ksys_app.py 는 그냥
+# edgeex_app.py 는 그냥
 from . import pages  # auto-discover via @rx.page</code></pre>
 </div>
 
@@ -193,7 +193,7 @@ from . import pages  # auto-discover via @rx.page</code></pre>
       <td>→ <code>agents/</code> 디렉토리로 핸들러별 분리</td>
     </tr>
     <tr>
-      <td><code>ksys_app.py</code></td><td>1,057</td>
+      <td><code>edgeex_app.py</code></td><td>1,057</td>
       <td>→ <code>app.py</code> (App 인스턴스) + <code>routes.py</code> + <code>lifecycle.py</code> (startup/shutdown)</td>
     </tr>
     <tr>
@@ -228,7 +228,7 @@ pool = await asyncpg.create_pool(
   </ul>
 
   <p><strong>5-3. Reflex 페이지 lazy import</strong></p>
-  <pre><code># Before: ksys_app.py 부팅 시 모든 페이지 import
+  <pre><code># Before: edgeex_app.py 부팅 시 모든 페이지 import
 from .pages.alarms import alarms_page
 from .pages.dashboard import dashboard_page
 # ... 16개

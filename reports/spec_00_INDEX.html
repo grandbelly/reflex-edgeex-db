@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>KSys IoT — 역설계 기능 정의서 (INDEX)</title>
+<title>edgeEX IoT — 역설계 기능 정의서 (INDEX)</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
          background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
@@ -46,7 +46,7 @@
 </head>
 <body>
 
-<h1>📚 KSys IoT — 역설계 기능 정의서 INDEX</h1>
+<h1>📚 edgeEX IoT — 역설계 기능 정의서 INDEX</h1>
 <p class="meta">실행 2026-05-28 · 5-agent 병렬 reverse engineering (frontend + backend + DB + PM + QA) · 사용자 요청 "역설계를 통한 모든 기능 정의서가 다시 만들어져야 함"</p>
 
 <div class="callout info">
@@ -138,7 +138,7 @@
 <div class="spec-card">
   <a href="spec_11_screens_analytics_misc.html">spec_11_screens_analytics_misc.html — 화면 설계서 (Analytics + 기타)</a>
   <div class="desc">/trend (849 LoC, dual sync chart) + /ai (DEAD, 활성화 시 9개 즉시 fix 필요) + /design-system-demo (DEAD). <strong>frontend-architect</strong> 작성.</div>
-  <div class="stats">AI 활성화 Critical: ksys_app.py import 1줄 추가만으로 라우트 활성. SQL injection 추가 사이트 발견</div>
+  <div class="stats">AI 활성화 Critical: edgeex_app.py import 1줄 추가만으로 라우트 활성. SQL injection 추가 사이트 발견</div>
 </div>
 
 <h2>📑 Phase C/D/E — 정통 SI Spec 시퀀스 (기능 / 프로세스 / 기획 / SRS)</h2>
@@ -176,7 +176,7 @@
 <h2>🔢 산출물 요약 — 한눈에 보는 시스템</h2>
 
 <h3>제품 정체성 (PRD §1 추론)</h3>
-<p><strong>"KSYS = 단일 사이트 정수처리(desalination/water-treatment) SCADA-adjacent 플랫폼"</strong>. 실시간 IoT 센서 모니터링 + ISA-18.2 알람 관리 + 10분 ML 예측 사이클 + 가이드형 모델 학습. RPI Docker 배포.</p>
+<p><strong>"edgeEX = 단일 사이트 정수처리(desalination/water-treatment) SCADA-adjacent 플랫폼"</strong>. 실시간 IoT 센서 모니터링 + ISA-18.2 알람 관리 + 10분 ML 예측 사이클 + 가이드형 모델 학습. RPI Docker 배포.</p>
 <p>증거: <code>influx_hist</code>, <code>alarm_history</code>, <code>virtual_tag_*</code>, <code>prediction_performance</code>, <code>model_registry</code>, "실시간 알람", "트렌드 분석", "예측 플레이어", "training wizard" 페이지 제목.</p>
 
 <h3>3 페르소나 + 핵심 페이지 (PRD §2)</h3>
@@ -214,7 +214,7 @@
 
 <table>
 <tr><th>#</th><th>유형</th><th>결함</th><th>출처</th><th>우선순위</th></tr>
-<tr><td>1</td><td>Dead route</td><td><code>/ai</code> (ai_insights.py) — @rx.page 있지만 ksys_app.py import 없음. Day 6 SQL fix가 호출 path 없음.</td><td>spec_01 + playwright_test</td><td>P0</td></tr>
+<tr><td>1</td><td>Dead route</td><td><code>/ai</code> (ai_insights.py) — @rx.page 있지만 edgeex_app.py import 없음. Day 6 SQL fix가 호출 path 없음.</td><td>spec_01 + playwright_test</td><td>P0</td></tr>
 <tr><td>2</td><td>Dead route</td><td><code>/design-system-demo</code> — 같은 패턴 (모듈 import 없음)</td><td>spec_01</td><td>P2</td></tr>
 <tr><td>3</td><td>Duplicate page</td><td><code>/alarms_rt</code> + <code>/alarms_rt_new</code> 둘 다 live. 같은 state class. canonical 없음.</td><td>spec_01</td><td>P1</td></tr>
 <tr><td>4</td><td>Broken UI</td><td>AlarmRT filter bar 하드코딩 (<code>search_value="", severity_filter="all"</code> 리터럴) — 검색/필터 작동 안 함</td><td>spec_01</td><td>P1</td></tr>

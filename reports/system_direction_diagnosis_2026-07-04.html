@@ -62,7 +62,7 @@
 <p>grep으로 import 체인을 실측한 결과:</p>
 <table>
   <tr><th>미추적 파일 (??)</th><th>이것을 import하는 <em>추적</em> 파일</th><th>의미</th></tr>
-  <tr><td><code>ksys_app/states/_connection.py</code></td><td><code>base_state.py</code>, <code>dashboard_realtime.py</code>, <code>scada_alarm_state.py</code>, <code>forecast_player_state/state.py</code> (모두 M 상태, +3줄 diff = import 전환)</td><td>핵심 DB 연결 경로 전체가 미커밋 파일에 의존</td></tr>
+  <tr><td><code>edgeex_app/states/_connection.py</code></td><td><code>base_state.py</code>, <code>dashboard_realtime.py</code>, <code>scada_alarm_state.py</code>, <code>forecast_player_state/state.py</code> (모두 M 상태, +3줄 diff = import 전환)</td><td>핵심 DB 연결 경로 전체가 미커밋 파일에 의존</td></tr>
   <tr><td><code>services/feature_config_service.py</code></td><td><code>training_state/state.py</code>, <code>training_wizard_state.py</code></td><td>학습 위저드가 미커밋 파일에 의존</td></tr>
   <tr><td><code>migrations/013_fix_cagg_refresh_policies.sql</code></td><td>(DB에는 적용됨 — cagg 빈차트 수정)</td><td>DB 상태와 repo 상태 불일치</td></tr>
 </table>

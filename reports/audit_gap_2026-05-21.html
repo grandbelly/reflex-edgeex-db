@@ -108,7 +108,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td>Stage 5-7 plan §S5-2</td>
 <td>asyncpg pool tuning for RPI</td>
 <td style="text-align: center;"><strong>Not started</strong></td>
-<td>No code change in <code>ksys_app/db*.py</code>.</td>
+<td>No code change in <code>edgeex_app/db*.py</code>.</td>
 </tr>
 <tr>
 <td>Stage 5-7 plan §S5-3a</td>
@@ -120,7 +120,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td>Stage 5-7 plan §S5-3b</td>
 <td>Reflex lazy page import</td>
 <td style="text-align: center;"><strong>Not started</strong></td>
-<td><code>ksys_app.py</code> still eager-imports.</td>
+<td><code>edgeex_app.py</code> still eager-imports.</td>
 </tr>
 <tr>
 <td>Stage 5-7 plan §S5-3c</td>
@@ -130,13 +130,13 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>Stage 5-7 plan §S6-1</td>
-<td><code>ksys_app/repositories/</code></td>
+<td><code>edgeex_app/repositories/</code></td>
 <td style="text-align: center;"><strong>Not started</strong></td>
 <td>Dir does not exist.</td>
 </tr>
 <tr>
 <td>Stage 5-7 plan §S6-2</td>
-<td><code>ksys_app/views/charts/</code></td>
+<td><code>edgeex_app/views/charts/</code></td>
 <td style="text-align: center;"><strong>Not started</strong></td>
 <td>Dir does not exist.</td>
 </tr>
@@ -172,13 +172,13 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>Stage 5-7 plan §S8-2</td>
-<td>SKILL.md for ksys conventions</td>
+<td>SKILL.md for edgeex conventions</td>
 <td style="text-align: center;"><strong>Not started</strong></td>
-<td>No <code>.claude/skills/ksys-conventions/SKILL.md</code>.</td>
+<td>No <code>.claude/skills/edgeex-conventions/SKILL.md</code>.</td>
 </tr>
 <tr>
 <td><code>verify-deep1</code> §Addendum</td>
-<td><strong>Delete <code>ksys_app/ksys_app_clean/</code></strong></td>
+<td><strong>Delete <code>edgeex_app/edgeex_app_clean/</code></strong></td>
 <td style="text-align: center;"><strong>Not started</strong></td>
 <td>Still present with 7 <code>.backup</code> files. <code>git rm -r</code> not done.</td>
 </tr>
@@ -192,7 +192,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td>same</td>
 <td><strong>Delete ~15 gitignored backup files</strong></td>
 <td style="text-align: center;"><strong>Not started</strong></td>
-<td>8 <code>.backup</code> files under <code>ksys_app/</code> — all dead per verify-deep1.</td>
+<td>8 <code>.backup</code> files under <code>edgeex_app/</code> — all dead per verify-deep1.</td>
 </tr>
 </tbody>
 </table>
@@ -284,12 +284,12 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <p><strong>Stage 4 deep helper extraction (3 Reflex State files: 1077/1638/1668L)</strong> — first planned in <code>rpi-refactor-stage2-7.plan.md</code> (2026-05-19). <strong>2 days</strong> untouched. Stage 4-1 attempted as analysis-only on 2026-05-20, then frozen after verify-deep1 (2026-05-21) showed ≤600L AC is unreachable. <strong>Blocker:</strong> O1/O2/O3 decision.</p>
 </li>
 <li>
-<p><strong>Delete <code>ksys_app/ksys_app_clean/</code></strong> — Stage 1 (commit <code>7618aa2</code>, 2026-05-19) was supposed to remove this. Verify-deep1 §Addendum (2026-05-21) confirmed it came back via RPI baseline sync, still tracked. <strong>2 days</strong> unresolved. Single <code>git rm -r</code> fixes it.</p>
+<p><strong>Delete <code>edgeex_app/edgeex_app_clean/</code></strong> — Stage 1 (commit <code>7618aa2</code>, 2026-05-19) was supposed to remove this. Verify-deep1 §Addendum (2026-05-21) confirmed it came back via RPI baseline sync, still tracked. <strong>2 days</strong> unresolved. Single <code>git rm -r</code> fixes it.</p>
 </li>
 <li>
 <p><strong>RPI baseline measurement (Stage 5-1)</strong> — first planned 2026-05-19. No baseline numbers ever captured. <strong>2 days</strong> without measurement means Stage 5-2/5-3 tuning targets are unfalsifiable.</p>
 </li>
 </ol>
 <hr />
-<p><strong>Recommended next single action:</strong> answer verify-deep1 §5 questions (O1/O2/O3 + start_training scope + TrainingWizardState compat). That single decision unblocks item #1. Item #2 (<code>ksys_app_clean/</code> deletion) is a separate one-commit task that can run in parallel.</p>
+<p><strong>Recommended next single action:</strong> answer verify-deep1 §5 questions (O1/O2/O3 + start_training scope + TrainingWizardState compat). That single decision unblocks item #1. Item #2 (<code>edgeex_app_clean/</code> deletion) is a separate one-commit task that can run in parallel.</p>
 </body></html>

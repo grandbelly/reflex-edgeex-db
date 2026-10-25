@@ -17,7 +17,7 @@
 ### 다음 세션이 알아야 할 것
 1. **Agent Teams env var는 settings.json에 영구 등록됨** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). 다음 세션 부팅 시 `Agent(team_name, name)` 호출 경로가 노출되면 진짜 Teams 패턴으로 동작 가능. 이번 세션에서는 `SendMessage`/`TeamCreate`/`TeamDelete`만 deferred로 보였고 spawn은 일반 subagent로 떨어졌음 — `REPORT.md` "Honest notes on Agent Teams integration" 참조.
 2. **Forecast-scheduler 배포 시점에 env 변수 자동 적용** — `Dockerfile.scheduler`에 `USE_DB_POOLING=true`, `DB_COMMAND_TIMEOUT=30`, `DB_STATEMENT_TIMEOUT_MS=30000`, `FORECAST_PICKLE_LOAD_TIMEOUT=15.0`, `FORECAST_MODEL_PREDICT_TIMEOUT=45.0` 박혀 있음. Reflex 웹 이미지는 기존 default 그대로 (NullPool).
-3. **로컬 풍도 코드 ↔ RPI 동기화 필요** — master는 풍도 폴더 기준. RPI(`/home/tion/deployment/20251030-rpi-finished/`)는 아직 patch 안 들어감. `scp`로 `ksys_app/schedulers/forecast_scheduler.py`, `ksys_app/db_orm.py`, `ksys_app/schedulers/scheduler_manager.py`, `Dockerfile.scheduler` 4개 동기화 후 `docker compose up -d --build scheduler` 필요.
+3. **로컬 풍도 코드 ↔ RPI 동기화 필요** — master는 풍도 폴더 기준. RPI(`/home/tion/deployment/20251030-rpi-finished/`)는 아직 patch 안 들어감. `scp`로 `edgeex_app/schedulers/forecast_scheduler.py`, `edgeex_app/db_orm.py`, `edgeex_app/schedulers/scheduler_manager.py`, `Dockerfile.scheduler` 4개 동기화 후 `docker compose up -d --build scheduler` 필요.
 4. **남은 follow-up** (블로커 아님):
    - `save_predictions` 36-row INSERT 배치화 (Alice's note)
    - `README.md:97` "5-min intervals" 텍스트 갱신 (Charlie's note) — `/document-release`
@@ -43,7 +43,7 @@ cd C:\sync\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo
 docker compose -f docker-compose.dev.yml up -d
 
 # 3. DB 준비 확인 (5초 내 ready 됨)
-docker exec ksys-dev-db pg_isready -U postgres
+docker exec edgeex-dev-db pg_isready -U postgres
 
 # 4. Reflex 실행 — PYTHONUTF8 환경변수 필수!
 $env:PYTHONUTF8 = "1"
@@ -51,12 +51,12 @@ $env:PYTHONIOENCODING = "utf-8"
 $env:TS_DSN = "postgresql://postgres:postgres@localhost:5432/ecoanp?sslmode=disable"
 $env:POSTGRES_CONNECTION_STRING = "postgresql://postgres:postgres@localhost:5432/ecoanp?sslmode=disable"
 $env:APP_ENV = "development"
-C:\dev\venv-ksys\Scripts\python.exe -m reflex run
+C:\dev\venv-edgeex\Scripts\python.exe -m reflex run
 
 # 5. 접속: http://localhost:14000 (frontend) / http://localhost:14001 (backend)
 ```
 
-**Tip**: 매번 PYTHONUTF8 입력하기 귀찮으면 `C:\dev\venv-ksys\Scripts\Activate.ps1`에 `$env:PYTHONUTF8="1"` 한 줄 추가.
+**Tip**: 매번 PYTHONUTF8 입력하기 귀찮으면 `C:\dev\venv-edgeex\Scripts\Activate.ps1`에 `$env:PYTHONUTF8="1"` 한 줄 추가.
 
 ---
 
@@ -96,7 +96,7 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 ### 5. 최종 검증
 - Frontend `http://localhost:14000` → HTTP 200, 23KB HTML ✓
 - Backend `http://localhost:14001/ping` → "pong" ✓
-- DB `ksys-dev-db` healthy ✓
+- DB `edgeex-dev-db` healthy ✓
 
 ---
 
@@ -133,7 +133,7 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 ## 🔐 보안 미해결 (전 세션 인계 그대로)
 
 - **Cloudflare Tunnel 토큰이 `docker-compose.yml`에 평문 노출** (line 112). 회수 필요.
-- `01_remote_ksys/` 진단 스크립트들에 SSH 패스워드 `!eonware` 하드코딩. 키 인증으로 전환 권장.
+- `01_remote_edgeex/` 진단 스크립트들에 SSH 패스워드 `!eonware` 하드코딩. 키 인증으로 전환 권장.
 
 ---
 
@@ -149,7 +149,7 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 | M | Dangling images 7.47GB 정리 | `docker image prune` |
 | L | InfluxDB measurement 변경 추적 체계 | eonware ↔ Node-RED 동기화 |
 
-리팩토링 시작 시 `/pdca plan ksys-refactoring` 권장.
+리팩토링 시작 시 `/pdca plan edgeex-refactoring` 권장.
 
 ---
 
@@ -159,8 +159,8 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 |---|---|
 | 풍도 폴더 (작업본진) | `C:\sync\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo` (junction) |
 | 풍도 폴더 (원경로) | `C:\Users\Ipeop\SynologyDrive_강민구대표\SynologyDrive\00_ServerPC\reflex\reflex-rpi\reflex-rpi-local-deployment-poongdo` |
-| venv | `C:\dev\venv-ksys` (Python 3.12.10, reflex 0.8.16) |
-| GitHub repo | https://github.com/grandbelly/reflex-ksys-db (master) |
+| venv | `C:\dev\venv-edgeex` (Python 3.12.10, reflex 0.8.16) |
+| GitHub repo | https://github.com/grandbelly/reflex-edgeex-db (master) |
 | 직전 commit (코드) | `2329856 feat: 풍도 사이트 신규 페이지/상태 + 인증 데이터 생성 스크립트` |
 | Dev DB compose | `./docker-compose.dev.yml` (pg_cron 비활성 오버라이드) |
 | Dev DB Dockerfile | `./20251030-rpi-pgcron/Dockerfile.rpi-pgcron` (PG paths 동적 탐지 수정) |
@@ -177,7 +177,7 @@ C:\dev\venv-ksys\Scripts\python.exe -m reflex run
 - 풍도 인스턴스 로컬에서 개발 + 디버그 → ✅ **환경 가동 완료**
 - AI/ML 기능은 나중에 (Reflex+DB 핵심만 먼저)
 - DB는 RPI 운영본 백업 복원하여 실데이터로 작업
-- 작업물은 `grandbelly/reflex-ksys-db` GitHub에 지속 push
+- 작업물은 `grandbelly/reflex-edgeex-db` GitHub에 지속 push
 - 이후 큰 그림은 "오래된 코드 리팩토링" (코드 중복 정리, 안정화)
 
 ---

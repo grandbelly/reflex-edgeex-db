@@ -23,7 +23,7 @@ $WorkRoot = "C:\edgeex-it\cr277"
 New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
 Set-Location $WorkRoot
 
-git clone --branch cr277-edge-consumer https://github.com/grandbelly/reflex-ksys-db.git upper-consumer
+git clone --branch cr277-edge-consumer https://github.com/grandbelly/reflex-edgeex-db.git upper-consumer
 Set-Location "$WorkRoot\upper-consumer"
 
 # 회신 문서(prompts/edgeex_reply_from_upper_v1_4.md)에 명시된 고정 SHA 체크아웃
@@ -90,7 +90,7 @@ $DbPass = "<EDGE_LOCAL_TEST_DB_PASSWORD>"
 @"
 TS_DSN=postgresql://postgres:$DbPass@127.0.0.1:55432/postgres?sslmode=disable
 KAFKA_BOOTSTRAP_SERVERS=127.0.0.1:9092
-KAFKA_CONSUMER_GROUP=ksys-upper-it-cr277
+KAFKA_CONSUMER_GROUP=edgeex-upper-it-cr277
 KAFKA_ENABLED=true
 KAFKA_TOPICS=edgeex.test.telemetry.vqt,edgeex.test.alarms.events,edgeex.test.health.status
 "@ | Set-Content -Encoding UTF8 .\.env
@@ -105,7 +105,7 @@ Set-Location "C:\edgeex-it\cr277\upper-consumer"
 New-Item -ItemType Directory -Force -Path .\logs | Out-Null
 
 $ConsumerProc = Start-Process -FilePath ".\.venv\Scripts\python.exe" `
-    -ArgumentList "-u", "-m", "ksys_app.integration.kafka_consumer" `
+    -ArgumentList "-u", "-m", "edgeex_app.integration.kafka_consumer" `
     -WorkingDirectory "C:\edgeex-it\cr277\upper-consumer" `
     -RedirectStandardOutput "C:\edgeex-it\cr277\upper-consumer\logs\consumer_stdout.log" `
     -RedirectStandardError  "C:\edgeex-it\cr277\upper-consumer\logs\consumer_stderr.log" `
@@ -125,7 +125,7 @@ Write-Host "Consumer started with PID=$($ConsumerProc.Id)"
 
 ## 6. 정상 기동 판단 기준 (그룹 가입 및 파티션 `3 / 1 / 1` 할당 확인)
 
-기동 후 3~5초 뒤 아래 명령으로 **Consumer Group(`ksys-upper-it-cr277`) 가입** 및 **시험 토픽 3종 파티션(`3 / 1 / 1`) 할당**을 확인합니다.
+기동 후 3~5초 뒤 아래 명령으로 **Consumer Group(`edgeex-upper-it-cr277`) 가입** 및 **시험 토픽 3종 파티션(`3 / 1 / 1`) 할당**을 확인합니다.
 
 ```powershell
 # 1) 로그에서 그룹 가입 및 파티션 3/1/1 할당 확인
@@ -133,8 +133,8 @@ Select-String -Path "C:\edgeex-it\cr277\upper-consumer\logs\consumer_stdout.log"
     -Pattern "Connected to|Group joined & partitions assigned"
 
 # 기대 출력 예시:
-# [KafkaConsumer] Connected to 127.0.0.1:9092 (group=ksys-upper-it-cr277, enable_auto_commit=False, topics=('edgeex.test.telemetry.vqt', 'edgeex.test.alarms.events', 'edgeex.test.health.status'))
-# [KafkaConsumer] Group joined & partitions assigned (group=ksys-upper-it-cr277): counts={'edgeex.test.alarms.events': 1, 'edgeex.test.health.status': 1, 'edgeex.test.telemetry.vqt': 3} detail={'edgeex.test.telemetry.vqt': [0, 1, 2], 'edgeex.test.alarms.events': [0], 'edgeex.test.health.status': [0]}
+# [KafkaConsumer] Connected to 127.0.0.1:9092 (group=edgeex-upper-it-cr277, enable_auto_commit=False, topics=('edgeex.test.telemetry.vqt', 'edgeex.test.alarms.events', 'edgeex.test.health.status'))
+# [KafkaConsumer] Group joined & partitions assigned (group=edgeex-upper-it-cr277): counts={'edgeex.test.alarms.events': 1, 'edgeex.test.health.status': 1, 'edgeex.test.telemetry.vqt': 3} detail={'edgeex.test.telemetry.vqt': [0, 1, 2], 'edgeex.test.alarms.events': [0], 'edgeex.test.health.status': [0]}
 
 # 2) 실시간 상태 JSON 파일로 확인
 Get-Content "C:\edgeex-it\cr277\upper-consumer\logs\consumer_metrics.json"

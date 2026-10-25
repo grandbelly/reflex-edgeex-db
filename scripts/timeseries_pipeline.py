@@ -72,7 +72,7 @@ async def detect_schema(conn) -> tuple[str, bool]:
         val = await conn.fetchval(index_query)
         has_unique = val > 0
     except Exception:
-        has_unique = True  # Default to true for standard ksys deployment schema
+        has_unique = True  # Default to true for standard edgeex deployment schema
         
     return qual_col, has_unique
 
@@ -122,7 +122,7 @@ def read_csv_in_chunks(file_path, batch_size, tz):
                 skipped_count += 1
                 continue
                 
-            # Quality code check: default to 0 (Good in ksys context) or 192
+            # Quality code check: default to 0 (Good in edgeex context) or 192
             try:
                 quality = int(qty_str) if qty_str is not None else 0
             except ValueError:

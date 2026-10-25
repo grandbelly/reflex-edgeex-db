@@ -1,0 +1,30 @@
+# edgeex_app/components — reusable UI
+
+## Purpose
+
+Composable, function-based Reflex UI building blocks. Pure presentation — no business logic, no DB.
+
+## Ownership
+
+Components grouped by domain: `trends/` (with `inputs/`, `charts/`, `cards/`, `layout/`, `feedback/`),
+`alarms/`, `cards/`, `charts/`, `dashboard/`. `design_system.py` holds color/typography/spacing tokens.
+
+## Local Contracts
+
+- Every component is a **function returning `rx.Component`** — no class-based components.
+- Bind to State via Vars (`value=State.x`, `on_change=State.set_x`). **Never call services or DB here.**
+- Pull colors/spacing/typography from `design_system.py` (and the dark control-room theme), not hardcoded hex.
+- Group by feature domain; deep feature sets get sub-dirs (see `trends/`).
+
+## Work Guidance
+
+- Reuse an existing component before writing one — check the domain folder and `trends/` sub-modules first.
+- Keep components stateless: data and events come in as props/Var bindings from the page's State.
+
+## Verification
+
+Visual: render via the owning page on `:14000`. No component unit harness.
+
+## Child DOX Index
+
+None — sub-folders are organizational, governed by this contract.

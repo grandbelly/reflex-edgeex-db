@@ -94,15 +94,15 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>파일</td>
-<td><code>ksys_app/pages/trend_enhanced_v2.py</code> (849 LoC)</td>
+<td><code>edgeex_app/pages/trend_enhanced_v2.py</code> (849 LoC)</td>
 </tr>
 <tr>
 <td>State</td>
-<td><code>ksys_app/states/trend_state.py</code> → <code>TrendState</code></td>
+<td><code>edgeex_app/states/trend_state.py</code> → <code>TrendState</code></td>
 </tr>
 <tr>
 <td>서비스</td>
-<td><code>ksys_app/services/trend_service.py</code> → <code>TrendService</code></td>
+<td><code>edgeex_app/services/trend_service.py</code> → <code>TrendService</code></td>
 </tr>
 <tr>
 <td>on_load</td>
@@ -791,15 +791,15 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>파일</td>
-<td><code>ksys_app/pages/ai_insights.py</code> (579 LoC)</td>
+<td><code>edgeex_app/pages/ai_insights.py</code> (579 LoC)</td>
 </tr>
 <tr>
 <td>State</td>
-<td><code>ksys_app/states/ai_state.py</code> → <code>AIState</code></td>
+<td><code>edgeex_app/states/ai_state.py</code> → <code>AIState</code></td>
 </tr>
 <tr>
 <td>AI Engine</td>
-<td><code>ksys_app/ai_engine/rag_engine.py</code> (RAGEngine)</td>
+<td><code>edgeex_app/ai_engine/rag_engine.py</code> (RAGEngine)</td>
 </tr>
 <tr>
 <td>등록 상태</td>
@@ -807,11 +807,11 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>이유</td>
-<td><code>ksys_app.py</code> 175-188행의 import 목록에 <code>ai_insights</code> 없음</td>
+<td><code>edgeex_app.py</code> 175-188행의 import 목록에 <code>ai_insights</code> 없음</td>
 </tr>
 <tr>
 <td>복구 방법</td>
-<td><code>ksys_app.py</code>에 <code>from .pages import ai_insights</code> 추가 1줄</td>
+<td><code>edgeex_app.py</code>에 <code>from .pages import ai_insights</code> 추가 1줄</td>
 </tr>
 <tr>
 <td>AI Features 환경변수</td>
@@ -1159,7 +1159,7 @@ AIState.messages에 AI 응답 추가
 <tbody>
 <tr>
 <td>AI-F01</td>
-<td><code>ksys_app.py</code> 174행</td>
+<td><code>edgeex_app.py</code> 174행</td>
 <td><strong>import 누락</strong> — <code>ai_insights</code> 미import로 404</td>
 <td>Critical</td>
 </tr>
@@ -1351,11 +1351,11 @@ AIState.messages에 AI 응답 추가
 </tr>
 <tr>
 <td>파일</td>
-<td><code>ksys_app/pages/design_system_demo.py</code> (309 LoC)</td>
+<td><code>edgeex_app/pages/design_system_demo.py</code> (309 LoC)</td>
 </tr>
 <tr>
 <td>의존 모듈</td>
-<td><code>ksys_app/design_system/__init__.py</code> → <code>DesignSystem</code>, <code>DesignTokens</code></td>
+<td><code>edgeex_app/design_system/__init__.py</code> → <code>DesignSystem</code>, <code>DesignTokens</code></td>
 </tr>
 <tr>
 <td>등록 상태</td>
@@ -1377,7 +1377,7 @@ AIState.messages에 AI 응답 추가
 │ SIDEBAR │ MAIN (max-w-1400px, mx-auto, padding=6)          │
 │         │                                                   │
 │         │  H1: Design System Demo                          │
-│         │  p:  &quot;Comprehensive showcase of KSYS...&quot;         │
+│         │  p:  &quot;Comprehensive showcase of edgeEX...&quot;         │
 │         │  ─────────────────────────────────────────────── │
 │         │  H2: Cards                                       │
 │         │  ┌──────────┬──────────┬──────────┬──────────┐   │
@@ -1495,7 +1495,7 @@ if os.getenv(&quot;APP_ENV&quot;) == &quot;development&quot;:
 <tr>
 <td>D-DS01</td>
 <td><strong>import 누락으로 404</strong></td>
-<td>ksys_app.py</td>
+<td>edgeex_app.py</td>
 <td>Info (의도적일 수 있음)</td>
 </tr>
 <tr>
@@ -1567,19 +1567,19 @@ if os.getenv(&quot;APP_ENV&quot;) == &quot;development&quot;:
 </tr>
 <tr>
 <td>파일</td>
-<td><code>ksys_app/pages/communication.py</code></td>
+<td><code>edgeex_app/pages/communication.py</code></td>
 </tr>
 <tr>
 <td>State</td>
-<td><code>ksys_app/states/communication_state.py</code> → <code>CommunicationState</code></td>
+<td><code>edgeex_app/states/communication_state.py</code> → <code>CommunicationState</code></td>
 </tr>
 <tr>
 <td>컴포넌트</td>
-<td><code>ksys_app/components/wrapped_heatmap.py</code> → <code>wrapped_grid_heatmap</code></td>
+<td><code>edgeex_app/components/wrapped_heatmap.py</code> → <code>wrapped_grid_heatmap</code></td>
 </tr>
 <tr>
 <td>등록 상태</td>
-<td>YES (ksys_app.py 178행 import)</td>
+<td>YES (edgeex_app.py 178행 import)</td>
 </tr>
 </tbody>
 </table>
@@ -1608,7 +1608,7 @@ if os.getenv(&quot;APP_ENV&quot;) == &quot;development&quot;:
 <hr />
 <h2 id="section-5-pages-section-5-page-scan">Section 5: Pages 전체 스캔 — 누락/미분류 점검 {#section-5-page-scan}</h2>
 <h3 id="51-pages">5.1 pages/ 디렉토리 전체 파일 목록</h3>
-<pre><code>ksys_app/pages/
+<pre><code>edgeex_app/pages/
 ├── __init__.py                   (빈 파일, 1줄)
 ├── alarms.py                     → /alarms
 ├── alarms_hist_new.py            → /alarms_hist_new
@@ -1795,7 +1795,7 @@ if os.getenv(&quot;APP_ENV&quot;) == &quot;development&quot;:
 <td>삭제 권고</td>
 </tr>
 <tr>
-<td><code>ksys_app.py.backup_20250918_211659</code></td>
+<td><code>edgeex_app.py.backup_20250918_211659</code></td>
 <td>앱 백업 (Untracked)</td>
 <td>삭제 권고</td>
 </tr>

@@ -1,11 +1,11 @@
 # Stage 4-1 Extraction Prompt — training_state refactor
 
 > **Paste this entire file into a fresh local Claude Code session.**
-> Working directory must be the project root containing `ksys_app/`.
+> Working directory must be the project root containing `edgeex_app/`.
 
 ## Context (read first, don't re-derive)
 
-- Source file: `ksys_app/states/training_state/state.py` (1,077 LoC currently)
+- Source file: `edgeex_app/states/training_state/state.py` (1,077 LoC currently)
 - Analysis report: `reports/deep1_analysis_2026-05-20.html` (commit `b6c1944`)
 - Branch: `refactor/rpi-baseline-sync` (do NOT switch)
 - Last commit: `b6c1944 deep(stage-4-1): PARTIAL — analysis done, extraction pending user confirm`
@@ -23,15 +23,15 @@ User has answered the 4 questions in the deep-1 report. **Locked decisions** (do
 
 | AC | Target | How to verify |
 |----|--------|---------------|
-| AC-1 | `training_state/state.py` ≤ 600 LoC | `wc -l ksys_app/states/training_state/state.py` |
-| AC-2 | All 7 external `from ksys_app.states.training_state import …` sites unchanged | `grep -rn "from ksys_app.states.training_state" ksys_app/` then verify each still resolves |
+| AC-1 | `training_state/state.py` ≤ 600 LoC | `wc -l edgeex_app/states/training_state/state.py` |
+| AC-2 | All 7 external `from edgeex_app.states.training_state import …` sites unchanged | `grep -rn "from edgeex_app.states.training_state" edgeex_app/` then verify each still resolves |
 | AC-3 | Docker build clean | `docker compose -f docker-compose.dev.yml build` no errors |
 | AC-4 | `/training-wizard` route returns 200 + renders | After build: `curl -s -o /dev/null -w "%{http_code}" http://localhost:14000/training-wizard` |
 
 ## File layout to produce
 
 ```
-ksys_app/states/training_state/
+edgeex_app/states/training_state/
 ├── __init__.py           # unchanged (23 lines, public API)
 ├── state.py              # ~600 LoC after extraction (target)
 ├── cache.py              # unchanged (existing)
@@ -93,12 +93,12 @@ For each new file:
 ### Step 7 — Syntax + import verification
 
 ```powershell
-python -m py_compile ksys_app/states/training_state/state.py
-python -m py_compile ksys_app/states/training_state/queries.py
-python -m py_compile ksys_app/states/training_state/view_helpers.py
-python -m py_compile ksys_app/states/training_state/validators.py
-python -m py_compile ksys_app/states/training_state/pipeline_builder.py
-python -c "from ksys_app.states.training_state import *"
+python -m py_compile edgeex_app/states/training_state/state.py
+python -m py_compile edgeex_app/states/training_state/queries.py
+python -m py_compile edgeex_app/states/training_state/view_helpers.py
+python -m py_compile edgeex_app/states/training_state/validators.py
+python -m py_compile edgeex_app/states/training_state/pipeline_builder.py
+python -c "from edgeex_app.states.training_state import *"
 ```
 All five must compile and the wildcard import must succeed.
 
@@ -110,7 +110,7 @@ Commit-by-commit:
 
 #### 4-1a — queries.py extraction
 ```
-git add ksys_app/states/training_state/queries.py ksys_app/states/training_state/state.py
+git add edgeex_app/states/training_state/queries.py edgeex_app/states/training_state/state.py
 git commit -m "deep(stage-4-1a): PARTIAL — extract queries.py (4 LOW methods)
 
 - queries.py: async DB helpers extracted from state.py
@@ -122,7 +122,7 @@ docker compose -f docker-compose.dev.yml build
 
 #### 4-1b — validators.py + create_feature_config refactor
 ```
-git add ksys_app/states/training_state/validators.py ksys_app/states/training_state/state.py
+git add edgeex_app/states/training_state/validators.py edgeex_app/states/training_state/state.py
 git commit -m "deep(stage-4-1b): PARTIAL — validators.py + create_feature_config refactor
 
 - validators.py: input validation extracted
@@ -133,7 +133,7 @@ docker compose -f docker-compose.dev.yml build
 
 #### 4-1c — view_helpers.py for save_model
 ```
-git add ksys_app/states/training_state/view_helpers.py ksys_app/states/training_state/state.py
+git add edgeex_app/states/training_state/view_helpers.py edgeex_app/states/training_state/state.py
 git commit -m "deep(stage-4-1c): PARTIAL — view_helpers.py for save_model
 
 - view_helpers.py: pipeline_config build + datetime parsing extracted
@@ -144,7 +144,7 @@ docker compose -f docker-compose.dev.yml build
 
 #### 4-1d — pipeline_builder.py + start_training refactor (FINAL)
 ```
-git add ksys_app/states/training_state/pipeline_builder.py ksys_app/states/training_state/state.py
+git add edgeex_app/states/training_state/pipeline_builder.py edgeex_app/states/training_state/state.py
 git commit -m "deep(stage-4-1d): PASS — pipeline_builder.py + start_training refactor
 
 - pipeline_builder.py: TrainingPipelineV2 builder with progress_callback pattern

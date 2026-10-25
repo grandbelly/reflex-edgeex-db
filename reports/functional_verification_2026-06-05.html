@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>기능 검증 리포트 v2 — KSys 전체 16화면 + systemic 풀 버그 (2026-06-05)</title>
+<title>기능 검증 리포트 v2 — edgeEX 전체 16화면 + systemic 풀 버그 (2026-06-05)</title>
 <style>
   :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#c9d1d9;--muted:#8b949e;
         --ok:#3fb950;--warn:#d29922;--bad:#f85149;--accent:#58a6ff}
@@ -35,8 +35,8 @@
 <body>
 <div class="wrap">
 
-<h1>🧪 기능 검증 리포트 v2 — KSys 전체 16화면 라이브 검증</h1>
-<p class="meta">생성 2026-06-05 · 방법: 코드기준 전수 라우트 집계(16) → Playwright 전화면 라이브 동작 + docker 로그 근본원인 + DB 직접확인 · 환경 <code>ksys-local-reflex-app</code> :14000 (prod 이미지, Docker) · 원칙: <strong>최적화 이전에 기능 정상동작 확인 / 전체 surface</strong></p>
+<h1>🧪 기능 검증 리포트 v2 — edgeEX 전체 16화면 라이브 검증</h1>
+<p class="meta">생성 2026-06-05 · 방법: 코드기준 전수 라우트 집계(16) → Playwright 전화면 라이브 동작 + docker 로그 근본원인 + DB 직접확인 · 환경 <code>edgeex-local-reflex-app</code> :14000 (prod 이미지, Docker) · 원칙: <strong>최적화 이전에 기능 정상동작 확인 / 전체 surface</strong></p>
 
 <div class="callout bad">
 <strong>🔴 헤드라인 (ship-blocker):</strong> 06-04에 "100센서 정상"이던 대시보드가 오늘 <strong>0센서</strong>로 마비돼 있었습니다. 개별 화면 이슈가 아니라 <strong><code>db.py</code>의 전역 asyncpg 풀이 생성 시점 이벤트루프에 묶여, 런타임 경과/백그라운드 태스크에서 <code>RuntimeError: Event loop is closed</code></strong>로 앱 전체 DB접근이 무너지는 <strong>systemic 안정성 결함</strong>입니다. 컨테이너 재시작으로 즉시 100센서 복구 확인 → 즉 <strong>"오래 켜두면 죽는" 신뢰성 버그</strong>. 06-04 리포트의 "정상" 판정들은 풀이 살아있던 순간의 일시적 진실이었습니다.
@@ -58,11 +58,11 @@
 <tr><td>시간경과 퇴화</td><td>컨테이너 <code>Up 25h</code> 상태에서 대시보드 <strong>총 센서 0 / Normal 0 / Warning 0 / Critical 0</strong> (06-04엔 100/75/15/10 라이브였음)</td></tr>
 <tr><td>재시작 복구</td><td><code>docker restart</code> 후 5초 만에 대시보드 <strong>100 / 70 / 19 / 11</strong> + 100개 센서카드 실데이터 복귀 (COND_003 1113 uS/cm 등)</td></tr>
 <tr><td>UI 노출 에러</td><td>재시작 직후에도 <code>/alarms_rt</code>는 <strong>"Last update: <span class="mono">Error: Event loop is closed</span>"</strong> + 전부 0 → 실시간 페이지는 신선풀에서도 고장</td></tr>
-<tr><td>로그 (5초 주기)</td><td><code>14:48:30 ERROR ASYNC ERROR in ksys_app.db.q: Event loop is closed</code> 가 <strong>5초마다 무한 반복</strong> (백그라운드 폴러가 죽은 루프에서 계속 실패) → 모든 화면 상단 "Connection Error:" 토스트의 정체</td></tr>
+<tr><td>로그 (5초 주기)</td><td><code>14:48:30 ERROR ASYNC ERROR in edgeex_app.db.q: Event loop is closed</code> 가 <strong>5초마다 무한 반복</strong> (백그라운드 폴러가 죽은 루프에서 계속 실패) → 모든 화면 상단 "Connection Error:" 토스트의 정체</td></tr>
 </table>
 
 <h3>코드 (콜체인 확정)</h3>
-<pre>ksys_app/db.py
+<pre>edgeex_app/db.py
  34  _GLOBAL_POOL: asyncpg.Pool | None = None      # 모듈 전역 싱글톤
  39  async def get_pool():                          # 최초 1회 생성 후 캐시
  50      _GLOBAL_POOL = await asyncpg.create_pool(...)   # ← 생성 시점의 이벤트루프에 바인딩
@@ -127,7 +127,7 @@
 
 <h2>⑤ 정직성 노트 (검증 한계)</h2>
 <ul>
-<li><strong>검증 중 컨테이너 재시작함</strong> — <code>ksys-local-reflex-app</code>를 2026-06-05 ~14:52(KST) 재시작(풀버그 격리 목적). 따라서 앱은 현재 신선 상태이며 <strong>다시 런타임 경과로 퇴화할 것</strong>.</li>
+<li><strong>검증 중 컨테이너 재시작함</strong> — <code>edgeex-local-reflex-app</code>를 2026-06-05 ~14:52(KST) 재시작(풀버그 격리 목적). 따라서 앱은 현재 신선 상태이며 <strong>다시 런타임 경과로 퇴화할 것</strong>.</li>
 <li><code>/forecast·/comm·/viewer-tag</code>는 on_load 카테고리로 신선풀 정상 확인. 단 모드 B 퇴화는 대시보드로 대표 입증(개별 장기 관측 아님).</li>
 <li>이력 알람의 <strong>옛 날짜범위 렌더</strong>(데이터 있는 2025-11)는 UI로 직접 확인 안 함 — DB에 데이터 존재만 확인.</li>
 <li><code>/trend</code>·<code>/training-wizard</code>의 <strong>상호작용</strong>(태그선택→차트, 센서선택→훈련)은 풀 의존이라 미수행.</li>
@@ -144,7 +144,7 @@
 </table>
 
 <p class="meta" style="text-align:center;margin-top:40px;padding-top:16px;border-top:1px solid var(--border)">
-기능검증 v2 · 2026-06-05 · 16화면 라이브 + 근본원인 + DB확인 · 헤드라인: db.py 전역풀 이벤트루프 systemic 버그(ship-blocker) · 차순위: alarm_history staleness · 환경: ksys-local 재시작됨
+기능검증 v2 · 2026-06-05 · 16화면 라이브 + 근본원인 + DB확인 · 헤드라인: db.py 전역풀 이벤트루프 systemic 버그(ship-blocker) · 차순위: alarm_history staleness · 환경: edgeex-local 재시작됨
 </p>
 
 </div>

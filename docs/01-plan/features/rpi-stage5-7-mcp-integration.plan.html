@@ -101,7 +101,7 @@
 <p class="subtitle">
   Feature <code>rpi-stage5-7-mcp-integration</code> · 2026-05-19 작성 · branch <code>refactor/rpi-baseline-sync</code><br>
   이전 세션 (Stage 1-4 partial) 후속 작업 + Reflex + AI MCP 프레임워크 통합 검토<br>
-  ksys_app (Reflex 0.8.16 + TimescaleDB + statsforecast) · target: Raspberry Pi 4/5 (ARM64, 4GB RAM)
+  edgeex_app (Reflex 0.8.16 + TimescaleDB + statsforecast) · target: Raspberry Pi 4/5 (ARM64, 4GB RAM)
 </p>
 
 <div class="callout purple">
@@ -114,7 +114,7 @@
 <div class="kpi-grid">
   <div class="kpi green"><div class="v">14</div><div class="l">commits on branch</div></div>
   <div class="kpi green"><div class="v">-51%</div><div class="l">.py 파일 (521→253)</div></div>
-  <div class="kpi green"><div class="v">-82%</div><div class="l">ksys_app.py 진입점</div></div>
+  <div class="kpi green"><div class="v">-82%</div><div class="l">edgeex_app.py 진입점</div></div>
   <div class="kpi orange"><div class="v">3</div><div class="l">남은 1000+ LoC</div></div>
   <div class="kpi red"><div class="v">미검증</div><div class="l">Docker build</div></div>
   <div class="kpi red"><div class="v">미측정</div><div class="l">RPI 실서버 효율</div></div>
@@ -129,7 +129,7 @@
 <tr><td>Stage 1 — 잡초 제거</td><td><code class="commit">7618aa2</code></td><td>285 파일 삭제 (-89,601 줄)</td></tr>
 <tr><td>Stage 2 — 죽은 페이지</td><td><code class="commit">4bf9cf9</code> + <code class="commit">4c0203b</code></td><td>18 파일 삭제 (-5,926 줄)</td></tr>
 <tr><td>Stage 3 — @rx.page 통일</td><td><code class="commit">663aee6</code> + <code class="commit">ec3ba96</code></td><td>라우트 등록 1패턴, /forecast 라우트 정리</td></tr>
-<tr><td>Stage 3.5 — 죽은 함수 제거</td><td><code class="commit">b52ec6b</code></td><td>ksys_app.py -870 줄 (-82%)</td></tr>
+<tr><td>Stage 3.5 — 죽은 함수 제거</td><td><code class="commit">b52ec6b</code></td><td>edgeex_app.py -870 줄 (-82%)</td></tr>
 <tr><td>Stage 4 Sprint 1-4</td><td><code class="commit">907a1b4</code> ~ <code class="commit">d77988f</code></td><td>4개 monolith 분해 + 1개 삭제 (PARTIAL)</td></tr>
 </table>
 
@@ -215,7 +215,7 @@
 <p class="meta">전제: Docker Desktop ON. Windows 호스트에서 reflex run 금지 (좀비 LISTEN 발생 — memory 참조).</p>
 
 <div class="prompt">⚠️ 검증 환경: 풍도 로컬 (Windows + Docker Desktop). RPI 실서버 아님.
-풍도 컨테이너명은 `ksys-local-*` 패턴. RPI 컨테이너명 `rpi-finished-*` 은 Stage 5 에서만 사용.
+풍도 컨테이너명은 `edgeex-local-*` 패턴. RPI 컨테이너명 `rpi-finished-*` 은 Stage 5 에서만 사용.
 
 작업 디렉토리: 현재 cwd 그대로 사용 (worktree 든 sync 마운트든 같은 데이터)
 
@@ -225,14 +225,14 @@
 3. `docker ps` 실행 — Docker Desktop OFF 면 즉시 stop, 사용자에게 한 줄 알림 후 종료
 4. `docker compose -f docker-compose.local.yml build reflex-app` (timeout 600초)
 5. 빌드 성공 시 `docker compose -f docker-compose.local.yml up -d` 로 풍도 3개 서비스 기동
-   (ksys-local-reflex-app / ksys-local-data-injector / ksys-local-forecast-scheduler)
+   (edgeex-local-reflex-app / edgeex-local-data-injector / edgeex-local-forecast-scheduler)
 6. 60초 대기 후 `docker ps --format "table {{.Names}}\t{{.Status}}"` 로 3개 컨테이너 Up 확인
-7. `docker logs ksys-local-reflex-app --tail 100` 으로 Reflex 부팅 로그 확인
+7. `docker logs edgeex-local-reflex-app --tail 100` 으로 Reflex 부팅 로그 확인
    - "Compiled" / "App running" / "Listening" 메시지 있으면 PASS
    - ImportError / SyntaxError / Traceback 있으면 FAIL — 모듈명 + 라인 출력
 8. PASS 인 경우 라우트 자동 발견:
-   `grep -oP "(?<=route=\")[^\"]+" ksys_app/pages/*.py` 으로 모든 등록 라우트 추출
-   (또는 `ksys_app/ksys_app.py` 의 `from .pages import (...)` 블록 + 각 page 의 `@rx.page(route=...)`)
+   `grep -oP "(?<=route=\")[^\"]+" edgeex_app/pages/*.py` 으로 모든 등록 라우트 추출
+   (또는 `edgeex_app/edgeex_app.py` 의 `from .pages import (...)` 블록 + 각 page 의 `@rx.page(route=...)`)
 9. 발견된 모든 라우트에 대해 HTTP 200 / 3xx 확인 (curl 한 줄 loop)
 10. 결과를 `reports/verify_2026-05-20.html` 로 저장
     - PASS/FAIL 표 + 라우트별 status code + 실패 시 traceback
@@ -266,9 +266,9 @@ DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
 
 <div class="stage deep">
 <h3><span class="tag tag-partial">DEEP-1</span> training_state — 가장 작아서 PoC</h3>
-<p>현재: <code>ksys_app/states/training_state/state.py</code> 1,077 LoC</p>
+<p>현재: <code>edgeex_app/states/training_state/state.py</code> 1,077 LoC</p>
 
-<div class="prompt">파일: `ksys_app/states/training_state/state.py` (1,077 LoC)
+<div class="prompt">파일: `edgeex_app/states/training_state/state.py` (1,077 LoC)
 
 작업:
 1. 파일을 처음부터 끝까지 읽고 모든 `@rx.event` 메서드 목록을 만들어 보여줘
@@ -292,7 +292,7 @@ DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
 다음 진행 명령 받으면:
 5. 새 파일 (queries.py / view_helpers.py / validators.py) 생성
 6. state.py 의 해당 부분을 함수 호출로 교체
-7. `python -m py_compile ksys_app/states/training_state/state.py` 로 syntax 검증
+7. `python -m py_compile edgeex_app/states/training_state/state.py` 로 syntax 검증
 8. atomic commit: `refactor(stage-4 deep-1): extract training_state helpers (-N LoC)`</div>
 
 <div class="ac-block">
@@ -302,12 +302,12 @@ DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
 
 <div class="stage deep">
 <h3><span class="tag tag-partial">DEEP-2</span> dashboard — 가장 영향 큰 곳</h3>
-<p>현재: <code>ksys_app/states/dashboard/state.py</code> 1,638 LoC. Sprint 3b 에서 utils 13개만 분리됨.</p>
+<p>현재: <code>edgeex_app/states/dashboard/state.py</code> 1,638 LoC. Sprint 3b 에서 utils 13개만 분리됨.</p>
 
 <div class="prompt">DEEP-1 동일 패턴으로 dashboard 진행:
 
-파일: `ksys_app/states/dashboard/state.py` (1,638 LoC)
-이미 있는 파일: `ksys_app/states/dashboard/utils.py` (214L, 13개 pure utility)
+파일: `edgeex_app/states/dashboard/state.py` (1,638 LoC)
+이미 있는 파일: `edgeex_app/states/dashboard/utils.py` (214L, 13개 pure utility)
 
 작업:
 1. state.py 의 모든 `@rx.event` 와 `@rx.var` 목록 추출
@@ -327,11 +327,11 @@ DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
 
 <div class="stage deep">
 <h3><span class="tag tag-partial">DEEP-3</span> forecast_player_state — 가장 크고 복잡</h3>
-<p>현재: <code>ksys_app/states/forecast_player_state/state.py</code> 1,668 LoC</p>
+<p>현재: <code>edgeex_app/states/forecast_player_state/state.py</code> 1,668 LoC</p>
 
 <div class="prompt">DEEP-1, DEEP-2 패턴과 동일하게:
 
-파일: `ksys_app/states/forecast_player_state/state.py` (1,668 LoC)
+파일: `edgeex_app/states/forecast_player_state/state.py` (1,668 LoC)
 
 추가 고려사항:
 - forecast (statsforecast AutoARIMA) 호출 부분은 무거움 — Stage 5 의 AutoARIMA disk cache 와 충돌 안 되도록 분리 인터페이스만 만들어두기
@@ -339,9 +339,9 @@ DB 쿼리 / view prep 함수를 외부로 빼면 state.py 자체는 얇아짐.
 - `forecast_player.py` 페이지가 이 state 의 거의 모든 var 를 쓰니까 var 이름 보존
 
 산출물:
-- ksys_app/states/forecast_player_state/queries.py
-- ksys_app/states/forecast_player_state/view_helpers.py
-- ksys_app/states/forecast_player_state/forecast_runners.py (statsforecast 호출 wrapper)
+- edgeex_app/states/forecast_player_state/queries.py
+- edgeex_app/states/forecast_player_state/view_helpers.py
+- edgeex_app/states/forecast_player_state/forecast_runners.py (statsforecast 호출 wrapper)
 - state.py ≤ 900 LoC
 
 commit: `refactor(stage-4 deep-3): extract forecast_player_state helpers (-N LoC)`</div>
@@ -372,7 +372,7 @@ SSH 접속: `ssh tion@192.168.0.80`
 1. 풍도 로컬 → RPI 로 현재 refactor/rpi-baseline-sync 브랜치 동기화
    `git push origin refactor/rpi-baseline-sync` (먼저 푸시)
    RPI 쪽: `cd /home/tion/deployment/20251030-rpi-finished && git fetch && git checkout refactor/rpi-baseline-sync`
-   (또는 원격 미설정이면 scp 로 ksys_app/ 전체)
+   (또는 원격 미설정이면 scp 로 edgeex_app/ 전체)
 
 2. 재배포:
    `docker compose down && docker compose build && docker compose up -d`
@@ -401,10 +401,10 @@ SSH 접속: `ssh tion@192.168.0.80`
 <div class="stage s5">
 <h3><span class="tag tag-next">S5-2</span> asyncpg pool 튜닝</h3>
 
-<div class="prompt">현재 ksys_app 의 DB 접속 방식 분석:
+<div class="prompt">현재 edgeex_app 의 DB 접속 방식 분석:
 
 조사 대상:
-1. `grep -rn "asyncpg\|create_engine\|sessionmaker" ksys_app/` 으로 DB 연결 코드 위치 파악
+1. `grep -rn "asyncpg\|create_engine\|sessionmaker" edgeex_app/` 으로 DB 연결 코드 위치 파악
 2. 현재 pool 설정 (min_size / max_size / max_inactive_connection_lifetime) 확인
 3. 동시 연결 수 측정 (S5-1 에서 측정한 값 참고)
 
@@ -437,7 +437,7 @@ A. AutoARIMA disk cache:
 - 캐시 hit 시 응답 < 1초 기대
 
 B. Reflex lazy page import 검토:
-- 현재 ksys_app.py 에서 `from .pages import (alarms, communication, dashboard, ...)` 일괄 import
+- 현재 edgeex_app.py 에서 `from .pages import (alarms, communication, dashboard, ...)` 일괄 import
 - Reflex 0.8.16 docs 확인 (Reflex MCP 공식 서버 활용 가능 — Stage 8 참고)
 - 가능하면 페이지별 dynamic import, 안 되면 그대로 두기 (regression 위험)
 
@@ -467,17 +467,17 @@ C. TimescaleDB chunk_time_interval:
 <div class="stage s6">
 <h3><span class="tag tag-next">S6-1</span> repositories/ 도입</h3>
 
-<div class="prompt">현재 ksys_app/queries/ 폴더와 state.py 안의 DB 쿼리를 분석해서 통합 repositories 패턴 만들기.
+<div class="prompt">현재 edgeex_app/queries/ 폴더와 state.py 안의 DB 쿼리를 분석해서 통합 repositories 패턴 만들기.
 
 조사:
-1. `ls ksys_app/queries/` 의 모든 파일 (Stage 2b 후 남은 것들)
+1. `ls edgeex_app/queries/` 의 모든 파일 (Stage 2b 후 남은 것들)
 2. Stage 4 deep extraction 으로 생긴 queries.py 들
 3. state.py 안에 남아있는 inline 쿼리
 
 설계:
-- `ksys_app/repositories/sensor_repo.py` — 센서/태그 관련 모든 쿼리
-- `ksys_app/repositories/forecast_repo.py` — forecast 관련
-- `ksys_app/repositories/alarm_repo.py` — 알람 관련
+- `edgeex_app/repositories/sensor_repo.py` — 센서/태그 관련 모든 쿼리
+- `edgeex_app/repositories/forecast_repo.py` — forecast 관련
+- `edgeex_app/repositories/alarm_repo.py` — 알람 관련
 - 각 repo 는 async function 모음, asyncpg connection 인자로 받음
 - State 메서드에서 `await sensor_repo.get_latest(conn, sensor_id)` 식으로 호출
 
@@ -492,7 +492,7 @@ C. TimescaleDB chunk_time_interval:
 <h3><span class="tag tag-next">S6-2</span> views/charts/ 공통 컴포넌트</h3>
 
 <div class="prompt">현재 차트 그리는 코드 grep:
-`grep -rn "rx.recharts\|rx.line_chart\|rx.bar_chart" ksys_app/pages/ ksys_app/views/`
+`grep -rn "rx.recharts\|rx.line_chart\|rx.bar_chart" edgeex_app/pages/ edgeex_app/views/`
 
 중복된 차트 패턴 추출:
 - 시계열 차트 (forecast, trend, dashboard 에서 모두 사용)
@@ -500,9 +500,9 @@ C. TimescaleDB chunk_time_interval:
 - 게이지 / 카드 차트
 
 산출물:
-- `ksys_app/views/charts/timeseries.py` — `timeseries_chart(data, x_key, y_keys, height=300)` 같은 함수
-- `ksys_app/views/charts/alarm_distribution.py`
-- `ksys_app/views/charts/gauge.py`
+- `edgeex_app/views/charts/timeseries.py` — `timeseries_chart(data, x_key, y_keys, height=300)` 같은 함수
+- `edgeex_app/views/charts/alarm_distribution.py`
+- `edgeex_app/views/charts/gauge.py`
 
 규칙:
 - Reflex rx.Component 반환
@@ -513,14 +513,14 @@ C. TimescaleDB chunk_time_interval:
 <div class="stage s6">
 <h3><span class="tag tag-next">S6-3</span> BaseState 도입 검토</h3>
 
-<div class="prompt">현재 ksys_app/states/ 폴더의 각 State 클래스가 공통으로 갖는 패턴 분석:
+<div class="prompt">현재 edgeex_app/states/ 폴더의 각 State 클래스가 공통으로 갖는 패턴 분석:
 - loading flag
 - error message
 - last_updated timestamp
 - on_load / on_unload 이벤트
 
 설계:
-- `ksys_app/states/base.py` 의 BaseState(rx.State) 가 위 공통 var/event 제공
+- `edgeex_app/states/base.py` 의 BaseState(rx.State) 가 위 공통 var/event 제공
 - 각 State 가 BaseState 상속
 
 ⚠️ Reflex 제약 확인:
@@ -549,8 +549,8 @@ C. TimescaleDB chunk_time_interval:
    - ignore = ["E501"] (line too long 은 일단 제외)
 
 2. `pip install ruff` (개발 환경)
-3. `ruff check ksys_app/` 실행 → 에러 개수 보고
-4. `ruff check --fix --unsafe-fixes ksys_app/` 로 auto-fix
+3. `ruff check edgeex_app/` 실행 → 에러 개수 보고
+4. `ruff check --fix --unsafe-fixes edgeex_app/` 로 auto-fix
 5. 남은 수동 수정 사항 보고
 6. commit: `chore(stage-7): introduce ruff lint config`
 
@@ -565,7 +565,7 @@ C. TimescaleDB chunk_time_interval:
 
 작업:
 1. `pip install vulture`
-2. `vulture ksys_app/ --min-confidence 80` 실행
+2. `vulture edgeex_app/ --min-confidence 80` 실행
 3. 보고된 죽은 코드 목록 검토 (false positive 많음 — Reflex 동적 var 등)
 4. 확실히 죽은 것만 골라서 삭제 (각각 git grep 으로 더블 체크)
 5. commit: `chore(stage-7): vulture dead code sweep (-N LoC)`</div>
@@ -576,7 +576,7 @@ C. TimescaleDB chunk_time_interval:
 
 <div class="prompt">작업:
 1. `mypy.ini` 설정 — Reflex 타입 stub 부족하므로 처음엔 `ignore_missing_imports = True`
-2. `mypy ksys_app/` 실행, 에러 개수만 보고 (전부 고치지는 말 것 — incremental)
+2. `mypy edgeex_app/` 실행, 에러 개수만 보고 (전부 고치지는 말 것 — incremental)
 3. `pre-commit` 설치 + `.pre-commit-config.yaml` 작성:
    - ruff (check + format)
    - mypy (errors-only, fail on new errors)
@@ -638,10 +638,10 @@ Pillar 2 (운영 앱이 MCP 호출) 는 사용처가 명확해질 때까지 보�
 <div class="stage s8">
 <h3><span class="tag tag-opt">S8-2</span> SKILL.md 사내 컴포넌트 규칙 정의 (선택)</h3>
 
-<div class="prompt">목표: ksys_app 내부 컨벤션 (BaseState, repositories, charts) 을 SKILL.md 로 문서화 → Claude Code 가 이 프로젝트 컨텍스트에 맞게 코드 생성.
+<div class="prompt">목표: edgeex_app 내부 컨벤션 (BaseState, repositories, charts) 을 SKILL.md 로 문서화 → Claude Code 가 이 프로젝트 컨텍스트에 맞게 코드 생성.
 
 산출물:
-- `.claude/skills/ksys-conventions/SKILL.md`
+- `.claude/skills/edgeex-conventions/SKILL.md`
   - 라우트 등록 규칙 (@rx.page only)
   - State 분리 패턴 (state.py vs queries.py vs view_helpers.py)
   - 차트 컴포넌트 사용법 (views/charts/timeseries 등)
@@ -650,7 +650,7 @@ Pillar 2 (운영 앱이 MCP 호출) 는 사용처가 명확해질 때까지 보�
 
 전제: Stage 6 완료 후 (실제 패턴이 굳어진 다음)
 
-commit: `docs(stage-8): SKILL.md for ksys conventions`</div>
+commit: `docs(stage-8): SKILL.md for edgeex conventions`</div>
 </div>
 
 <div class="stage s8">
@@ -660,7 +660,7 @@ commit: `docs(stage-8): SKILL.md for ksys conventions`</div>
 
 만약 운영 사용자가 "자연어로 센서 조회" / "알람 분석을 GPT 에 물어보기" 같은 요청이 들어오면:
 
-1. ksys_app/state/mcp_client.py 신규
+1. edgeex_app/state/mcp_client.py 신규
 2. Anthropic MCP Python SDK 또는 OpenAI Function Calling 사용
 3. State 의 async event handler 에서 MCP 호출 → 결과 var 업데이트 → UI 자동 갱신
 
@@ -708,11 +708,11 @@ commit: `docs(stage-8): SKILL.md for ksys conventions`</div>
 <table>
 <tr><th>AC</th><th>목표</th><th>측정 방법</th><th>달성 기준</th></tr>
 <tr><td>AC1</td><td>Docker build PASS</td><td>Verify-0</td><td>14 라우트 200</td></tr>
-<tr><td>AC2</td><td>1,000+ LoC = 0</td><td>`wc -l ksys_app/states/*/state.py`</td><td>3 → 0</td></tr>
+<tr><td>AC2</td><td>1,000+ LoC = 0</td><td>`wc -l edgeex_app/states/*/state.py`</td><td>3 → 0</td></tr>
 <tr><td>AC3</td><td>RPI idle 메모리</td><td>docker stats</td><td>baseline × 0.7 이하</td></tr>
 <tr><td>AC4</td><td>forecast 응답</td><td>curl wall clock</td><td>≤ 5초</td></tr>
 <tr><td>AC5</td><td>RPI 부팅</td><td>docker logs timestamp</td><td>baseline × 0.5 이하</td></tr>
-<tr><td>AC6</td><td>ruff check exit 0</td><td>`ruff check ksys_app/`</td><td>0 errors</td></tr>
+<tr><td>AC6</td><td>ruff check exit 0</td><td>`ruff check edgeex_app/`</td><td>0 errors</td></tr>
 <tr><td>AC7</td><td>repositories/ 패턴 적용</td><td>코드 리뷰</td><td>state.py 안 inline SQL = 0</td></tr>
 <tr><td>AC8</td><td>views/charts 공통 컴포넌트</td><td>코드 리뷰</td><td>중복 차트 0</td></tr>
 <tr><td>AC9</td><td>Reflex MCP 등록</td><td>`claude mcp list`</td><td>reflex-docs 보임</td></tr>

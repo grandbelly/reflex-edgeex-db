@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>KSYS — 기획서 (Product Planning Document)</title>
+<title>edgeEX — 기획서 (Product Planning Document)</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
          background: #0d1117; color: #e6edf3; margin: 0; padding: 32px 48px;
@@ -85,7 +85,7 @@
 <!-- ============================================================
      1. 문서 메타
      ============================================================ -->
-<h1>KSYS 기획서 — 풍도 수처리 IoT 통합 관제 플랫폼</h1>
+<h1>edgeEX 기획서 — 풍도 수처리 IoT 통합 관제 플랫폼</h1>
 
 <div class="meta-block">
   <table>
@@ -131,7 +131,7 @@
 
 <div class="callout-blue">
   <strong>제품 한 줄 설명:</strong>
-  KSYS는 Raspberry Pi 위에서 실행되는 소규모 수처리·해수담수화 플랜트 전용
+  edgeEX는 Raspberry Pi 위에서 실행되는 소규모 수처리·해수담수화 플랜트 전용
   IoT 실시간 관제 + AI 예측 플랫폼이다. 30초 센서 갱신, ISA-18.2 알람 관리,
   10분 ML 예측, 트렌드 분석을 단일 웹 대시보드에 통합한다.
 </div>
@@ -150,7 +150,7 @@
     </tr>
     <tr>
       <td><strong>Solution (해결책)</strong></td>
-      <td>KSYS는 Reflex(Python Full-Stack) 기반 단일 웹 앱으로 실시간 센서 상태(30s), ISA-18.2 알람 라이프사이클(10s),
+      <td>edgeEX는 Reflex(Python Full-Stack) 기반 단일 웹 앱으로 실시간 센서 상태(30s), ISA-18.2 알람 라이프사이클(10s),
       10분 간격 ML 예측(Prophet / Auto-ARIMA / XGBoost), 센서 트렌드 분석(1m~1d 집계), 6단계 학습 마법사를
       하나의 사이드바 네비게이션 안에 통합한다. 하드웨어는 RPI 5 단일 노드 + TimescaleDB로 현장 엣지 배포가 가능하다.</td>
     </tr>
@@ -355,33 +355,33 @@
 <h3>경쟁 환경</h3>
 <table>
   <thead>
-    <tr><th>경쟁사 / 대안</th><th>특징</th><th>KSYS 대비</th></tr>
+    <tr><th>경쟁사 / 대안</th><th>특징</th><th>edgeEX 대비</th></tr>
   </thead>
   <tbody>
     <tr>
       <td><strong>AVEVA (Wonderware)</strong></td>
       <td>글로벌 SCADA 1위. Windows 기반, 라이선스 수천만원/년. 전문 엔지니어 필요.</td>
-      <td>KSYS: 1/10 이하 비용, RPI 엣지, OSS 스택. 단 KSYS는 멀티 사이트 미지원.</td>
+      <td>edgeEX: 1/10 이하 비용, RPI 엣지, OSS 스택. 단 edgeEX는 멀티 사이트 미지원.</td>
     </tr>
     <tr>
       <td><strong>GE Proficy iFIX / Historian</strong></td>
       <td>대규모 플랜트 특화. Historian 서버 별도 요구. OPC-UA 네이티브.</td>
-      <td>KSYS: 설치 복잡도 및 비용 대폭 낮음. OPC-UA 연결은 현재 미지원 (Q3 검토).</td>
+      <td>edgeEX: 설치 복잡도 및 비용 대폭 낮음. OPC-UA 연결은 현재 미지원 (Q3 검토).</td>
     </tr>
     <tr>
       <td><strong>Ignition (Inductive Automation)</strong></td>
       <td>Web-based SCADA, 무제한 태그 무제한 클라이언트. 상대적으로 저렴한 라이선스.</td>
-      <td>KSYS: AI 예측 번들, 파이썬 생태계 확장. Ignition은 ML 별도 통합 필요.</td>
+      <td>edgeEX: AI 예측 번들, 파이썬 생태계 확장. Ignition은 ML 별도 통합 필요.</td>
     </tr>
     <tr>
       <td><strong>AWS IoT / Azure IoT Hub</strong></td>
       <td>클라우드 IoT 플랫폼. 인터넷 의존, 데이터 주권 이슈, 월정액 클라우드 비용.</td>
-      <td>KSYS: 로컬 우선 (on-premise), 인터넷 없어도 작동, 데이터 외부 전송 없음.</td>
+      <td>edgeEX: 로컬 우선 (on-premise), 인터넷 없어도 작동, 데이터 외부 전송 없음.</td>
     </tr>
     <tr>
       <td><strong>수제 엑셀 + 구형 HMI</strong></td>
       <td>국내 소규모 사이트 현실. 알람 기록 없음, 예측 없음, 수작업 보고서.</td>
-      <td>KSYS: 즉각적 가치 전달. 교체 장벽 낮음 (브라우저 기반, 별도 SW 설치 없음).</td>
+      <td>edgeEX: 즉각적 가치 전달. 교체 장벽 낮음 (브라우저 기반, 별도 SW 설치 없음).</td>
     </tr>
   </tbody>
 </table>
@@ -408,7 +408,7 @@
       교대 handover 시간 &lt; 15분
     </td></tr>
     <tr><td>Pain Point</td><td>알람 피로 (alarm fatigue) — 동일 센서 반복 알람으로 인해 중요 알람 놓침 위험</td></tr>
-    <tr><td>KSYS 해결 방안</td><td>ISA-18.2 우선순위 배지(P1-P4), 일괄 acknowledge, 12시간 필터 + Severity 필터</td></tr>
+    <tr><td>edgeEX 해결 방안</td><td>ISA-18.2 우선순위 배지(P1-P4), 일괄 acknowledge, 12시간 필터 + Severity 필터</td></tr>
   </table>
 </div>
 
@@ -427,7 +427,7 @@
       모델 드리프트 감지 주기 ≤ 1주일
     </td></tr>
     <tr><td>Pain Point</td><td>모델 성능 저하를 조용히 인지 못함. 수동 재학습 절차가 복잡.</td></tr>
-    <tr><td>KSYS 해결 방안</td><td>6단계 Training Wizard, MAPE/R² 자동 산출, /model-performance 알고리즘 비교, 드리프트 모니터링 테이블</td></tr>
+    <tr><td>edgeEX 해결 방안</td><td>6단계 Training Wizard, MAPE/R² 자동 산출, /model-performance 알고리즘 비교, 드리프트 모니터링 테이블</td></tr>
   </table>
 </div>
 
@@ -446,7 +446,7 @@
       RPI 추가 노드 배포 시간 ≤ 20분 (bootstrap_rpi 검증 후)
     </td></tr>
     <tr><td>Pain Point</td><td>인증 없어 모든 페이지 누구나 접근 가능 (현재 C3 취약점). 스케줄러 상태 모니터링 도구 부재.</td></tr>
-    <tr><td>KSYS 해결 방안</td><td>Q2 Basic Auth + RBAC, Q3 Sentry + Structured Logging, /comm 통신 Heatmap</td></tr>
+    <tr><td>edgeEX 해결 방안</td><td>Q2 Basic Auth + RBAC, Q3 Sentry + Structured Logging, /comm 통신 Heatmap</td></tr>
   </table>
 </div>
 
@@ -489,14 +489,14 @@
     <tr>
       <td><strong>Python Full-Stack</strong></td>
       <td>Reflex 기반으로 ML 코드(Python)와 UI 코드(Python)가 같은 언어. 공정 엔지니어 직접 확장 가능.</td>
-      <td>ksys_app/states/, ksys_app/ml/ 디렉터리 구조</td>
+      <td>edgeex_app/states/, edgeex_app/ml/ 디렉터리 구조</td>
     </tr>
   </tbody>
 </table>
 
 <h3>vs Cloud IoT (AWS IoT / Azure IoT Hub)</h3>
 <table>
-  <thead><tr><th>비교 항목</th><th>클라우드 IoT</th><th>KSYS</th></tr></thead>
+  <thead><tr><th>비교 항목</th><th>클라우드 IoT</th><th>edgeEX</th></tr></thead>
   <tbody>
     <tr><td>인터넷 의존성</td><td>필수</td><td>불필요 (선택적 tunnel)</td></tr>
     <tr><td>데이터 위치</td><td>클라우드 리전</td><td>현장 RPI (on-premise)</td></tr>
@@ -631,7 +631,7 @@
     <tr>
       <td>R-01</td>
       <td><span class="raid-critical">CRITICAL</span></td>
-      <td>Cloudflare Tunnel 토큰 git에 평문 커밋 — 누구나 터널 도용 가능, ksys.kr 트래픽 MitM</td>
+      <td>Cloudflare Tunnel 토큰 git에 평문 커밋 — 누구나 터널 도용 가능, ksys.kr /* TODO(오너 확인) */ 트래픽 MitM</td>
       <td>1) CF Dashboard에서 토큰 즉시 교체 2) .env로 이동 3) BFG Repo Cleaner로 git 히스토리 정화</td>
       <td>Q1 Day 1 (즉시)</td>
       <td>audit C1</td>
@@ -773,7 +773,7 @@
     <tr><th style="width:140px">결정</th><td>Cloudflare Tunnel 채택 (cloudflared)</td></tr>
     <tr><th>컨텍스트</th><td>풍도 현장 RPI를 외부에서 접근 가능하게 할 방법 필요. 현장 고정 공인 IP 없음, ISP 방화벽 포트 개방 불가.</td></tr>
     <tr><th>이유</th><td>
-      1) 공인 IP 없어도 outbound 연결만으로 ksys.kr 도메인 접근 가능.<br>
+      1) 공인 IP 없어도 outbound 연결만으로 ksys.kr /* TODO(오너 확인) */ 도메인 접근 가능.<br>
       2) nginx + Let's Encrypt는 공인 IP 또는 DNS 챌린지 가능한 도메인 필요.<br>
       3) TLS 자동 관리 (Cloudflare 레이어에서 처리).<br>
       4) 초기 설정 단순 (cloudflared 단일 바이너리 + 토큰).
@@ -838,7 +838,7 @@
       3) 현재 Reflex 앱 + 별도 scheduler 컨테이너 2개 분리는 이미 적절한 관심사 분리.
     </td></tr>
     <tr><th>트레이드오프</th><td>State 파일 비대화 위험 (현재 20개 state, god class 존재). 특정 기능 독립 확장 불가.</td></tr>
-    <tr><th>결과</th><td>ksys_app/ monolith + schedulers/ 별도 컨테이너. Q2 Refactor Sprint에서 내부 모듈 분리.</td></tr>
+    <tr><th>결과</th><td>edgeex_app/ monolith + schedulers/ 별도 컨테이너. Q2 Refactor Sprint에서 내부 모듈 분리.</td></tr>
     <tr><th>재검토 조건</th><td>사이트 수 5개 초과, 개발팀 3인 이상 시 마이크로서비스 전환 검토.</td></tr>
   </table>
 </div>
@@ -989,7 +989,7 @@
 
 <h3>현황 평가</h3>
 <div class="callout">
-  KSYS는 현재 <strong>기능은 완성되었지만 운영 품질이 미완성</strong>인 상태다.
+  edgeEX는 현재 <strong>기능은 완성되었지만 운영 품질이 미완성</strong>인 상태다.
   15개 라우트 HTTP 200, 3 페르소나 18개 User Flow 지원, ML 예측·알람 관리·트렌드 분석 핵심 기능 모두 작동 중이다.
   그러나 보안 Critical 3건(C1·C2·C3), High 5건, 코드 품질 결함 10건, 인증 없음이
   현재 운영 환경에 동시에 존재한다. 풍도 사이트가 Cloudflare Tunnel로 공개 노출된 상태에서
@@ -1067,7 +1067,7 @@
 
 <div class="callout-green">
   <strong>핵심 메시지:</strong><br>
-  KSYS는 소규모 수처리 사이트를 위한 저비용·AI 내장·엣지 우선 통합 관제 플랫폼으로서
+  edgeEX는 소규모 수처리 사이트를 위한 저비용·AI 내장·엣지 우선 통합 관제 플랫폼으로서
   명확한 시장 포지셔닝이 가능하다. Q1 보안 안정화와 Q2 인증 도입이 선행되면,
   Q4에 국내 수처리 시설 추가 사이트 PoC를 통한 사업화 경로가 열린다.
   지금 당장의 우선순위는 속도가 아니라 <strong>신뢰할 수 있는 운영 기반 확립</strong>이다.
@@ -1076,7 +1076,7 @@
 <hr>
 
 <p style="font-size: 13px; color: #6e7681; text-align: center; margin-top: 48px;">
-  KSYS 기획서 v1.0 — 생성일 2026-05-29 — spec_15_planning.html<br>
+  edgeEX 기획서 v1.0 — 생성일 2026-05-29 — spec_15_planning.html<br>
   입력 소스: spec_04_PRD.html · spec_07_storyboard.html · HANDOFF.md · audit_security_2026-05-21.html · CLAUDE.md<br>
   PDCA PM Agent — 풍도 수처리 IoT 통합 관제 플랫폼
 </p>

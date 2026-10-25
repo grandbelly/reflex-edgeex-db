@@ -26,7 +26,7 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="ksys-reverse-engineered-product-requirements-document-prd">KSYS — Reverse-Engineered Product Requirements Document (PRD)</h1>
+<h1 id="edgeex-reverse-engineered-product-requirements-document-prd">edgeEX — Reverse-Engineered Product Requirements Document (PRD)</h1>
 <blockquote>
 <p><strong>Type:</strong> Reverse-Engineered PRD (as-built, not as-designed)<br />
 <strong>Source specs:</strong> spec_01_frontend_pages.md · spec_02_backend_states_services.md · spec_03_database_schedulers.md<br />
@@ -46,7 +46,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </ol>
 <hr />
 <h2 id="1-product-identity">1. Product Identity</h2>
-<p>KSYS is a <strong>water treatment / desalination plant SCADA-adjacent monitoring and predictive analytics platform</strong> — a web-based operational dashboard that ingests real-time IoT sensor data, evaluates threshold-based quality rules (QC) at 10-second intervals, generates and displays multi-horizon ML forecasts (Prophet / Auto-ARIMA / XGBoost) on a rolling 10-minute schedule, and provides an operator-facing alarm lifecycle from detection through acknowledgment through history query. The platform is deployed as a single-site Reflex (Python full-stack) application running in Docker on a Raspberry Pi, targeting a small operations team rather than an enterprise multi-plant deployment.</p>
+<p>edgeEX is a <strong>water treatment / desalination plant SCADA-adjacent monitoring and predictive analytics platform</strong> — a web-based operational dashboard that ingests real-time IoT sensor data, evaluates threshold-based quality rules (QC) at 10-second intervals, generates and displays multi-horizon ML forecasts (Prophet / Auto-ARIMA / XGBoost) on a rolling 10-minute schedule, and provides an operator-facing alarm lifecycle from detection through acknowledgment through history query. The platform is deployed as a single-site Reflex (Python full-stack) application running in Docker on a Raspberry Pi, targeting a small operations team rather than an enterprise multi-plant deployment.</p>
 <p><strong>Evidence (5 bullets):</strong></p>
 <ol>
 <li><strong><code>influx_qc_rule</code> table</strong> stores <code>min_val</code>, <code>max_val</code>, <code>warning_low/high</code>, <code>critical_low/high</code> — standard process-variable safe-operating-range thresholds consistent with water treatment or desalination sensor monitoring (spec_03 §2.3).</li>
@@ -434,7 +434,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </table>
 <hr />
 <h3 id="311-ai-chat-sensor-insights-currently-dead-gap">3.11 AI Chat Sensor Insights — CURRENTLY DEAD (Gap)</h3>
-<p><strong>Pages:</strong> <code>/ai</code> — <strong>NOT REGISTERED in <code>ksys_app.py</code> (spec_01 §Dead Pages)</strong></p>
+<p><strong>Pages:</strong> <code>/ai</code> — <strong>NOT REGISTERED in <code>edgeex_app.py</code> (spec_01 §Dead Pages)</strong></p>
 <p><strong>Description:</strong> A full chat interface backed by a multi-RAG-engine AI layer (pgvector, GraphRAG, LlamaIndex, 5W1H agent, hallucination prevention). The implementation is complete on the backend (<code>AIState</code>, <code>AIService</code>, 18 <code>ai_engine</code> modules) but the page module is never imported into the app, making the route return 404.</p>
 <table>
 <thead>
@@ -446,7 +446,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <tbody>
 <tr>
 <td>Why dead</td>
-<td><code>pages/ai_insights.py</code> defines <code>@rx.page("/ai")</code> but is not imported in <code>ksys_app/ksys_app.py</code> (spec_01 line 37). <code>ENABLE_AI_FEATURES</code> env guard exists but the import itself is missing.</td>
+<td><code>pages/ai_insights.py</code> defines <code>@rx.page("/ai")</code> but is not imported in <code>edgeex_app/edgeex_app.py</code> (spec_01 line 37). <code>ENABLE_AI_FEATURES</code> env guard exists but the import itself is missing.</td>
 </tr>
 <tr>
 <td>Backend readiness</td>
@@ -458,7 +458,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>Resolution path</td>
-<td>Add <code>from ksys_app.pages import ai_insights</code> to <code>ksys_app.py</code> conditionally gated by <code>ENABLE_AI_FEATURES</code> env var</td>
+<td>Add <code>from edgeex_app.pages import ai_insights</code> to <code>edgeex_app.py</code> conditionally gated by <code>ENABLE_AI_FEATURES</code> env var</td>
 </tr>
 </tbody>
 </table>
@@ -478,7 +478,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td><strong>Solution</strong></td>
-<td>KSYS provides a unified web dashboard that combines real-time sensor monitoring (30s refresh), ISA-18.2-compliant alarm management with acknowledgment, historical trend analysis with CSV export, online ML forecast at 10-minute intervals, and a guided wizard for retraining and deploying new models — all accessible from a single Reflex application on the plant network.</td>
+<td>edgeEX provides a unified web dashboard that combines real-time sensor monitoring (30s refresh), ISA-18.2-compliant alarm management with acknowledgment, historical trend analysis with CSV export, online ML forecast at 10-minute intervals, and a guided wizard for retraining and deploying new models — all accessible from a single Reflex application on the plant network.</td>
 </tr>
 <tr>
 <td><strong>Functional UX Effect</strong></td>
@@ -685,7 +685,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <p>The following actions are ordered by effort-to-impact ratio (quickest wins first).</p>
 <hr />
 <h3 id="cr-01-register-ai-route-or-formally-disable-it">CR-01: Register <code>/ai</code> route or formally disable it</h3>
-<p><strong>Action:</strong> Add <code>from ksys_app.pages import ai_insights</code> to <code>ksys_app/ksys_app.py</code>, guarded by <code>if os.getenv("ENABLE_AI_FEATURES", "false").lower() == "true":</code><br />
+<p><strong>Action:</strong> Add <code>from edgeex_app.pages import ai_insights</code> to <code>edgeex_app/edgeex_app.py</code>, guarded by <code>if os.getenv("ENABLE_AI_FEATURES", "false").lower() == "true":</code><br />
 <strong>Effort:</strong> 0.5h (code) + 1h (smoke test with <code>ENABLE_AI_FEATURES=true</code>)<br />
 <strong>Regression risk:</strong> Low — the page was written in isolation; no other page imports <code>AIState</code><br />
 <strong>Alternative if AI is out-of-scope:</strong> Delete <code>pages/ai_insights.py</code>, <code>states/ai_state.py</code>, <code>services/ai_service.py</code>, <code>components/ai_visualizations.py</code>, and the entire <code>ai_engine/</code> directory. This removes ~5,000 lines of unreachable code including known SQL injection vectors in <code>knowledge_search.py</code> and <code>pandas_analysis_engine.py</code> (spec_02 §AI/RAG Domain security note).</p>
@@ -728,7 +728,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <hr />
 <h3 id="cr-09-create-a-sync-page-binding-syncmonitorstate">CR-09: Create a <code>/sync</code> page binding <code>SyncMonitorState</code></h3>
 <p><strong>Action:</strong> <code>SyncMonitorState</code> has 4 background event handlers (<code>sync_tags</code>, <code>sync_realtime</code>, <code>sync_historical</code>, <code>refresh_data</code>) but no UI page. Without a UI, administrators cannot manually trigger sync or see sync status (spec_02 §SyncMonitorState).<br />
-<strong>Effort:</strong> 3–4h (create page, add to <code>ksys_app.py</code>, add nav link)<br />
+<strong>Effort:</strong> 3–4h (create page, add to <code>edgeex_app.py</code>, add nav link)<br />
 <strong>Regression risk:</strong> Low — new page only</p>
 <hr />
 <h2 id="7-gaps-vs-typical-scada-iot-industry-expectations">7. Gaps vs Typical SCADA / IoT Industry Expectations</h2>

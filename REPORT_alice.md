@@ -5,13 +5,13 @@ Branch: agentic/forecast-scheduler-timeout-fix/alice-db-pool
 
 ## 1. get_async_session() call-site map
 
-ksys_app/schedulers/forecast_scheduler.py:
+edgeex_app/schedulers/forecast_scheduler.py:
 - Line 52  get_deployed_models — 1 SELECT on model_registry
 - Line 233 get_latest_sensor_value — 1 SELECT on influx_agg_10m
 - Line 281 save_predictions — N (up to 36) INSERT...ON CONFLICT into predictions hypertable in one session.commit()
 - Line 357 generate_forecast_player_cache — opens session, instantiates ForecastService(session) and reuses it for get_rolling_window_data (>=6 queries), get_predictions (1 query), get_latest_sensor_value (1 query), plus 4 own queries + 1 UPSERT — ~13 queries serial, mostly on hypertables.
 
-ksys_app/services/forecast_service.py — does NOT open its own sessions. Reuses the caller-provided AsyncSession. **No nested/parallel sessions.** Good.
+edgeex_app/services/forecast_service.py — does NOT open its own sessions. Reuses the caller-provided AsyncSession. **No nested/parallel sessions.** Good.
 
 Per run_once model iteration: 3 sequential get_async_session() calls → 3 separate connect+close cycles. For N models, 3N sessions per cycle.
 
@@ -44,7 +44,7 @@ Fix shipped:
 
 ## 5. Patch — files & risk
 
-Files: ksys_app/db_orm.py (additive only)
+Files: edgeex_app/db_orm.py (additive only)
 
 Risks:
 - Raising command_timeout to 30s could mask real bugs → mitigated by server-side statement_timeout that fires at the same threshold, so we still see honest "query cancelled" errors with stack traces from the DB.

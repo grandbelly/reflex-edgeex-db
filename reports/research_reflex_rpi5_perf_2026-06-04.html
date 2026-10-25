@@ -102,7 +102,7 @@ RPI5(ARM64) Docker 위 실시간 IoT 대시보드의 2025-2026 최고 레버리�
 
 <h2>③ ⚠️ 본 프로젝트 적용 매핑</h2>
 <table>
-<tr><th>발견</th><th>이 프로젝트(KSys)에서 할 일</th><th>분류</th></tr>
+<tr><th>발견</th><th>이 프로젝트(edgeEX)에서 할 일</th><th>분류</th></tr>
 <tr><td>Vite+Rolldown</td><td>현재 Reflex 버전 확인 → 0.8 미만이면 업그레이드. 빌드는 이미 컨테이너에서 — 빌드 메모리/시간 before/after 측정</td><td><span class="tag-do">DO</span></td></tr>
 <tr><td>cross-compile</td><td>현재 ARM 이미지 빌드 방식 점검. QEMU 멀티아치면 → ARM 러너/Pi 네이티브 or BuildKit cross-compile. "한 달 내 다른 RPI 배포"에 직접 기여</td><td><span class="tag-do">DO</span></td></tr>
 <tr><td>풀 보수적</td><td>get_async_session()/asyncpg 풀 크기 확인 → 워커수 × 풀 총합이 TimescaleDB max_connections 아래인지 산정</td><td><span class="tag-do">DO</span></td></tr>

@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-# Stub heavy optional deps so `import ksys_app.schedulers.forecast_scheduler`
+# Stub heavy optional deps so `import edgeex_app.schedulers.forecast_scheduler`
 # doesn't drag SQLAlchemy / asyncpg into the test process.
 for missing in ("sqlalchemy",):
     if missing not in sys.modules:
@@ -41,10 +41,10 @@ for missing in ("sqlalchemy",):
         sys.modules[missing] = mod
 
 # Stub the package-relative db_orm import.
-pkg_root = "ksys_app"
+pkg_root = "edgeex_app"
 if pkg_root not in sys.modules:
     pkg = types.ModuleType(pkg_root)
-    pkg.__path__ = [str(ROOT / "ksys_app")]  # type: ignore[attr-defined]
+    pkg.__path__ = [str(ROOT / "edgeex_app")]  # type: ignore[attr-defined]
     sys.modules[pkg_root] = pkg
 if f"{pkg_root}.db_orm" not in sys.modules:
     db_orm_stub = types.ModuleType(f"{pkg_root}.db_orm")
@@ -59,7 +59,7 @@ if f"{pkg_root}.db_orm" not in sys.modules:
     db_orm_stub.get_async_session = _get_async_session
     sys.modules[f"{pkg_root}.db_orm"] = db_orm_stub
 
-from ksys_app.schedulers.forecast_scheduler import ForecastScheduler  # noqa: E402
+from edgeex_app.schedulers.forecast_scheduler import ForecastScheduler  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

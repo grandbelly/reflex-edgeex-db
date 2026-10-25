@@ -26,9 +26,9 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="backend-stateservice-layer-catalog-ksys-app">Backend State/Service Layer Catalog — KSYS App</h1>
+<h1 id="backend-stateservice-layer-catalog-edgeex-app">Backend State/Service Layer Catalog — edgeEX App</h1>
 <blockquote>
-<p>Generated: 2026-05-28 | Source: ksys_app/states/, ksys_app/services/, ksys_app/ai_engine/, ksys_app/controllers/
+<p>Generated: 2026-05-28 | Source: edgeex_app/states/, edgeex_app/services/, edgeex_app/ai_engine/, edgeex_app/controllers/
 Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
 </blockquote>
 <hr />
@@ -321,7 +321,7 @@ Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">0</td>
-<td>(loaded from <code>ksys_app.py</code>, no page UI)</td>
+<td>(loaded from <code>edgeex_app.py</code>, no page UI)</td>
 </tr>
 <tr>
 <td><code>SyncMonitorState</code></td>
@@ -391,7 +391,7 @@ Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
   ├── TrendState
   ├── ModelConfigState            [orphan]
   ├── ModelPerformanceState
-  ├── SchedulerState              (singleton, used in startup hook in ksys_app.py:204)
+  ├── SchedulerState              (singleton, used in startup hook in edgeex_app.py:204)
   ├── SyncMonitorState            [orphan]
   ├── DashboardState (states/dashboard/state.py — legacy giant)
   └── ViewerTagState
@@ -1523,12 +1523,12 @@ Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
 </tr>
 </tbody>
 </table>
-<p><strong>Trigger entry point:</strong> All AI engine code is reachable only through <code>AIState</code> (used by <code>/ai</code> page, which is currently NOT registered in <code>ksys_app.py</code> per spec_01). Effectively dead from a UI test perspective.</p>
+<p><strong>Trigger entry point:</strong> All AI engine code is reachable only through <code>AIState</code> (used by <code>/ai</code> page, which is currently NOT registered in <code>edgeex_app.py</code> per spec_01). Effectively dead from a UI test perspective.</p>
 <p><strong>Earlier finding (security):</strong> SQL injection vectors documented in <code>audit_security_2026-05-21.md</code> were in these engines (knowledge_search, pandas_analysis_engine). The full surface includes 12+ engines, most using raw <code>..db.q</code> with string interpolation.</p>
 <hr />
 <h2 id="9-scheduler-sync-domain">9. SCHEDULER / SYNC DOMAIN</h2>
 <h3 id="schedulerstate-statesscheduler_statepy-startup-singleton"><code>SchedulerState</code> (states/scheduler_state.py) — startup singleton</h3>
-<p>Parent: <code>rx.State</code>. 1 event (1 bg), 0 vars. Loaded from <code>ksys_app.py:204</code> to initialize APScheduler.</p>
+<p>Parent: <code>rx.State</code>. 1 event (1 bg), 0 vars. Loaded from <code>edgeex_app.py:204</code> to initialize APScheduler.</p>
 <table>
 <thead>
 <tr>
@@ -2193,10 +2193,10 @@ Companion to: <code>reports/spec_01_frontend_pages.md</code></p>
 </ul>
 <p>The "Enhanced" orphans (AlarmsEnhancedState, TrendStateEnhanced, etc.) appear to be incomplete refactors toward the service pattern + TagHierarchy mixin.</p>
 <h2 id="decorator-event_with_error">decorator <code>@event_with_error</code></h2>
-<p>Imported from <code>ksys_app.utils.decorators</code> and used in <code>AlarmsState.acknowledge_alarm</code> (only). Comment claims it replaces try/except boilerplate "101× across 24 state files." Most state files still use inline try/except — adoption is partial.</p>
+<p>Imported from <code>edgeex_app.utils.decorators</code> and used in <code>AlarmsState.acknowledge_alarm</code> (only). Comment claims it replaces try/except boilerplate "101× across 24 state files." Most state files still use inline try/except — adoption is partial.</p>
 <h2 id="module-level-mutable-state">Module-level mutable state</h2>
 <ul>
-<li><code>ksys_app/states/training_state/cache.py</code> — <code>_training_cache: dict</code> — in-process cache for training results. Not serializable, lost on worker restart. No invalidation strategy in code reviewed.</li>
+<li><code>edgeex_app/states/training_state/cache.py</code> — <code>_training_cache: dict</code> — in-process cache for training results. Not serializable, lost on worker restart. No invalidation strategy in code reviewed.</li>
 </ul>
 <hr />
 <h1 id="recommended-test-plan-stub-input-for-next-agent">Recommended Test Plan Stub (input for next agent)</h1>

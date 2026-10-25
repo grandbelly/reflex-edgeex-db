@@ -26,12 +26,12 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="ksys-iot-reflex-frontendstate-architecture-audit">KSys IoT — Reflex Frontend/State Architecture Audit</h1>
+<h1 id="edgeex-iot-reflex-frontendstate-architecture-audit">edgeEX IoT — Reflex Frontend/State Architecture Audit</h1>
 <p><strong>Date</strong>: 2026-05-27 | <strong>Reflex</strong>: 0.8.x | <strong>Auditor</strong>: bkit-frontend-architect</p>
 <hr />
 <h2 id="1-state-class-organization">1. State Class Organization</h2>
 <h3 id="f-11-dual-basestate-two-conflicting-base-classes-in-production">F-1.1 · Dual BaseState — two conflicting base classes in production</h3>
-<p><strong>File</strong>: <code>ksys_app/states/base.py:10</code> vs <code>ksys_app/states/base_state.py:12</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/base.py:10</code> vs <code>edgeex_app/states/base_state.py:12</code></p>
 <pre><code class="language-python"># base.py — uses raw pool (db.q), has toggle_auto_refresh, clear_error
 class BaseState(rx.State):
     is_loading: bool = False
@@ -50,7 +50,7 @@ class BaseState(rx.State):
 <p><strong>Reflex 0.8 idiomatic fix</strong>: Merge into a single <code>AppState(rx.State)</code> with <code>sidebar_collapsed</code>, <code>theme_mode</code>, and one polling pattern. Make domain states inherit from it.</p>
 <hr />
 <h3 id="f-12-dashboardstate-monolith-40-state-vars-in-one-class">F-1.2 · DashboardState monolith — 40+ state vars in one class</h3>
-<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:39–145</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/dashboard/state.py:39–145</code></p>
 <pre><code class="language-python">class DashboardState(rx.State):
     tag_name: Optional[str] = None
     window: str = &quot;5 min&quot;
@@ -74,7 +74,7 @@ class BaseState(rx.State):
 <p><strong>Reflex 0.8 idiomatic fix</strong>: Extract <code>ChartVisibilityState</code>, <code>RealtimeLoopState</code>, and <code>AlarmSummaryState</code> as sibling substates. Dashboard page composes from all three.</p>
 <hr />
 <h3 id="f-13-four-level-inheritance-chain-for-trainingwizardstateenhanced">F-1.3 · Four-level inheritance chain for TrainingWizardStateEnhanced</h3>
-<p><strong>File</strong>: <code>ksys_app/states/training_wizard_state_enhanced.py:15</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/training_wizard_state_enhanced.py:15</code></p>
 <pre><code class="language-python">class TrainingWizardStateEnhanced(TrainingWizardState, TagHierarchyState):
     # TrainingWizardState -&gt; TrainingState(rx.State)
     # TagHierarchyState  -&gt; BaseState(base_state.py) -&gt; rx.State
@@ -83,7 +83,7 @@ class BaseState(rx.State):
 <p><strong>Reflex 0.8 idiomatic fix</strong>: Make <code>TagHierarchyState</code> a standalone substate (not base-mixed). Page reads both states independently via <code>TagHierarchyState.filtered_tags</code> and <code>TrainingWizardState.selected_tag</code>.</p>
 <hr />
 <h3 id="f-14-rxvar-returning-new-mutable-dicts-on-every-call">F-1.4 · <code>@rx.var</code> returning new mutable dicts on every call</h3>
-<p><strong>File</strong>: <code>ksys_app/states/training_wizard_state.py:36</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/training_wizard_state.py:36</code></p>
 <pre><code class="language-python">@rx.var
 def validation_feasibility(self) -&gt; dict:
     if self.forecast_interval_minutes &lt;= 0:
@@ -103,7 +103,7 @@ def validation_feasibility(self) -&gt; dict:
 <hr />
 <h2 id="2-event-handler-patterns">2. Event Handler Patterns</h2>
 <h3 id="f-21-long-running-db-work-inside-async-with-self-state-lock">F-2.1 · Long-running DB work inside <code>async with self:</code> state lock</h3>
-<p><strong>File</strong>: <code>ksys_app/states/base.py:78–98</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/base.py:78–98</code></p>
 <pre><code class="language-python">@rx.event(background=True)
 async def start_auto_refresh(self):
     async with self:
@@ -123,7 +123,7 @@ async def start_auto_refresh(self):
 <p><strong>Actual smell</strong>: <code>base_state.py</code> line 57 calls <code>self.refresh_data()</code> without <code>await</code> inside a background task (<code>asyncio.wait_for</code> wraps the call, which is fine for a coroutine but <code>refresh_data</code> is decorated <code>@rx.event(background=True)</code> — calling it as <code>await coro()</code> skips Reflex's event dispatch and yields nothing to the frontend).</p>
 <hr />
 <h3 id="f-22-generator-style-yield-mixed-with-async-with-self-yield-pattern-inconsistently">F-2.2 · Generator-style <code>yield</code> mixed with <code>async with self: yield</code> pattern inconsistently</h3>
-<p><strong>File</strong>: <code>ksys_app/states/dashboard_realtime.py:68–117</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/dashboard_realtime.py:68–117</code></p>
 <pre><code class="language-python">@rx.event(background=True)
 async def start_streaming(self):
     async with self:
@@ -146,7 +146,7 @@ async with self:
 </code></pre>
 <hr />
 <h3 id="f-23-function-internal-imports-in-hot-path-event-handlers">F-2.3 · Function-internal imports in hot-path event handlers</h3>
-<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1135–1136</code>, <code>ksys_app/states/training_wizard_state.py:163</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/dashboard/state.py:1135–1136</code>, <code>edgeex_app/states/training_wizard_state.py:163</code></p>
 <pre><code class="language-python">@rx.event(background=True)
 async def start_realtime(self):
     import time       # line 1135 — executed on every event call
@@ -160,7 +160,7 @@ async def initialize_wizard(self):
 <p><strong>Problem</strong>: <code>import time</code> / <code>import uuid</code> are stdlib modules with trivial import cost but signal a sloppy pattern. The SQLAlchemy <code>from sqlalchemy import text</code> inside <code>initialize_wizard</code> runs every time the event fires. Move all imports to module top-level.</p>
 <hr />
 <h3 id="f-24-print-used-as-logging-in-production-state-event-handlers">F-2.4 · <code>print()</code> used as logging in production state event handlers</h3>
-<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1144, 1149, 1156, 1159, 1173, 1177</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/dashboard/state.py:1144, 1149, 1156, 1159, 1173, 1177</code></p>
 <pre><code class="language-python">print(f&quot;🚫 {current_time} - 싱글톤 보호: 실시간 루프가 이미 실행 중 (ID: {self._realtime_loop_id})&quot;)
 print(f&quot;⚠️ {current_time} - 실시간 모드가 비활성화되어 루프 시작 취소&quot;)
 </code></pre>
@@ -172,7 +172,7 @@ console.debug(f&quot;Singleton guard: realtime loop already running (ID: {self._
 <p><code>console</code> respects <code>loglevel=LogLevel.INFO</code> in production config.</p>
 <hr />
 <h3 id="f-25-stop_polling-stop_streaming-not-decorated-with-rxevent">F-2.5 · <code>stop_polling</code> / <code>stop_streaming</code> not decorated with <code>@rx.event</code></h3>
-<p><strong>File</strong>: <code>ksys_app/states/base_state.py:74</code> and <code>ksys_app/states/dashboard_realtime.py:119</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/base_state.py:74</code> and <code>edgeex_app/states/dashboard_realtime.py:119</code></p>
 <pre><code class="language-python">async def stop_polling(self):     # missing @rx.event
     async with self:
         self._polling_active = False
@@ -185,7 +185,7 @@ async def stop_streaming(self):   # missing @rx.event
 <hr />
 <h2 id="3-component-composition">3. Component Composition</h2>
 <h3 id="f-31-python-dict-key-access-on-rxforeach-item-common-sonnet-40-era-bug">F-3.1 · Python dict-key access on <code>rx.foreach</code> item (common Sonnet 4.0-era bug)</h3>
-<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:88, 111, 113</code></p>
+<p><strong>File</strong>: <code>edgeex_app/pages/alarms.py:88, 111, 113</code></p>
 <pre><code class="language-python">def alarm_card(alarm: Dict) -&gt; rx.Component:
     return rx.box(
         rx.vstack(
@@ -203,7 +203,7 @@ async def stop_streaming(self):   # missing @rx.event
 <p><strong>Reflex 0.8 idiomatic fix</strong>: <code>level_badge</code> should accept <code>Var</code> types and use <code>rx.cond</code> for branching, or the color should be pre-computed in state as a string field in each alarm dict.</p>
 <hr />
 <h3 id="f-32-hardcoded-hex-color-strings-as-magic-values-across-components">F-3.2 · Hardcoded hex color strings as magic values across components</h3>
-<p><strong>Files</strong>: <code>ksys_app/components/layout.py:74,80</code>, <code>ksys_app/components/sensor_card_enhanced.py:68,70,72,117,118,138,183</code>, <code>ksys_app/pages/alarms.py:93,105,113,115,162,164</code></p>
+<p><strong>Files</strong>: <code>edgeex_app/components/layout.py:74,80</code>, <code>edgeex_app/components/sensor_card_enhanced.py:68,70,72,117,118,138,183</code>, <code>edgeex_app/pages/alarms.py:93,105,113,115,162,164</code></p>
 <pre><code class="language-python"># layout.py
 color=&quot;#3b82f6&quot; if is_active else &quot;#6b7280&quot;,  # blue-500 / gray-500
 
@@ -217,10 +217,10 @@ color=&quot;#6b7280&quot;   # gray-500 — repeated 8+ times
 color=&quot;#111827&quot;   # gray-900 — repeated 10+ times
 </code></pre>
 <p><strong>Problem</strong>: The same color hex appears 20+ times across layout, sensor card, and alarms page. <code>rxconfig.py</code> already sets up <code>TailwindV3Plugin</code> with a custom theme (status colors, slate-850). None of the components use those tokens. If the amber warning color needs to change (e.g., accessibility contrast), it requires a grep-and-replace across 8 files.</p>
-<p><strong>Reflex 0.8 idiomatic fix</strong>: Centralize in <code>ksys_app/styles/design_tokens.py</code> (file already exists) and reference via Tailwind classes or a <code>COLOR</code> constant dict imported by all components.</p>
+<p><strong>Reflex 0.8 idiomatic fix</strong>: Centralize in <code>edgeex_app/styles/design_tokens.py</code> (file already exists) and reference via Tailwind classes or a <code>COLOR</code> constant dict imported by all components.</p>
 <hr />
 <h3 id="f-33-rxcond-chains-instead-of-tailwind-variant-maps-unreadable-and-error-prone">F-3.3 · <code>rx.cond</code> chains instead of Tailwind variant maps — unreadable and error-prone</h3>
-<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:155–166</code></p>
+<p><strong>File</strong>: <code>edgeex_app/pages/alarms.py:155–166</code></p>
 <pre><code class="language-python">rx.badge(
     rx.cond(sensor[&quot;status&quot;] == 0, &quot;NORMAL&quot;,
         rx.cond(sensor[&quot;status&quot;] == 1, &quot;WARNING&quot;, &quot;CRITICAL&quot;)),
@@ -232,11 +232,11 @@ color=&quot;#111827&quot;   # gray-900 — repeated 10+ times
 <p><strong>Problem</strong>: Deeply nested <code>rx.cond</code> chains are the correct Reflex-reactive pattern (not Python <code>if</code>), so reactivity is intact. However, the pattern is repeated in at least 4 component functions for the same status→color mapping. This should be a helper or a pre-computed string field in state.</p>
 <p><strong>Reflex 0.8 idiomatic fix</strong>: Pre-compute <code>status_label: str</code> and <code>status_color: str</code> in <code>DashboardRealtimeState.formatted_sensors</code> (already partially done) and access directly — no <code>rx.cond</code> chain needed.</p>
 <hr />
-<h3 id="f-34-ksys_apppagesalarmspy-400-loc-god-component-file">F-3.4 · <code>ksys_app/pages/alarms.py</code> — 400+ LoC god-component file</h3>
+<h3 id="f-34-edgeex_apppagesalarmspy-400-loc-god-component-file">F-3.4 · <code>edgeex_app/pages/alarms.py</code> — 400+ LoC god-component file</h3>
 <p>Checked: <code>alarms.py</code> contains <code>isa_level_badge</code>, <code>level_badge</code>, <code>stat_tile</code>, <code>alarm_card</code>, <code>active_alarms_view</code>, <code>history_alarms_view</code>, and the full page function inline. No dedicated component file for alarm-specific renderers. Similar pattern in <code>trend_enhanced_v2.py</code> (30+ <code>rx.cond</code> / <code>rx.foreach</code> calls, full page in one file).</p>
 <hr />
 <h3 id="f-35-inline-lambda-event-handlers-in-rxforeach-callbacks">F-3.5 · Inline <code>lambda</code> event handlers in <code>rx.foreach</code> callbacks</h3>
-<p><strong>File</strong>: <code>ksys_app/pages/alarms.py:128, 198</code></p>
+<p><strong>File</strong>: <code>edgeex_app/pages/alarms.py:128, 198</code></p>
 <pre><code class="language-python">on_click=lambda: AlarmsState.acknowledge_alarm(alarm[&quot;event_id&quot;]),
 </code></pre>
 <p><strong>Problem</strong>: Lambda capturing a <code>rx.foreach</code> loop variable (<code>alarm["event_id"]</code>) works in Reflex 0.8 if <code>alarm</code> is a <code>Var</code> and <code>alarm["event_id"]</code> produces an <code>EventSpec</code>. However, the lambda notation bypasses Reflex's type-checking of event args and may silently pass a <code>Var[str]</code> where a <code>str</code> is expected, causing serialization issues. Confirmed pattern — used in 2 places.</p>
@@ -246,7 +246,7 @@ color=&quot;#111827&quot;   # gray-900 — repeated 10+ times
 <hr />
 <h2 id="4-async-db-patterns">4. Async DB Patterns</h2>
 <h3 id="f-41-custom-get_async_session-shim-instead-of-rxasession">F-4.1 · Custom <code>get_async_session</code> shim instead of <code>rx.asession()</code></h3>
-<p><strong>File</strong>: <code>ksys_app/db_orm.py:1–60</code></p>
+<p><strong>File</strong>: <code>edgeex_app/db_orm.py:1–60</code></p>
 <pre><code class="language-python"># db_orm.py — custom async engine factory
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 ...
@@ -254,12 +254,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 async def get_async_session() -&gt; AsyncGenerator[AsyncSession, None]:
     ...
 </code></pre>
-<p><strong>Problem</strong>: Reflex 0.8 exposes <code>rx.asession()</code> (see <code>C:\dev\venv-ksys\Lib\site-packages\reflex\model.py:611</code>) which returns a managed <code>AsyncSession</code> with the same lazy-init pattern, configured via <code>rx.Config(async_db_url=...)</code>. The project bypasses this entirely in favor of a custom shim with its own pool (<code>NullPool</code> by default, <code>AsyncAdaptedQueuePool</code> via env var).</p>
+<p><strong>Problem</strong>: Reflex 0.8 exposes <code>rx.asession()</code> (see <code>C:\dev\venv-edgeex\Lib\site-packages\reflex\model.py:611</code>) which returns a managed <code>AsyncSession</code> with the same lazy-init pattern, configured via <code>rx.Config(async_db_url=...)</code>. The project bypasses this entirely in favor of a custom shim with its own pool (<code>NullPool</code> by default, <code>AsyncAdaptedQueuePool</code> via env var).</p>
 <p><strong>Assessment</strong>: The custom shim is actually well-engineered — it handles <code>asyncpg</code>-specific URL normalization, pool configuration, SSL, and <code>statement_timeout</code>. However it means <code>rxconfig.py</code> does not declare <code>async_db_url</code>, so Reflex's own DB migration/model tooling (<code>rx.Model</code>, <code>rx.alembic</code>) is not connected. This is a deliberate architectural choice but should be documented as such.</p>
 <p><strong>Verdict</strong>: Not a bug — acceptable for a TimescaleDB + asyncpg setup that needs fine-grained pool control. Flag for new contributors.</p>
 <hr />
 <h3 id="f-42-raw-sql-in-state-event-handlers-bypassing-service-layer">F-4.2 · Raw SQL in state event handlers bypassing service layer</h3>
-<p><strong>File</strong>: <code>ksys_app/states/alarm_rt_state.py:63–86</code>, <code>ksys_app/states/alarm_state.py:63–100</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/alarm_rt_state.py:63–86</code>, <code>edgeex_app/states/alarm_state.py:63–100</code></p>
 <pre><code class="language-python">@rx.event(background=True)
 async def load_sensor_status(self):
     query = &quot;&quot;&quot;
@@ -275,7 +275,7 @@ async def load_sensor_status(self):
 <h2 id="5-rxconfigpy-assessment">5. rxconfig.py Assessment</h2>
 <p><strong>File</strong>: <code>rxconfig.py</code></p>
 <pre><code class="language-python">config = rx.Config(
-    app_name=&quot;ksys_app&quot;,
+    app_name=&quot;edgeex_app&quot;,
     loglevel=LogLevel.DEBUG,     # DEBUG in production docker — noisy
     show_built_with_reflex=False,
     frontend_packages=[],
@@ -346,7 +346,7 @@ saved_model_info: dict = {}
 <p>Seven <code>dict</code> vars holding different domain shapes with no TypedDict definition. The <code>@rx.var</code> accessors like <code>mae_value</code>, <code>aic_value</code> defensively call <code>.get()</code> on these dicts — which is the tell-tale sign these should be typed models or at least TypedDict.</p>
 <hr />
 <h3 id="f-62-messagedict-class-invalid-python-pattern">F-6.2 · <code>Message(Dict)</code> class — invalid Python pattern</h3>
-<p><strong>File</strong>: <code>ksys_app/states/ai_state.py:15–19</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/ai_state.py:15–19</code></p>
 <pre><code class="language-python">class Message(Dict):
     &quot;&quot;&quot;Message structure for chat&quot;&quot;&quot;
     text: str
@@ -364,7 +364,7 @@ class Message(TypedDict):
 </code></pre>
 <hr />
 <h3 id="f-63-rxvar-computing-pandas-operations-on-every-recomputation">F-6.3 · <code>@rx.var</code> computing pandas operations on every recomputation</h3>
-<p><strong>File</strong>: <code>ksys_app/states/communication_state.py:66–157</code></p>
+<p><strong>File</strong>: <code>edgeex_app/states/communication_state.py:66–157</code></p>
 <pre><code class="language-python">@rx.var
 def overall_success_rate(self) -&gt; float:
     if not self._df_hourly:
@@ -388,7 +388,7 @@ def heatmap_matrix(self) -&gt; List[List[float]]:
 <p><strong>Reflex 0.8 idiomatic fix</strong>: Add <code>@rx.var(cache=True)</code> to all three, or pre-compute aggregates in the event handler and store them as plain state vars (<code>overall_success_rate: float</code>, <code>total_records: int</code>) updated once at fetch time.</p>
 <hr />
 <h3 id="f-64-emoji-characters-in-consolelog-print-in-production-state-code">F-6.4 · Emoji characters in <code>console.log</code> / <code>print</code> in production state code</h3>
-<p><strong>File</strong>: <code>ksys_app/states/dashboard/state.py:1159</code>, <code>ksys_app/states/trend_state_enhanced.py:57</code>, multiple</p>
+<p><strong>File</strong>: <code>edgeex_app/states/dashboard/state.py:1159</code>, <code>edgeex_app/states/trend_state_enhanced.py:57</code>, multiple</p>
 <pre><code class="language-python">console.log(&quot;🔄 TrendStateEnhanced.load() called&quot;)
 print(f&quot;🚀 {start_time} - 실시간 모드 시작 [ID:{loop_id}]&quot;)
 print(&quot;=&quot; * 80)

@@ -19,8 +19,8 @@ import time
 
 import pytest
 
-from ksys_app.schedulers import forecast_scheduler as fs_mod
-from ksys_app.schedulers.forecast_scheduler import ForecastScheduler
+from edgeex_app.schedulers import forecast_scheduler as fs_mod
+from edgeex_app.schedulers.forecast_scheduler import ForecastScheduler
 
 
 # ---------------------------------------------------------------------------
@@ -29,7 +29,7 @@ from ksys_app.schedulers.forecast_scheduler import ForecastScheduler
 
 class FakeSlowSyncAsyncPredictModel:
     """
-    Mimics ksys_app/ml/pipeline_v2_hybrid.py plugins: `predict` is declared
+    Mimics edgeex_app/ml/pipeline_v2_hybrid.py plugins: `predict` is declared
     `async def` but its body is purely synchronous (uses time.sleep, NOT
     asyncio.sleep). On the unpatched code this blocks the event loop.
     """

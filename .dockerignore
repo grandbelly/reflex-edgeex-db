@@ -58,7 +58,7 @@ all_sensors*.csv
 *.disabled
 *_backup.py
 *_OLD.py
-ksys_app/ksys_app_clean/
+edgeex_app/edgeex_app_clean/
 
 # Agentic pipeline runtime artifacts
 agentic-runs/

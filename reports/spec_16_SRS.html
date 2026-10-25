@@ -57,7 +57,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 28px 0; }
 </head>
 <body>
 
-<h1>📋 KSys IoT — Software Requirements Specification (SRS)</h1>
+<h1>📋 edgeEX IoT — Software Requirements Specification (SRS)</h1>
 <p class="meta">문서 코드: <code>spec_16_SRS</code> · 작성 2026-05-29 · IEEE 830-1998 / ISO/IEC/IEEE 29148:2018 준수 · 정통 한국 SI 형식 변형 · Reverse-engineered from spec_01~15 + codebase audit</p>
 
 <div class="callout crit">
@@ -99,7 +99,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 28px 0; }
 <h2 id="sec1">1. 서론 (Introduction)</h2>
 
 <h3>1.1 목적 (Purpose)</h3>
-<p>본 문서는 <strong>KSys IoT 정수처리 통합 관제 시스템</strong>의 기능적/비기능적 요구사항을 <strong>IEEE 830-1998</strong> 및 <strong>ISO/IEC/IEEE 29148:2018</strong> 형식으로 명세하는 것을 목적으로 한다. 본 SRS는:</p>
+<p>본 문서는 <strong>edgeEX IoT 정수처리 통합 관제 시스템</strong>의 기능적/비기능적 요구사항을 <strong>IEEE 830-1998</strong> 및 <strong>ISO/IEC/IEEE 29148:2018</strong> 형식으로 명세하는 것을 목적으로 한다. 본 SRS는:</p>
 <ul>
 <li>개발팀의 구현 baseline 으로 사용된다.</li>
 <li>QA 팀의 검증 baseline 으로 사용된다 (각 요구사항은 <code>spec_05_test_plan</code>의 TC-ID 와 추적된다).</li>
@@ -172,7 +172,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 28px 0; }
 <h2 id="sec2">2. 전체 설명 (Overall Description)</h2>
 
 <h3>2.1 제품 관점 (Product Perspective)</h3>
-<p>KSys IoT 는 <strong>독립형 (standalone) 단일 사이트 SCADA-adjacent 모니터링/예측 분석 플랫폼</strong>이다. 외부 IoT cloud DB (sync_monitor 대상)에서 데이터를 수신하고, 로컬 TimescaleDB 에 저장 후 Reflex 웹 UI 로 제공한다.</p>
+<p>edgeEX IoT 는 <strong>독립형 (standalone) 단일 사이트 SCADA-adjacent 모니터링/예측 분석 플랫폼</strong>이다. 외부 IoT cloud DB (sync_monitor 대상)에서 데이터를 수신하고, 로컬 TimescaleDB 에 저장 후 Reflex 웹 UI 로 제공한다.</p>
 <pre>
 [외부 IoT Cloud DB]
         │ (read-only sync)
@@ -910,7 +910,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 28px 0; }
 <tr><th colspan="2">REQ-F-AI-001</th></tr>
 <tr><td>제목</td><td>/ai 페이지 활성화</td></tr>
 <tr><td>우선순위</td><td><span class="may">MAY</span></td></tr>
-<tr><td>설명</td><td><code>pages/ai_insights.py</code> 는 작성되어 있으나 <code>ksys_app.py</code> 에 import 되지 않음. 활성화 시 <code>ENABLE_AI_FEATURES=true</code> env gate 와 SQL injection 재검증 필수.</td></tr>
+<tr><td>설명</td><td><code>pages/ai_insights.py</code> 는 작성되어 있으나 <code>edgeex_app.py</code> 에 import 되지 않음. 활성화 시 <code>ENABLE_AI_FEATURES=true</code> env gate 와 SQL injection 재검증 필수.</td></tr>
 <tr><td>출처</td><td>spec_04 CR-01, SMOKE-08 sentinel</td></tr>
 </table></div>
 

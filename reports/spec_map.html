@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KSys IoT — Spec Traceability Map (문서 플로우 + 정합성)</title>
+<title>edgeEX IoT — Spec Traceability Map (문서 플로우 + 정합성)</title>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
@@ -58,7 +58,7 @@
   <a href="spec_00_INDEX.html">📚 INDEX</a>
 </div>
 
-<h1>🗺️ KSys IoT — Spec Traceability Map</h1>
+<h1>🗺️ edgeEX IoT — Spec Traceability Map</h1>
 <p class="meta">생성 2026-06-02 · 17 spec 문서의 플로우 + ID 정합성(RTM) 한눈에 · 소스: spec_16 RTM + spec_12 FN색인 + spec_13 PROC + spec_05 TC · 노드 클릭 시 해당 spec html로 점프</p>
 
 <div class="callout">
@@ -272,7 +272,7 @@ flowchart TD
 <div class="callout good"><strong>DEAD 12건 = 7 삭제(코드 제거 −3318 LOC) + 5 등록(/ai live).</strong> 사용자 결정: AIState는 라이브화(DELETE 아님). commit ba5ab08·127fcb4·ab49c4b.</div>
 <table>
 <tr><th>FN</th><th>이전 상태</th><th>처리 (조치)</th></tr>
-<tr><td>FN-AI-01~05 (5)</td><td>/ai 미등록 dead</td><td class="cell-ok">✔ <strong>등록(CR-01)</strong> — ksys_app.py import 추가, .web/build/client/ai 컴파일 확인, Playwright 렌더 OK</td></tr>
+<tr><td>FN-AI-01~05 (5)</td><td>/ai 미등록 dead</td><td class="cell-ok">✔ <strong>등록(CR-01)</strong> — edgeex_app.py import 추가, .web/build/client/ai 컴파일 확인, Playwright 렌더 OK</td></tr>
 <tr><td>FN-ALM-15</td><td>AlarmState orphan</td><td class="cell-ok">✔ <strong>삭제</strong> alarm_state.py (−530)</td></tr>
 <tr><td>FN-DSH-10</td><td>legacy DashboardState 1638 LOC</td><td class="cell-ok">✔ <strong>삭제</strong> states/dashboard/ 패키지 + dead 컴포넌트 2 (−2017)</td></tr>
 <tr><td>FN-TRN-15</td><td>TrainingWizardStateEnhanced orphan</td><td class="cell-ok">✔ <strong>삭제</strong> (−162)</td></tr>

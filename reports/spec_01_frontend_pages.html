@@ -26,9 +26,9 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="frontend-page-catalog-ksys-app">Frontend Page Catalog — KSYS App</h1>
+<h1 id="frontend-page-catalog-edgeex-app">Frontend Page Catalog — edgeEX App</h1>
 <blockquote>
-<p>Generated: 2026-05-28 | Source: ksys_app/pages/*.py + ksys_app/ksys_app.py</p>
+<p>Generated: 2026-05-28 | Source: edgeex_app/pages/*.py + edgeex_app/edgeex_app.py</p>
 </blockquote>
 <hr />
 <h2 id="master-route-table">Master Route Table</h2>
@@ -47,7 +47,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td><code>/</code></td>
 <td>YES</td>
 <td><code>pages/dashboard.py</code></td>
-<td>Dashboard | KSYS</td>
+<td>Dashboard | edgeEX</td>
 <td>Real-time sensor monitoring dashboard</td>
 </tr>
 <tr>
@@ -96,21 +96,21 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td><code>/forecast</code></td>
 <td>YES</td>
 <td><code>pages/forecast_player.py</code></td>
-<td>예측 플레이어 | KSYS</td>
+<td>예측 플레이어 | edgeEX</td>
 <td>Online ML prediction player with MAPE/NRMSE/accuracy</td>
 </tr>
 <tr>
 <td><code>/model-performance</code></td>
 <td>YES</td>
 <td><code>pages/model_performance.py</code></td>
-<td>모델 성능 - KSYS</td>
+<td>모델 성능 - edgeEX</td>
 <td>ML model performance comparison + deployment mgmt</td>
 </tr>
 <tr>
 <td><code>/scada-alarm-comparison</code></td>
 <td>YES</td>
 <td><code>pages/scada_alarm_comparison.py</code></td>
-<td>AI Alarms | KSYS</td>
+<td>AI Alarms | edgeEX</td>
 <td>Rule-based vs AI-based alarm comparison</td>
 </tr>
 <tr>
@@ -145,25 +145,25 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td><code>/design-system-demo</code></td>
 <td><strong>NOT IMPORTED</strong></td>
 <td><code>pages/design_system_demo.py</code></td>
-<td>Design System Demo | KSYS</td>
+<td>Design System Demo | edgeEX</td>
 <td>Component showcase (dev-only)</td>
 </tr>
 <tr>
 <td><code>/ai</code></td>
 <td><strong>NOT IMPORTED</strong></td>
 <td><code>pages/ai_insights.py</code></td>
-<td>AI 센서 인사이트 - KSys Dashboard</td>
+<td>AI 센서 인사이트 - edgeEX Dashboard</td>
 <td>AI chat interface for sensor insights</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Summary: 16 total page modules. 14 registered (imported in ksys_app.py). 2 dead/unregistered.</strong></p>
+<p><strong>Summary: 16 total page modules. 14 registered (imported in edgeex_app.py). 2 dead/unregistered.</strong></p>
 <hr />
 <h2 id="dead-unregistered-pages">Dead / Unregistered Pages</h2>
 <h3 id="1-ai-pagesai_insightspy">1. <code>/ai</code> — <code>pages/ai_insights.py</code></h3>
 <ul>
-<li>Has <code>@rx.page("/ai", title="AI 센서 인사이트 - KSys Dashboard")</code> at line 568.</li>
-<li>Module is <strong>NOT imported</strong> in <code>ksys_app/ksys_app.py</code>. The decorator never executes.</li>
+<li>Has <code>@rx.page("/ai", title="AI 센서 인사이트 - edgeEX Dashboard")</code> at line 568.</li>
+<li>Module is <strong>NOT imported</strong> in <code>edgeex_app/edgeex_app.py</code>. The decorator never executes.</li>
 <li>Contains a full chat interface (<code>AIState.send_message</code>, <code>AIState.load_initial_sensor_data</code>).</li>
 <li>AI features are environment-gated (<code>ENABLE_AI_FEATURES</code> env var) but the import gate is missing entirely.</li>
 <li><strong>Route <code>/ai</code> will return 404.</strong></li>
@@ -171,7 +171,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h3 id="2-design-system-demo-pagesdesign_system_demopy">2. <code>/design-system-demo</code> — <code>pages/design_system_demo.py</code></h3>
 <ul>
 <li>Has <code>@rx.page(route="/design-system-demo", ...)</code> at line 247.</li>
-<li>Module is <strong>NOT imported</strong> in <code>ksys_app/ksys_app.py</code>.</li>
+<li>Module is <strong>NOT imported</strong> in <code>edgeex_app/edgeex_app.py</code>.</li>
 <li>Pure developer reference page (no real data). Intended as internal UI showcase.</li>
 <li><strong>Route <code>/design-system-demo</code> will return 404.</strong></li>
 </ul>
@@ -898,7 +898,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <h2 id="known-issues-surprises">Known Issues / Surprises</h2>
 <h3 id="issue-1-ai-page-dead-route-not-registered">Issue 1: <code>/ai</code> Page — Dead Route (NOT REGISTERED)</h3>
 <ul>
-<li><code>pages/ai_insights.py</code> has <code>@rx.page("/ai", ...)</code> but is never imported in <code>ksys_app.py</code>.</li>
+<li><code>pages/ai_insights.py</code> has <code>@rx.page("/ai", ...)</code> but is never imported in <code>edgeex_app.py</code>.</li>
 <li>The <code>ENABLE_AI_FEATURES</code> env flag exists but the import guard that should conditionally import the page is missing.</li>
 <li>All AI service code (<code>ai_service.py</code>, <code>ai_state.py</code>) and <code>ai_visualizations.py</code> component exist but are unreachable.</li>
 <li><strong>Impact:</strong> Any sidebar link pointing to <code>/ai</code> will 404.</li>

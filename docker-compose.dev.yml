@@ -13,7 +13,7 @@ services:
     build:
       context: ./20251030-rpi-pgcron
       dockerfile: Dockerfile.rpi-pgcron
-    container_name: ksys-dev-db
+    container_name: edgeex-dev-db
     # Override the Dockerfile CMD to drop pg_cron from shared_preload_libraries.
     # Alpine's postgresql-pg_cron (1.6.7) is built for PG18 and is ABI-incompatible
     # with the bundled PG17 in the TimescaleDB base image (missing pqsignal_be symbol).
@@ -32,7 +32,7 @@ services:
     ports:
       - "${DB_PORT_HOST:-5432}:5432"
     volumes:
-      - ksys_dev_pgdata:/var/lib/postgresql/data
+      - edgeex_dev_pgdata:/var/lib/postgresql/data
       - ./backup:/backup:ro
       - ./migrations:/migrations:ro
     healthcheck:
@@ -43,5 +43,5 @@ services:
     restart: unless-stopped
 
 volumes:
-  ksys_dev_pgdata:
+  edgeex_dev_pgdata:
     driver: local

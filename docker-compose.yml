@@ -18,7 +18,7 @@ services:
     - ./backup:/backup
     - ./migrations:/migrations
     networks:
-    - ksys-network
+    - edgeex-network
     healthcheck:
       test:
       - CMD-SHELL
@@ -48,11 +48,11 @@ services:
     - ENABLE_AI_FEATURES=${ENABLE_AI_FEATURES:-true}
     - RPI_NODE_ID=${RPI_NODE_ID:-unknown}
     volumes:
-    - ./ksys_app:/app/ksys_app
+    - ./edgeex_app:/app/edgeex_app
     - ./rxconfig.py:/app/rxconfig.py
     - ./logs:/app/logs
     networks:
-    - ksys-network
+    - edgeex-network
     depends_on:
       rpi-finished-pgai-db:
         condition: service_healthy
@@ -84,11 +84,11 @@ services:
     - TZ=${TZ:-Asia/Seoul}
     - RPI_NODE_ID=${RPI_NODE_ID:-unknown}
     volumes:
-    - ./ksys_app:/app/ksys_app
+    - ./edgeex_app:/app/edgeex_app
     - ./saved_models:/app/saved_models
     - ./logs:/app/logs
     networks:
-    - ksys-network
+    - edgeex-network
     depends_on:
       rpi-finished-pgai-db:
         condition: service_healthy
@@ -104,7 +104,7 @@ services:
     - DB_PORT=5432
     - TZ=${TZ:-Asia/Seoul}
     networks:
-    - ksys-network
+    - edgeex-network
     depends_on:
       rpi-finished-pgai-db:
         condition: service_healthy
@@ -122,25 +122,25 @@ services:
     volumes:
     - ./all_sensors.csv:/app/all_sensors.csv
     networks:
-    - ksys-network
+    - edgeex-network
     depends_on:
       rpi-finished-pgai-db:
         condition: service_healthy
     restart: unless-stopped
 
-  # Cloudflare Tunnel - same as local ksys (uses ksys.kr domain)
+  # Cloudflare Tunnel - same as local edgeEX (uses ksys.kr domain — TODO(오너 확인): 신규 도메인 확정 시 교체)
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-tunnel
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:?CLOUDFLARE_TUNNEL_TOKEN is required - get from Cloudflare Zero Trust dashboard}
     networks:
-    - ksys-network
+    - edgeex-network
     restart: unless-stopped
     depends_on:
     - rpi-finished-reflex-app
 
 networks:
-  ksys-network:
+  edgeex-network:
     external: true
 volumes:
   pgai_data:

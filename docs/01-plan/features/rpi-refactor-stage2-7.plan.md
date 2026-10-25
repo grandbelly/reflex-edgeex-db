@@ -1,6 +1,6 @@
 # Plan — rpi-refactor-stage2-7
 
-> RPI 환경 최적 운영을 위한 ksys_app 리팩토링 Stage 2-7 (Stage 1은 완료).
+> RPI 환경 최적 운영을 위한 edgeex_app 리팩토링 Stage 2-7 (Stage 1은 완료).
 > 단일 Reflex 모놀리식 앱을 작년 Sonnet 4.0 코드 품질에서 ARM/저메모리 최적 운영본으로 전환.
 
 ---
@@ -14,7 +14,7 @@
 ### 1.1 Project Overview
 
 - **Baseline:** RPI 백업 (2025-12-05 마지막 변경) 풍도 로컬로 동기화 완료, 새 브랜치 `refactor/rpi-baseline-sync`
-- **Stage 1 완료:** ksys_app_clean/(274 파일) + 18개 데드 파일 + 1개 잘못된 위치 파일 삭제 → ksys_app/ 521 → 262 파일 (-50%)
+- **Stage 1 완료:** edgeex_app_clean/(274 파일) + 18개 데드 파일 + 1개 잘못된 위치 파일 삭제 → edgeex_app/ 521 → 262 파일 (-50%)
 - **Target Hardware:** Raspberry Pi 4/5 (ARM64, 4GB RAM, SD card I/O)
 - **Stack:** Reflex 0.8.16 + TimescaleDB 2 + statsforecast (AutoARIMA) + Docker Compose
 
@@ -34,7 +34,7 @@
 
 | 관점 | 내용 |
 |---|---|
-| **Problem (해결할 문제)** | 작년 Sonnet 4.0이 생성한 ksys_app은 N-버전 페이지 공존, 1,000+ LoC 모놀리식 state, eager import, asyncpg pool 무튜닝으로 RPI에서 OOM·부팅 지연·SD I/O 과다 발생. |
+| **Problem (해결할 문제)** | 작년 Sonnet 4.0이 생성한 edgeex_app은 N-버전 페이지 공존, 1,000+ LoC 모놀리식 state, eager import, asyncpg pool 무튜닝으로 RPI에서 OOM·부팅 지연·SD I/O 과다 발생. |
 | **Solution (해결 방법)** | Stage 2(죽은 페이지) → Stage 3(라우트 통일) → Stage 4(모놀리식 분해) → Stage 5(RPI 효율) → Stage 6(공통 패턴) → Stage 7(품질). 매 단계 git commit + docker build 검증 게이트. |
 | **Function UX Effect (기능·UX 효과)** | 17개 운영 페이지만 깔끔히 노출, 페이지별 lazy load로 RPI 부팅 빠르게, AutoARIMA 모델 캐시로 forecast 응답 안정. 24/7 운영 안정성 ↑. |
 | **Core Value (핵심 가치)** | 1년 누적된 vibe-coding 잡초 정리 + RPI 운영본 정착. 다음 신규 기능을 안정 baseline 위에 쌓을 수 있는 "정리된 단일 진실원본(SSOT)". |
@@ -44,8 +44,8 @@
 ## 2. Background & Context
 
 ### 2.1 어떻게 여기까지 왔는가
-- 2025 ~ 작년 Sonnet 4.0으로 ksys_app 다수 페이지/state 작성 → v1/v2/_new/_enhanced 패턴이 중첩되며 누적
-- 2025-11 ~ 12 RPI 환경에서 추가 작업 → `ksys_app_clean/` 이라는 부분 리팩토링 시도가 진행됐으나 본체와 거의 중복 (268/274 MD5 동일)으로 방치
+- 2025 ~ 작년 Sonnet 4.0으로 edgeex_app 다수 페이지/state 작성 → v1/v2/_new/_enhanced 패턴이 중첩되며 누적
+- 2025-11 ~ 12 RPI 환경에서 추가 작업 → `edgeex_app_clean/` 이라는 부분 리팩토링 시도가 진행됐으나 본체와 거의 중복 (268/274 MD5 동일)으로 방치
 - 2026-05-19 풍도 로컬에서 fullstack 검증 중 RPI 백업 폴더와의 divergence 발견, baseline 동기화 후 본 리팩토링 착수
 
 ### 2.2 RPI 운영 제약 (설계 전제)
@@ -79,13 +79,13 @@
 ## 4. Scope (Stage 별 상세)
 
 ### Stage 1 ✅ COMPLETED (commit 7618aa2)
-- ksys_app_clean/ 274 파일 삭제
+- edgeex_app_clean/ 274 파일 삭제
 - .backup/.bak/.bak2/.disabled/_OLD 18개 데드 파일 삭제
 - pages/forecast_player_state.py (잘못된 위치) 삭제
 
 ### Stage 2 — 죽은 페이지 정리 (1일)
 **In-Scope:**
-- ksys_app.py가 import/add_page 안 하는 페이지 14개 정리
+- edgeex_app.py가 import/add_page 안 하는 페이지 14개 정리
   - 삭제 후보 (확인된 죽음): forecast_player.py, forecast_player_state.py(이미 삭제), dashboard_v2.py, alarms_hist.py, alarms_rt.py, alarm_viewer.py, training.py, training_results.py, test_wizard.py, tech.py, trend_enhanced_hierarchical.py
   - 확인 필요: model_config.py (dashboard에서 처리하는지)
 - 각 페이지의 backend dependency (services/, queries/) 검색 → 다른 페이지에서도 안 쓰면 함께 제거
@@ -97,14 +97,14 @@
 
 ### Stage 3 — 라우트 등록 통일 (0.5일)
 **In-Scope:**
-- `ksys_app.py`의 3가지 등록 방식 통일 → `@rx.page` 데코레이터 패턴
+- `edgeex_app.py`의 3가지 등록 방식 통일 → `@rx.page` 데코레이터 패턴
 - alias 트릭 (`from .pages import forecast_player_fixed as forecast_player`) 제거 → 페이지 파일을 `forecast_player.py`로 rename
 - 주석된 죽은 add_page 라인 모두 제거
-- `ksys_app/routes.py` (또는 `pages/__init__.py`) 신규: 자동 디스커버리 로직
+- `edgeex_app/routes.py` (또는 `pages/__init__.py`) 신규: 자동 디스커버리 로직
 
 **Before/After Example:**
 ```python
-# Before (ksys_app.py에 명시)
+# Before (edgeex_app.py에 명시)
 from .pages.alarms import alarms_page
 app.add_page(alarms_page, route="/alarms", on_load=[AlarmsState.initialize, ...])
 
@@ -113,12 +113,12 @@ app.add_page(alarms_page, route="/alarms", on_load=[AlarmsState.initialize, ...]
          on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming])
 def alarms_page():
     ...
-# ksys_app.py 는 그냥
+# edgeex_app.py 는 그냥
 from . import pages  # 모듈 import만으로 @rx.page 트리거
 ```
 
 **Acceptance:**
-- ksys_app.py 라인 수 1,057 → ~400 (라우트 등록 로직 분리)
+- edgeex_app.py 라인 수 1,057 → ~400 (라우트 등록 로직 분리)
 - 죽은 주석 라우트 0개
 - 모든 페이지 정상 부팅
 
@@ -127,7 +127,7 @@ from . import pages  # 모듈 import만으로 @rx.page 트리거
 1. `states/dashboard.py` 1,717 → `dashboard/{state, handlers, queries, view_helpers}.py` (각 ≤ 500)
 2. `states/forecast_player_state.py` 1,668 → 동일 패턴 4분할
 3. `ai_engine/enhanced_agent_orchestrator.py` 1,032 → `agents/` 디렉토리로 핸들러별 분리
-4. `ksys_app.py` 1,057 → `{app, routes, lifecycle}.py` (App 인스턴스 + 라우트 + startup/shutdown 분리)
+4. `edgeex_app.py` 1,057 → `{app, routes, lifecycle}.py` (App 인스턴스 + 라우트 + startup/shutdown 분리)
 5. `ml/pipeline_v2_hybrid.py` 1,352 → `pipeline/{features, models, fitter, predictor}.py`
 6. `states/training_state.py` 946 → 동일 4분할
 
@@ -158,7 +158,7 @@ pool = await asyncpg.create_pool(
 - season_length RPI 부담 줄이기 (144 → 24 또는 36)
 
 **5-3. Reflex 페이지 lazy import**
-- ksys_app.py 부팅 시 16개 페이지 eager import → 라우트 호출 시점 lazy
+- edgeex_app.py 부팅 시 16개 페이지 eager import → 라우트 호출 시점 lazy
 - Reflex 0.8 native 지원 여부 확인 필요 (안 되면 dict-based lazy loader)
 
 **5-4. TimescaleDB 청크 튜닝** (`migrations/`에 새 .sql 추가)
@@ -199,7 +199,7 @@ SELECT add_compression_policy('influx_hist', INTERVAL '7 days');
 ### Stage 7 — 코드 품질 보강 (2일)
 **In-Scope:**
 - `pyproject.toml`에 ruff 룰 정의 (line-length 100, F401/E501/B 등)
-- mypy strict 모드 점진 적용 (먼저 ksys_app/states/만)
+- mypy strict 모드 점진 적용 (먼저 edgeex_app/states/만)
 - over-broad `except Exception` 색출 → 구체 예외
 - vulture로 dead import/function 자동 검출
 - async 정합성 (blocking call 색출)
@@ -242,7 +242,7 @@ SELECT add_compression_policy('influx_hist', INTERVAL '7 days');
 
 ## 6. Acceptance Criteria (전체)
 
-- [AC1] ksys_app/ .py 파일 수 ≤ 150
+- [AC1] edgeex_app/ .py 파일 수 ≤ 150
 - [AC2] 1,000+ LoC 파일 = 0
 - [AC3] 죽은 페이지 (등록 안 된 라우트) = 0
 - [AC4] `ruff check .` exit 0
@@ -295,7 +295,7 @@ SELECT add_compression_policy('influx_hist', INTERVAL '7 days');
 - Stage 2 → Stage 1 commit 7618aa2 base
 - Stage 3 → Stage 2 의 죽은 페이지 정리 완료
 - Stage 4 → Stage 2-3 의 라우트 정돈 완료
-- Stage 5-3 (lazy import) → Stage 4 의 ksys_app.py 분리 완료
+- Stage 5-3 (lazy import) → Stage 4 의 edgeex_app.py 분리 완료
 - Stage 6 → Stage 4 의 모듈 분해 완료 (잡초 위에 추상화 X)
 - Stage 7 → Stage 6 완료 (안정된 구조 위에 quality gate)
 
@@ -306,7 +306,7 @@ SELECT add_compression_policy('influx_hist', INTERVAL '7 days');
 1. **OQ1**: Reflex 0.8.16이 page-level lazy import를 native 지원하는가? → Stage 5-3 시작 전 PoC 필요
 2. **OQ2**: RPI 실서버 접근 가능 여부 확인 후 Stage 5 일정 확정
 3. **OQ3**: `model_config.py` 페이지가 정말 죽었는지 dashboard와의 관계 확인 필요 (Stage 2)
-4. **OQ4**: `ksys_app/scripts/seed_fake_model.py`, `trigger_forecast_once.py` 운영 baseline에 포함할지 (개발 도구로 남길지)
+4. **OQ4**: `edgeex_app/scripts/seed_fake_model.py`, `trigger_forecast_once.py` 운영 baseline에 포함할지 (개발 도구로 남길지)
 5. **OQ5**: AutoARIMA → 다른 모델 (Prophet, uvarima) 전환 별도 RFC 필요 — 본 plan 범위 밖
 6. **OQ6**: forecast_player_state.py RPI 버전(1,668)과 우리 변경분 차이는 Stage 4 시작 전 review 필요
 

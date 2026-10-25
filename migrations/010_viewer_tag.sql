@@ -2,7 +2,7 @@
 -- Migration: 010_viewer_tag.sql
 -- Description: Create viewer_tag table for controlling tag visibility per screen
 -- Date: 2025-11-29
--- Applies to: RPI, Local, reflex-ksys-refactor
+-- Applies to: RPI, Local, reflex-edgeex-refactor
 -- ============================================================================
 
 -- 1. Create viewer_tag table

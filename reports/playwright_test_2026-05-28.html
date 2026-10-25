@@ -56,7 +56,7 @@
 <div class="callout crit">
 <strong>핵심 발견:</strong> 이전 trust audit의 "15/15 routes 200" 자체가 OVERSTATED. <code>curl 200</code>은 Reflex SPA shell HTML serve만 의미했고, <strong>client-side router는 별도</strong>. Playwright로 실제 페이지 부팅까지 가야 진짜 검증. 결과: <strong>4/6 핵심 페이지 정상</strong>, <strong>2개 URL 라우팅 이슈</strong> 발견:
 <ol>
-<li><code>/ai</code> → <strong>404 (Title: "404 - Not Found")</strong>. ai_insights.py가 ksys_app.py에 import 안 됨 → 라우트 등록 안 됨 → <strong>Day 6 SQL injection fix가 dead code path</strong></li>
+<li><code>/ai</code> → <strong>404 (Title: "404 - Not Found")</strong>. ai_insights.py가 edgeex_app.py에 import 안 됨 → 라우트 등록 안 됨 → <strong>Day 6 SQL injection fix가 dead code path</strong></li>
 <li><code>/trend-enhanced-v2</code> → 404. 실제 등록 URL은 <code>/trend</code> (audit 잘못된 URL 검증)</li>
 </ol>
 </div>
@@ -85,7 +85,7 @@
 <tr>
   <td>TC-01</td>
   <td><code>/</code></td>
-  <td>Dashboard | KSYS</td>
+  <td>Dashboard | edgeEX</td>
   <td>1 (favicon.ico 404, cosmetic)</td>
   <td><span class="tag tag-pass">PASS</span></td>
   <td>Day 1 AM secret 외부화 + Day 2 BaseState dedup OK (페이지 부팅 시 import 통과)</td>
@@ -101,7 +101,7 @@
 <tr>
   <td>TC-03</td>
   <td><code>/training-wizard</code></td>
-  <td>KsysApp | Training-Wizard</td>
+  <td>EdgeexApp | Training-Wizard</td>
   <td>0</td>
   <td><span class="tag tag-pass">PASS</span></td>
   <td>Day 3 save_model 변경 후 페이지 부팅 OK. 실제 학습 + save는 시간/데이터 필요해 skip</td>
@@ -120,7 +120,7 @@
   <td>404 - Not Found</td>
   <td>2 (router warning, ws unload)</td>
   <td><span class="tag tag-fail">FAIL</span></td>
-  <td><strong>Day 6 SQL injection fix이 적용된 ai_insights.py 라우트가 등록 안 됨</strong> — ksys_app.py에 import 없음. fix는 코드상 존재하지만 호출 path 없음 (dead-path)</td>
+  <td><strong>Day 6 SQL injection fix이 적용된 ai_insights.py 라우트가 등록 안 됨</strong> — edgeex_app.py에 import 없음. fix는 코드상 존재하지만 호출 path 없음 (dead-path)</td>
 </tr>
 <tr>
   <td>TC-06</td>
@@ -135,14 +135,14 @@
 <h2>🔍 핵심 발견 1 — /ai 라우트 미등록 (Day 6 fix 호출 path 없음)</h2>
 
 <pre>
-$ grep -n "ai_insights" ksys_app/ksys_app.py
+$ grep -n "ai_insights" edgeex_app/edgeex_app.py
 (empty — ai_insights NOT imported)
 
-$ grep "@rx.page" ksys_app/pages/ai_insights.py
-@rx.page("/ai", title="AI 센서 인사이트 - KSys Dashboard")
+$ grep "@rx.page" edgeex_app/pages/ai_insights.py
+@rx.page("/ai", title="AI 센서 인사이트 - edgeEX Dashboard")
 
 ai_insights.py 파일은 존재하고 @rx.page("/ai") 데코레이터 있음.
-하지만 ksys_app.py에서 이 모듈을 import하지 않아서 데코레이터가 실행 안 됨.
+하지만 edgeex_app.py에서 이 모듈을 import하지 않아서 데코레이터가 실행 안 됨.
 결과: /ai 라우트는 Reflex app에 등록 안 됨 → SPA router 404.
 </pre>
 
@@ -151,7 +151,7 @@ ai_insights.py 파일은 존재하고 @rx.page("/ai") 데코레이터 있음.
 <h3>사용자 결정 필요</h3>
 <table>
 <tr><th>옵션</th><th>의미</th></tr>
-<tr><td>A. ai_insights.py 등록 추가</td><td><code>ksys_app/ksys_app.py</code>에 <code>from ksys_app.pages import ai_insights</code> 추가 → /ai 라우트 활성. Day 6 fix가 진짜 효과.</td></tr>
+<tr><td>A. ai_insights.py 등록 추가</td><td><code>edgeex_app/edgeex_app.py</code>에 <code>from edgeex_app.pages import ai_insights</code> 추가 → /ai 라우트 활성. Day 6 fix가 진짜 효과.</td></tr>
 <tr><td>B. 의도적 미등록</td><td>/ai 페이지를 일부러 안 보여줌 (작업 중 페이지). 그러면 Day 6 fix는 향후 등록 시 자동 보호.</td></tr>
 <tr><td>C. ai_insights.py 삭제</td><td>모듈 자체가 dead → 삭제 후보 (Day 1 PM 같은 dead code cleanup 패턴)</td></tr>
 </table>
@@ -171,7 +171,7 @@ ai_insights.py 파일은 존재하고 @rx.page("/ai") 데코레이터 있음.
 <div class="screenshot-grid">
   <figure>
     <img src="screenshots/tc01_home.png" alt="TC-01 home" />
-    <figcaption><strong>TC-01 / (Dashboard | KSYS)</strong> — 정상 부팅</figcaption>
+    <figcaption><strong>TC-01 / (Dashboard | edgeEX)</strong> — 정상 부팅</figcaption>
   </figure>
   <figure>
     <img src="screenshots/tc03_training_wizard.png" alt="TC-03 training-wizard" />
@@ -188,7 +188,7 @@ ai_insights.py 파일은 존재하고 @rx.page("/ai") 데코레이터 있음.
 <table>
 <tr><th>검증 단계</th><th>대상</th><th>결과</th></tr>
 <tr><td>(a) py_compile / bash -n</td><td>11 commits 코드 syntax</td><td>모두 OK</td></tr>
-<tr><td>(b) Python import test</td><td>전체 ksys_app 모듈 import</td><td>OK (placeholder .env 후)</td></tr>
+<tr><td>(b) Python import test</td><td>전체 edgeex_app 모듈 import</td><td>OK (placeholder .env 후)</td></tr>
 <tr><td>(c) Docker boot + curl</td><td>15 라우트 HTTP 응답</td><td>15/15 200 (단 SPA shell)</td></tr>
 <tr><td>(d) <strong>Playwright client render</strong></td><td>실제 페이지 콘텐츠 부팅</td><td><strong>4/6 정상</strong> + 2개 라우팅 이슈</td></tr>
 <tr><td>(e) UI 클릭 시나리오</td><td>acknowledge_alarm, save_model, SQL injection input</td><td><strong>미실행</strong> — alarm 0개, 학습 시간/데이터 필요, /ai 라우트 없음</td></tr>

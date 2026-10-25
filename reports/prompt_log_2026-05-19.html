@@ -100,8 +100,8 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
 <h2><span class="phase-num">Phase 2</span> 압축 이후 ~ 현재 (2026-05-18 ~ 2026-05-19)</h2>
 
 <h3>graphify + simplify</h3>
-<div class="prompt"><span class="n">26</span><span class="body">/graphify --update on project</span><div class="meta">→ 21개 라우트 ksys_app/ scope 그래프 빌드 (4,303 nodes / 5,832 edges)</div></div>
-<div class="prompt system-answer"><span class="n">27</span><span class="body"><span class="tag ans">ANSWER</span>ksys_app/ only (Recommended) — 270 files</span></div>
+<div class="prompt"><span class="n">26</span><span class="body">/graphify --update on project</span><div class="meta">→ 21개 라우트 edgeex_app/ scope 그래프 빌드 (4,303 nodes / 5,832 edges)</div></div>
+<div class="prompt system-answer"><span class="n">27</span><span class="body"><span class="tag ans">ANSWER</span>edgeex_app/ only (Recommended) — 270 files</span></div>
 <div class="prompt status"><span class="n">28</span><span class="body"><span class="tag status">STATUS</span>의도에 맞게 잘 되고 있는지 모르갰어 브라우저로 확인해줘</span><div class="meta">→ graph.html 자동 빌드 + 브라우저 열기</div></div>
 <div class="prompt"><span class="n">29</span><span class="body">/simplify</span><div class="meta">→ 3 review agents 병렬 → H-tag/agent-name 주석 제거 + 죽은 코드 정리 (commit fdae376)</div></div>
 
@@ -115,7 +115,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
 
 <h3>가짜 데이터 생성기 추가</h3>
 <div class="prompt"><span class="n">36</span><span class="body">가짜 데이터 생성기가 있었는데 안보여?</span></div>
-<div class="prompt"><span class="n">37</span><span class="body">C:\Users\Ipeop\SynologyDrive_강민구대표\SynologyDrive\00_ServerPC\reflex\reflex-ksys-refactor 여기에서 찾아봐줘</span><div class="meta">→ 메인 저장소에서 inject_virtual_data.py 발견 → 풍도로 복사 + SENSORS 5개 unstub + compose 통합</div></div>
+<div class="prompt"><span class="n">37</span><span class="body">C:\Users\Ipeop\SynologyDrive_강민구대표\SynologyDrive\00_ServerPC\reflex\reflex-edgeex-refactor 여기에서 찾아봐줘</span><div class="meta">→ 메인 저장소에서 inject_virtual_data.py 발견 → 풍도로 복사 + SENSORS 5개 unstub + compose 통합</div></div>
 
 <h3>스코프 재정의 (큰 PIVOT)</h3>
 <div class="prompt major-pivot"><span class="n">38</span><span class="body"><span class="tag pivot">PIVOT</span><span class="tag fix">CORRECT</span>맥락을 잘 못 짚었어 지금 forecasting 예측도 정상동작해야되는 것 뿐만아니라 전체적으로 reflex 프론트 백엔드 의 모든 기능이 정상동작 하도록하고 스파게티 코딩과 화면 디자인 개선을 위한 리팩터링이 되어야 한다.</span><div class="meta">→ memory: feedback_dont_narrow_to_subtask.md 저장 + 풀스택 인벤토리 + triage</div></div>
@@ -175,7 +175,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
 <div class="note">
 <strong>현재 라이브 상태:</strong>
 <ul>
-<li>Docker 4 컨테이너 모두 정상: <code>ksys-dev-db</code> · <code>ksys-local-data-injector</code> · <code>ksys-local-forecast-scheduler</code> · <code>ksys-local-reflex-app</code></li>
+<li>Docker 4 컨테이너 모두 정상: <code>edgeex-dev-db</code> · <code>edgeex-local-data-injector</code> · <code>edgeex-local-forecast-scheduler</code> · <code>edgeex-local-reflex-app</code></li>
 <li>Reflex http://localhost:14000 (frontend) + :14001 (backend)</li>
 <li>좀비 LISTEN 0건 (모두 청소됨, 호스트 포트 풀가용)</li>
 <li>대기: 9개 SSR fallback 페이지의 브라우저 시각 검증</li>

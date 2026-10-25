@@ -26,7 +26,7 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="ksys-storyboard">KSYS — 스토리보드 (Storyboard)</h1>
+<h1 id="edgeex-storyboard">edgeEX — 스토리보드 (Storyboard)</h1>
 <blockquote>
 <p><strong>Type:</strong> UX Storyboard — 페르소나별 User Flow 다이어그램<br />
 <strong>Source specs:</strong> spec_01_frontend_pages.md · spec_02_backend_states_services.md · spec_04_PRD.md · spec_05_test_plan.md<br />
@@ -1423,7 +1423,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
           ↓ UI 없음 → 현재 사용 불가 (BROKEN FLOW)
 [대안 Step 1: Docker CLI 접근]
   - ssh tion@192.168.0.80
-  - docker exec -it rpi-finished-reflex-app python -c &quot;from ksys_app.states.sync_monitor_state import SyncMonitorState; ...&quot;
+  - docker exec -it rpi-finished-reflex-app python -c &quot;from edgeex_app.states.sync_monitor_state import SyncMonitorState; ...&quot;
   - 또는 data-injector 컨테이너 재시작으로 재동기화 트리거
           ↓ /comm 히트맵에서 갭 복구 확인
 [Step 2: /comm 확인]
@@ -1644,7 +1644,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <hr />
 <h3 id="ad-05-rpi-bootstrap_rpish">AD-05: 새 RPI 배포 — bootstrap_rpi.sh 시나리오</h3>
 <p><strong>시작 trigger:</strong> 기존 RPi 교체 또는 신규 현장 배포. 클린 RPi에 전체 시스템 구축 필요.<br />
-<strong>사용자 목표:</strong> 새 RPi에서 KSYS 전체 시스템 15분 이내 구동.</p>
+<strong>사용자 목표:</strong> 새 RPi에서 edgeEX 전체 시스템 15분 이내 구동.</p>
 <pre><code>[전제: 로컬 개발 환경에서 사전 준비]
 
 [Step 1: 스크립트 확인]

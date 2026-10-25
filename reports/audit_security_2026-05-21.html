@@ -26,10 +26,10 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="security-audit-ksys-iot-reflex-2026-05-21">Security Audit — KSys IoT Reflex (2026-05-21)</h1>
+<h1 id="security-audit-edgeex-iot-reflex-2026-05-21">Security Audit — edgeEX IoT Reflex (2026-05-21)</h1>
 <p>Scope: secrets, DB credentials, OWASP Top 10 quick scan (SQLi/XSS/SSRF/auth/deserialization), container security, dependency spot-check.
 Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: ~1 month rollout to additional RPI units.</p>
-<p>Severity calibration: this is a LAN-attached SCADA-style IoT dashboard. "Critical" assumes the device is reachable from any user who can hit the host (RPI on plant LAN, or proxied through cloudflared/<code>ksys.kr</code>).</p>
+<p>Severity calibration: this is a LAN-attached SCADA-style IoT dashboard. "Critical" assumes the device is reachable from any user who can hit the host (RPI on plant LAN, or proxied through cloudflared/<code>ksys.kr /* TODO(오너 확인) */</code>).</p>
 <hr />
 <h2 id="critical">CRITICAL</h2>
 <h3 id="c1-cloudflare-tunnel-token-committed-in-plaintext">C1. Cloudflare Tunnel token committed in plaintext</h3>
@@ -39,7 +39,7 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
   <code>yaml
   cloudflared:
     command: tunnel --no-autoupdate run --token eyJhIjoiMDQwMzY4ZDNlZjZjOThjYzY1OTllMTljNGVmZDkyNDEiLCJ0IjoiMDk2NjcxNDQtZDI3NC00NzYzLTg4OWUtZjkzZmNlM2NiZDYzIiwicyI6...</code></li>
-<li><strong>Impact:</strong> Anyone with read access to this repo/branch can run <code>cloudflared tunnel run --token &lt;X&gt;</code> on their own machine and instantly impersonate the <code>ksys.kr</code> tunnel endpoint — full traffic interception, session hijack, MitM against every RPI deployment that points to this tunnel. Token is account-bound (<code>a: 040368d3ef6c98cc6599e19c4efd9241</code>), so revoking requires Cloudflare dashboard access.</li>
+<li><strong>Impact:</strong> Anyone with read access to this repo/branch can run <code>cloudflared tunnel run --token &lt;X&gt;</code> on their own machine and instantly impersonate the <code>ksys.kr /* TODO(오너 확인) */</code> tunnel endpoint — full traffic interception, session hijack, MitM against every RPI deployment that points to this tunnel. Token is account-bound (<code>a: 040368d3ef6c98cc6599e19c4efd9241</code>), so revoking requires Cloudflare dashboard access.</li>
 <li><strong>Fix:</strong>
   1. Rotate the tunnel now via Cloudflare dashboard ("Networks → Tunnels → Refresh token"). Treat the existing token as compromised — it has been in git history since before this branch.
   2. Move new token to <code>.env</code> (already gitignored) and reference it via <code>${CF_TUNNEL_TOKEN}</code> in <code>docker-compose.yml</code>.
@@ -47,7 +47,7 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 </ul>
 <h3 id="c2-hardcoded-production-remote-db-credentials-in-source">C2. Hardcoded production remote-DB credentials in source</h3>
 <ul>
-<li><strong>File:</strong> <code>ksys_app/states/sync_monitor_state.py:156-162</code></li>
+<li><strong>File:</strong> <code>edgeex_app/states/sync_monitor_state.py:156-162</code></li>
 <li><strong>Evidence:</strong>
   <code>python
   config = RemoteDBConfig(
@@ -64,8 +64,8 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 </ul>
 <h3 id="c3-no-authentication-anywhere-179-rxevent-handlers-on-the-open-backend">C3. No authentication anywhere — 179 <code>@rx.event</code> handlers on the open backend</h3>
 <ul>
-<li><strong>Files:</strong> <code>rxconfig.py:35</code> (<code>backend_host="0.0.0.0"</code>), <code>ksys_app/ksys_app.py:161-188</code>, all <code>ksys_app/states/*</code>, <code>ksys_app/pages/*</code></li>
-<li><strong>Evidence:</strong> <code>grep -i "is_authenticated|current_user|require_auth|login_required|logged_in"</code> across <code>ksys_app/</code> returns <strong>zero</strong> matches. 179 <code>@rx.event</code> handlers (across 20 state files) execute on any incoming WebSocket. <code>add_page</code>/<code>@rx.page</code> routes (<code>/</code>, <code>/trend</code>, <code>/alarms</code>, <code>/training-wizard</code>, <code>/ai</code>, <code>/comm</code>, <code>/model-performance</code>, <code>/viewer-tag</code>, <code>/scada-alarms</code>, …) are all publicly reachable. The <code>ksys.kr</code> cloudflared tunnel (C1) exposes them to the public internet.</li>
+<li><strong>Files:</strong> <code>rxconfig.py:35</code> (<code>backend_host="0.0.0.0"</code>), <code>edgeex_app/edgeex_app.py:161-188</code>, all <code>edgeex_app/states/*</code>, <code>edgeex_app/pages/*</code></li>
+<li><strong>Evidence:</strong> <code>grep -i "is_authenticated|current_user|require_auth|login_required|logged_in"</code> across <code>edgeex_app/</code> returns <strong>zero</strong> matches. 179 <code>@rx.event</code> handlers (across 20 state files) execute on any incoming WebSocket. <code>add_page</code>/<code>@rx.page</code> routes (<code>/</code>, <code>/trend</code>, <code>/alarms</code>, <code>/training-wizard</code>, <code>/ai</code>, <code>/comm</code>, <code>/model-performance</code>, <code>/viewer-tag</code>, <code>/scada-alarms</code>, …) are all publicly reachable. The <code>ksys.kr /* TODO(오너 확인) */</code> cloudflared tunnel (C1) exposes them to the public internet.</li>
 <li><strong>Impact:</strong> Any unauthenticated visitor can:</li>
 <li>Trigger <code>sync_tags</code> and force a connection to the upstream IoT DB (C2 credentials).</li>
 <li>Trigger model retraining via <code>/training-wizard</code> events (CPU exhaustion DoS on Pi).</li>
@@ -90,8 +90,8 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <h3 id="h2-sql-injection-via-dynamic_rag_engine-and-llamaindex_rag_engine-f-string-tag_name-interpolation">H2. SQL injection via <code>dynamic_rag_engine</code> and <code>llamaindex_rag_engine</code> — f-string <code>tag_name</code> interpolation</h3>
 <ul>
 <li><strong>Files:</strong></li>
-<li><code>ksys_app/ai_engine/dynamic_rag_engine.py:183-184, 197-198</code></li>
-<li><code>ksys_app/ai_engine/llamaindex_rag_engine.py:243-247</code></li>
+<li><code>edgeex_app/ai_engine/dynamic_rag_engine.py:183-184, 197-198</code></li>
+<li><code>edgeex_app/ai_engine/llamaindex_rag_engine.py:243-247</code></li>
 <li><strong>Evidence:</strong>
   <code>python
   tag_list = ','.join([f"'{t}'" for t in detected_tags])
@@ -105,10 +105,10 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <h3 id="h3-pickle-deserialization-of-db-stored-model-artifacts">H3. Pickle deserialization of DB-stored model artifacts</h3>
 <ul>
 <li><strong>Files:</strong></li>
-<li><code>ksys_app/schedulers/forecast_scheduler.py:109,140</code></li>
-<li><code>ksys_app/ml/training_pipeline.py:681,693</code></li>
-<li><code>ksys_app/ml/prediction_model.py:269</code></li>
-<li><code>ksys_app/ml/forecast_pipeline.py:501</code> (<code>joblib.load</code> — uses pickle internally)</li>
+<li><code>edgeex_app/schedulers/forecast_scheduler.py:109,140</code></li>
+<li><code>edgeex_app/ml/training_pipeline.py:681,693</code></li>
+<li><code>edgeex_app/ml/prediction_model.py:269</code></li>
+<li><code>edgeex_app/ml/forecast_pipeline.py:501</code> (<code>joblib.load</code> — uses pickle internally)</li>
 <li><strong>Evidence:</strong> <code>pickle.loads(metadata['model_pickle'])</code> where <code>model_pickle</code> is a BYTEA column read from <code>model_registry</code>. If an attacker reaches the DB (H1 default password or SQLi via H2), they can INSERT a malicious pickle into <code>model_registry.model_pickle</code>; the scheduler will then execute arbitrary code as root inside <code>rpi-finished-forecast-scheduler</code> on its next training cycle.</li>
 <li><strong>Impact:</strong> Container-root RCE on every RPI on the next scheduled run after a DB compromise. The 15s <code>FORECAST_PICKLE_LOAD_TIMEOUT</code> bound is a liveness fix, not a security control — <code>pickle.loads</code> executes attacker code during the load itself.</li>
 <li><strong>Fix:</strong>
@@ -120,12 +120,12 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <ul>
 <li><strong>Files:</strong> <code>Dockerfile</code>, <code>Dockerfile.scheduler</code>, <code>Dockerfile.data-injector</code>, <code>Dockerfile.pipeline</code>, <code>20251030-rpi-pgcron/Dockerfile.rpi-pgcron</code>, <code>schedulers/Dockerfile</code></li>
 <li><strong>Evidence:</strong> <code>grep "USER " Dockerfile*</code> returns 0 matches.</li>
-<li><strong>Impact:</strong> Combined with the <code>./ksys_app:/app/ksys_app</code> bind mount in <code>docker-compose.local.yml:35</code> and <code>docker-compose.yml:47</code>, an RCE inside the container (e.g., via H3) gets write access to the host project tree as UID 0. Even without the bind mount, container-escape primitives become more dangerous.</li>
+<li><strong>Impact:</strong> Combined with the <code>./edgeex_app:/app/edgeex_app</code> bind mount in <code>docker-compose.local.yml:35</code> and <code>docker-compose.yml:47</code>, an RCE inside the container (e.g., via H3) gets write access to the host project tree as UID 0. Even without the bind mount, container-escape primitives become more dangerous.</li>
 <li><strong>Fix:</strong> Add <code>RUN useradd -m -u 1000 app &amp;&amp; chown -R app /app</code> and <code>USER app</code> to all four runtime Dockerfiles. Update the bind-mount permissions accordingly.</li>
 </ul>
 <h3 id="h5-notify-channel-identifier-interpolation-lower-severity-sqli">H5. NOTIFY channel + identifier interpolation (lower-severity SQLi)</h3>
 <ul>
-<li><strong>Files:</strong> <code>ksys_app/monitoring/alarm_monitor.py:142</code>, <code>ksys_app/monitoring/alarm_monitor_fixed.py:170</code>, <code>ksys_app/utils/db_events.py:36,79</code></li>
+<li><strong>Files:</strong> <code>edgeex_app/monitoring/alarm_monitor.py:142</code>, <code>edgeex_app/monitoring/alarm_monitor_fixed.py:170</code>, <code>edgeex_app/utils/db_events.py:36,79</code></li>
 <li><strong>Evidence:</strong> <code>await conn.execute(f"NOTIFY alarm_event, '{event_id}'")</code> and <code>await conn.execute(f"LISTEN {self.channel}")</code>. <code>event_id</code> is <code>f"ALM-...-{tag_name}"</code>; <code>tag_name</code> ultimately originates from sensor config (low-trust if anyone can write to <code>virtual_tag_config</code> via H1/H2).</li>
 <li><strong>Impact:</strong> Single-quote in a tag name (<code>O'Brien</code>) closes the literal and concatenates additional SQL into the NOTIFY payload. Less severe than H2 because reaching <code>tag_name</code> requires DB-write or admin event access, but compounds with C3.</li>
 <li><strong>Fix:</strong> Use parameter binding (<code>text("NOTIFY alarm_event, :ev").bindparams(ev=event_id)</code> — note: PG NOTIFY doesn't accept positional params, so the safe pattern is <code>pg_notify('alarm_event', :payload)</code>).</li>
@@ -134,15 +134,15 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <h2 id="medium">MEDIUM</h2>
 <h3 id="m1-interval-hours-hours-f-string-in-sensor_service">M1. <code>INTERVAL '{hours} hours'</code> f-string in sensor_service</h3>
 <ul>
-<li><strong>File:</strong> <code>ksys_app/services/sensor_service.py:210-218</code></li>
+<li><strong>File:</strong> <code>edgeex_app/services/sensor_service.py:210-218</code></li>
 <li><strong>Evidence:</strong> <code>WHERE bucket &gt;= NOW() - INTERVAL '{hours} hours'</code>. <code>hours</code> parameter on <code>get_sensor_chart_data</code> is typed <code>int = None</code> but Python doesn't enforce — if a state file passes a <code>str</code> from a query param the f-string injects directly.</li>
 <li><strong>Impact:</strong> Latent injection. Currently the only callers pass int literals, but the type system isn't enforcing.</li>
 <li><strong>Fix:</strong> <code>hours_int = int(hours)</code> before interpolation, or use <code>make_interval(hours =&gt; :h)</code> with bind param.</li>
 </ul>
 <h3 id="m2-volume-bind-mount-of-source-into-prod-container">M2. Volume bind-mount of source into prod container</h3>
 <ul>
-<li><strong>File:</strong> <code>docker-compose.yml:47-49</code> — <code>./ksys_app:/app/ksys_app</code>, <code>./rxconfig.py:/app/rxconfig.py</code></li>
-<li><strong>Impact:</strong> Production deployment uses the same dev-style bind mount as <code>docker-compose.local.yml</code>. A container compromise (H3/H4) gets write access to the host's <code>ksys_app/</code> — persistent backdoor across container restarts. Defeats the purpose of an immutable image.</li>
+<li><strong>File:</strong> <code>docker-compose.yml:47-49</code> — <code>./edgeex_app:/app/edgeex_app</code>, <code>./rxconfig.py:/app/rxconfig.py</code></li>
+<li><strong>Impact:</strong> Production deployment uses the same dev-style bind mount as <code>docker-compose.local.yml</code>. A container compromise (H3/H4) gets write access to the host's <code>edgeex_app/</code> — persistent backdoor across container restarts. Defeats the purpose of an immutable image.</li>
 <li><strong>Fix:</strong> For RPI production, bake source into the image (<code>COPY . .</code> already in <code>Dockerfile:27</code>) and drop the bind mount. Keep bind mount only in <code>docker-compose.local.yml</code> for hot-reload dev.</li>
 </ul>
 <h3 id="m3-loglevel-debug-in-production-compose">M3. <code>--loglevel debug</code> in production compose</h3>
@@ -155,7 +155,7 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <ul>
 <li><strong>File:</strong> <code>requirements.txt:13</code></li>
 <li><strong>Impact:</strong> Version 2.2.2 is from 2023 and predates HuggingFace's safe-serialization defaults. Loading a model via <code>SentenceTransformer("name")</code> will pickle.load weights if the upstream HF repo ships pytorch_model.bin instead of safetensors — combined with H3 this is another deserialization route.</li>
-<li><strong>Fix:</strong> Bump to <code>sentence-transformers&gt;=3.0.0</code> (which prefers safetensors) or pass <code>use_safetensors=True</code> explicitly at load sites in <code>ksys_app/ai_engine/</code>.</li>
+<li><strong>Fix:</strong> Bump to <code>sentence-transformers&gt;=3.0.0</code> (which prefers safetensors) or pass <code>use_safetensors=True</code> explicitly at load sites in <code>edgeex_app/ai_engine/</code>.</li>
 </ul>
 <h3 id="m5-psql-u-postgres-c-create-database-ecoanp-nul-21">M5. <code>psql -U postgres -c "CREATE DATABASE ecoanp;" &gt;nul 2&gt;&amp;1</code></h3>
 <ul>
@@ -166,9 +166,9 @@ Branch: <code>refactor/rpi-baseline-sync</code> @ <code>b6c1944</code>. Target: 
 <hr />
 <h2 id="low">LOW</h2>
 <ul>
-<li><strong>L1.</strong> <code>ksys_app/ai_engine/rag_engine_pgvector.py:380</code> — literal <code>"your-api-key-here"</code> placeholder. Not a real secret but flagged by basic scanners; replace with <code>os.getenv</code> lookup that raises if missing.</li>
+<li><strong>L1.</strong> <code>edgeex_app/ai_engine/rag_engine_pgvector.py:380</code> — literal <code>"your-api-key-here"</code> placeholder. Not a real secret but flagged by basic scanners; replace with <code>os.getenv</code> lookup that raises if missing.</li>
 <li><strong>L2.</strong> No <code>init: true</code> / <code>stop_grace_period</code> in <code>docker-compose.yml</code> (RPI prod) — only <code>docker-compose.local.yml</code> has them. Container SIGKILL behaviour can leak ports (already documented in <code>feedback_no_host_reflex_zombie.md</code>), making forensic post-mortem after a security incident harder.</li>
-<li><strong>L3.</strong> <code>ksys_app/integration/external_systems.py:90</code> — <code>WeatherAPIConnector</code> <code>base_url</code> hardcoded to <code>https://api.openweathermap.org</code> (good — fixed URL is anti-SSRF). No SSRF surface found in the codebase (no user-controlled URLs flow to <code>aiohttp.get</code>).</li>
+<li><strong>L3.</strong> <code>edgeex_app/integration/external_systems.py:90</code> — <code>WeatherAPIConnector</code> <code>base_url</code> hardcoded to <code>https://api.openweathermap.org</code> (good — fixed URL is anti-SSRF). No SSRF surface found in the codebase (no user-controlled URLs flow to <code>aiohttp.get</code>).</li>
 <li><strong>L4.</strong> Healthcheck endpoint exposed publicly: <code>pg_isready</code> is a <code>CMD-SHELL</code> inside the container, so this is fine — no HTTP probe surface added.</li>
 <li><strong>L5.</strong> Missing security headers (CSP, HSTS, X-Frame-Options). Reflex doesn't set these by default. Add via a reverse proxy (cloudflared can inject HSTS) or a Reflex middleware once auth is in place.</li>
 </ul>

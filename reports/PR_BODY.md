@@ -28,7 +28,7 @@
 - ai_insights import 부팅 가드 (ENABLE_AI_FEATURES + try/except) → dep 누락 시 사이트 전체 부팅 실패 방지
 
 ## Verification (병렬 4차원 감사 — 10 agents, 156 tool calls, 436K tokens)
-- **deletion-safety: CLEAN** — 삭제 7파일 잔여 live 참조 0, `python -m compileall ksys_app` EXIT=0
+- **deletion-safety: CLEAN** — 삭제 7파일 잔여 live 참조 0, `python -m compileall edgeex_app` EXIT=0
 - **import-integrity: CLEAN** — 깨진 import 0, 순환 0, 16 페이지 모듈 전부 @rx.page 보유
 - **ai-cluster-health** — /ai 결함 2건 발견 → 수정 완료. ai_engine 17개 엔진 SQLi/RCE 스캔 clean
 - 컨테이너 런타임: 15/15 라우트 + /ai 프리렌더, Playwright /ai 렌더 OK
@@ -36,6 +36,6 @@
 ## Known follow-ups (비차단)
 - **2차 dead 군집** (residual-dead-code 감사): TagHierarchy Enhanced orphan 3종+base, hierarchical_tag_selector, orphan 서비스 3종, states/data.py(stock mock), stock_chart.py — 전부 confirmed dead(런타임 영향 없음), #2 Phase 4 후속
 - **AI 품질**: /ai 챗은 작동하나 실응답 품질은 별도 rework(LLM 키/knowledge_base 테이블, extra_context 프롬프트 주입)
-- 🔐 **시크릿 로테이션 필수 (PR 전 선행)**: 외부화 이전 git 히스토리에 Cloudflare 토큰 / upstream DB 크리덴셜 / POSTGRES_PASSWORD / SSH 비번 `!eonware`(commit 879abff, `01_remote_ksys/`) 원본 잔존 — 이미 푸시되어 노출 기정사실, 외부화만으로 불충분하므로 외부 대시보드에서 실제 무효화 필요
+- 🔐 **시크릿 로테이션 필수 (PR 전 선행)**: 외부화 이전 git 히스토리에 Cloudflare 토큰 / upstream DB 크리덴셜 / POSTGRES_PASSWORD / SSH 비번 `!eonware`(commit 879abff, `01_remote_edgeex/`) 원본 잔존 — 이미 푸시되어 노출 기정사실, 외부화만으로 불충분하므로 외부 대시보드에서 실제 무효화 필요
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

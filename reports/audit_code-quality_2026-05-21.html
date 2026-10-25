@@ -26,9 +26,9 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="ksys-iot-code-quality-audit-states">KSys IoT — Code Quality Audit (states/)</h1>
+<h1 id="edgeex-iot-code-quality-audit-states">edgeEX IoT — Code Quality Audit (states/)</h1>
 <p>Date: 2026-05-21
-Scope: <code>ksys_app/states/**</code>, with cross-references into <code>ksys_app/schedulers/**</code> and <code>ksys_app/services/**</code>.
+Scope: <code>edgeex_app/states/**</code>, with cross-references into <code>edgeex_app/schedulers/**</code> and <code>edgeex_app/services/**</code>.
 Method: structural grep + targeted reads. No code executed.</p>
 <p>Baseline metrics (states/ only):
 - 31 state files, 725 function/method definitions, 284 occurrences of <code>async with self:</code>, 117 <code>@rx.event(background=True)</code>, 46 untyped <code>dict</code>/<code>list</code> annotations, 101 generic <code>except Exception as e:</code> blocks.
@@ -415,14 +415,14 @@ Method: structural grep + targeted reads. No code executed.</p>
 </tbody>
 </table>
 <h3 id="dead-backup-files-in-tree-delete-candidates">Dead / backup files in tree (delete candidates)</h3>
-<pre><code>ksys_app/states/dashboard_realtime_OLD.py                            226 LoC
-ksys_app/states/training_wizard_state_plotly_backup.py               ~470 LoC
-ksys_app/pages/communication_new_backup.py
-ksys_app/pages/training_wizard_plotly_backup.py
-ksys_app/pages/trend_enhanced.py.bak
-ksys_app/pages/trend_improved.py.bak
-ksys_app/pages/trend_enhanced_v2.py.disabled
-ksys_app/ksys_app.py.backup_20250918_211659
+<pre><code>edgeex_app/states/dashboard_realtime_OLD.py                            226 LoC
+edgeex_app/states/training_wizard_state_plotly_backup.py               ~470 LoC
+edgeex_app/pages/communication_new_backup.py
+edgeex_app/pages/training_wizard_plotly_backup.py
+edgeex_app/pages/trend_enhanced.py.bak
+edgeex_app/pages/trend_improved.py.bak
+edgeex_app/pages/trend_enhanced_v2.py.disabled
+edgeex_app/edgeex_app.py.backup_20250918_211659
 </code></pre>
 <p>Severity <strong>MED</strong> — confuses imports, bloats RPI image.</p>
 <hr />
@@ -468,7 +468,7 @@ ksys_app/ksys_app.py.backup_20250918_211659
 <p><code>async with get_async_session()</code> total: <strong>66 call sites</strong> across the codebase (file rollup above). A session-per-method discipline is fine in app code; the problem is the <strong>loops</strong> above and the <strong>lack of a <code>@with_session</code> decorator</strong> so every method re-implements the boilerplate.</p>
 <hr />
 <h2 id="4-magic-numbers-constants-module-candidates">4. Magic numbers — constants module candidates</h2>
-<p>These literals are scattered across state/scheduler/service files with no central definition. Recommend <code>ksys_app/constants/forecast.py</code> etc.</p>
+<p>These literals are scattered across state/scheduler/service files with no central definition. Recommend <code>edgeex_app/constants/forecast.py</code> etc.</p>
 <table>
 <thead>
 <tr>
@@ -531,14 +531,14 @@ ksys_app/ksys_app.py.backup_20250918_211659
 <tr>
 <td><code>'Asia/Seoul'</code> (timezone string)</td>
 <td>30+ call sites across states</td>
-<td><code>from ksys_app.constants import KST</code></td>
+<td><code>from edgeex_app.constants import KST</code></td>
 </tr>
 </tbody>
 </table>
 <p>Severity <strong>MED</strong> — none is a bug today, but RPI multi-deploy requires per-site overrides (e.g., 5min vs 10min interval), and without constants you grep 12 files.</p>
 <hr />
 <h2 id="5-type-hint-quality">5. Type hint quality</h2>
-<p>Sampled across <code>ksys_app/states/</code> (725 def sites):</p>
+<p>Sampled across <code>edgeex_app/states/</code> (725 def sites):</p>
 <table>
 <thead>
 <tr>
@@ -553,7 +553,7 @@ ksys_app/ksys_app.py.backup_20250918_211659
 </tr>
 <tr>
 <td>Untyped <code>dict</code> / <code>list</code> / <code>-&gt; dict</code> / <code>-&gt; list</code> / <code>dict[str, Any]</code> / <code>list[dict]</code></td>
-<td>46 distinct file matches; full grep across <code>ksys_app/states/</code> produced <strong>&gt;120 individual annotations</strong> of the form <code>dict</code> / <code>list</code> without parametrization</td>
+<td>46 distinct file matches; full grep across <code>edgeex_app/states/</code> produced <strong>&gt;120 individual annotations</strong> of the form <code>dict</code> / <code>list</code> without parametrization</td>
 </tr>
 <tr>
 <td><code>Dict[str, Any]</code> (any container)</td>
@@ -744,7 +744,7 @@ elif isinstance(rec.hyperparameters, dict):
 <hr />
 <h2 id="cross-cutting-recommendations">Cross-cutting recommendations</h2>
 <ol>
-<li><strong>Constants module</strong> (<code>ksys_app/constants/</code>) — pulls out 12+ scattered magics (§4). Pre-req for RPI-per-site config.</li>
+<li><strong>Constants module</strong> (<code>edgeex_app/constants/</code>) — pulls out 12+ scattered magics (§4). Pre-req for RPI-per-site config.</li>
 <li><strong><code>@event_with_error(loading_field=...)</code> decorator</strong> — kills ~100 try/except blocks (§6.3). Single change with massive surface area.</li>
 <li><strong><code>@with_session</code> / <code>@with_service(XService)</code></strong> — kills 66 session-open boilerplate blocks (§6.4).</li>
 <li><strong>Delete dead files</strong> (§2) — instant 1500+ LoC reduction; clarifies which <code>BaseState</code> and <code>DashboardRealtime*</code> is real.</li>
@@ -793,7 +793,7 @@ elif isinstance(rec.hyperparameters, dict):
 </tr>
 <tr>
 <td>4</td>
-<td>Extract <code>ksys_app/constants/</code> (forecast.py, alarms.py, refresh.py) and replace 12+ magic numbers</td>
+<td>Extract <code>edgeex_app/constants/</code> (forecast.py, alarms.py, refresh.py) and replace 12+ magic numbers</td>
 <td>MED-HIGH (enables per-RPI overrides via env, eliminates silent drift)</td>
 <td>S (3h, ~20 files)</td>
 <td>states/, schedulers/, services/</td>

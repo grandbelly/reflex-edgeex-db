@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ponytail 플러그인 분석 및 KSys 프로젝트 적용 방안</title>
+    <title>Ponytail 플러그인 분석 및 edgeEX 프로젝트 적용 방안</title>
     <style>
         * {
             margin: 0;
@@ -330,7 +330,7 @@
     <div class="container">
         <header class="header">
             <h1>🎴 Ponytail 플러그인 분석</h1>
-            <p>KSys 프로젝트 적용 방안 | 2026-06-24</p>
+            <p>edgeEX 프로젝트 적용 방안 | 2026-06-24</p>
         </header>
 
         <section class="section">
@@ -472,13 +472,13 @@
         </section>
 
         <section class="section">
-            <h2>🎯 KSys 프로젝트 적용 방안</h2>
+            <h2>🎯 edgeEX 프로젝트 적용 방안</h2>
 
             <h3>현재 아키텍처</h3>
             <div class="architecture-diagram">
 <pre>
 ┌─────────────────────────────────────────────────────────────┐
-│  KSys 아키텍처                                              │
+│  edgeEX 아키텍처                                              │
 ├─────────────────────────────────────────────────────────────┤
 │  UI Layer          → Reflex/Radix Themes                    │
 │  State Management  → State Classes (rx.State)               │
@@ -503,7 +503,7 @@
                     <tr>
                         <td><strong>로깅</strong></td>
                         <td class="bad">새로운 logger 클래스 작성</td>
-                        <td class="good">기존 <code>ksys_app/utils/logger.py</code> 재사용</td>
+                        <td class="good">기존 <code>edgeex_app/utils/logger.py</code> 재사용</td>
                         <td><span class="tag already">이미 존재</span></td>
                     </tr>
                     <tr>
@@ -725,7 +725,7 @@ echo '{"defaultMode": "full"}' > ~/.config/ponytail/config.json</code></pre>
         </section>
 
         <footer class="footer">
-            <p>문서 생성: 2026-06-24 | Ponytail v1.x | KSys 프로젝트</p>
+            <p>문서 생성: 2026-06-24 | Ponytail v1.x | edgeEX 프로젝트</p>
             <p style="font-size: 0.85rem; margin-top: 0.5rem;">
                 참조: <a href="https://github.com/DietrichGebert/ponytail" style="color: #4DA3FF;">github.com/DietrichGebert/ponytail</a>
             </p>

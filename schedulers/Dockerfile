@@ -13,8 +13,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 프로젝트 파일 복사
-COPY ksys_app /app/ksys_app
+COPY edgeex_app /app/edgeex_app
 COPY rxconfig.py .
 
 # Schedulers 실행 (run_schedulers.py 사용)
-CMD ["python", "ksys_app/schedulers/run_schedulers.py"]
+CMD ["python", "edgeex_app/schedulers/run_schedulers.py"]

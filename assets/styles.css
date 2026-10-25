@@ -1,5 +1,5 @@
 /* ============================================================================
-   KSYS · design system
+   edgeEX · design system
    Two token layers (design-optimization Phase 1):
    · --am-*  Apple-mode dual-theme tokens — light under :root, dark under .dark
               (Reflex native color mode emits <html class="dark"> via next-themes)

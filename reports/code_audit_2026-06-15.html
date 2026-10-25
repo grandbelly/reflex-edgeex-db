@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>코드 구현 Audit — KSys (4차원 병렬)</title>
+<title>코드 구현 Audit — edgeEX (4차원 병렬)</title>
 <style>
   :root{--bg:#0d1117;--panel:#161b22;--border:#30363d;--fg:#c9d1d9;--muted:#8b949e;--ok:#3fb950;--warn:#d29922;--bad:#f85149;--crit:#ff6b6b;--accent:#58a6ff}
   *{box-sizing:border-box}
@@ -29,7 +29,7 @@
 </style></head>
 <body><div class="wrap">
 
-<h1>🔬 코드 구현 Audit — KSys (4차원 병렬 에이전트)</h1>
+<h1>🔬 코드 구현 Audit — edgeEX (4차원 병렬 에이전트)</h1>
 <p class="meta">생성 2026-06-15 · 방법: 4 병렬 코드 audit (states / services·DB / AI engine / Reflex 0.8 idiom), 각 에이전트가 실제 파일 file:line 검증 · 계기: 기능검증서 발견한 대시보드 마비가 "빙산의 일각"인지 확인</p>
 
 <div class="callout bad">
@@ -77,7 +77,7 @@
 <table>
 <tr><th>발견</th><th>위치</th><th>영향</th></tr>
 <tr><td class="fid">챗 form이 <code>current_query</code> 미설정 → 모든 메시지 no-op</td><td class="file">ai_state.py:99-103 · ai_insights.py:435-461</td><td>AI 챗 form 완전 무응답 (기수정한 인자버그와 별개)</td></tr>
-<tr><td class="fid">RAGEngine가 라이브 경로서 <code>initialize()</code> 안 됨 → openai_client=None</td><td class="file">rag_engine.py:39-64 · ksys_app.py(미호출)</td><td>C1 고쳐도 LLM 호출 불가, 템플릿 응답만</td></tr>
+<tr><td class="fid">RAGEngine가 라이브 경로서 <code>initialize()</code> 안 됨 → openai_client=None</td><td class="file">rag_engine.py:39-64 · edgeex_app.py(미호출)</td><td>C1 고쳐도 LLM 호출 불가, 템플릿 응답만</td></tr>
 <tr><td class="fid"><code>ai_knowledge_base</code>/<code>ai_chat_history</code>/<code>ai_engine.*</code> 3+테이블 CREATE 없음</td><td class="file">ai_service.py · rag_engine.py · knowledge_builder.py</td><td>load()/save_chat_history 크래시·무저장. 게다가 ai_service vs rag_engine 스키마 상호 불일치</td></tr>
 </table>
 

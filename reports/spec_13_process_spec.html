@@ -76,9 +76,9 @@
 
 <table>
 <tr><td>트리거</td><td>data-injector 컨테이너 무한 루프 (continuous)</td></tr>
-<tr><td>주체</td><td>ksys-local-data-injector / rpi-finished-data-injector</td></tr>
+<tr><td>주체</td><td>edgeex-local-data-injector / rpi-finished-data-injector</td></tr>
 <tr><td>SLA</td><td>새 row INSERT 지연 ≤ 1초 (실제 측정 안 됨)</td></tr>
-<tr><td>의존</td><td>ksys-dev-db UP + influx_tag 에 활성 tag 정의</td></tr>
+<tr><td>의존</td><td>edgeex-dev-db UP + influx_tag 에 활성 tag 정의</td></tr>
 </table>
 
 <h4>흐름</h4>
@@ -152,7 +152,7 @@
 
 <table>
 <tr><td>트리거</td><td>pg_cron 1분 주기 (PostgreSQL 내부) + VirtualTagScheduler 1분 (Python)</td></tr>
-<tr><td>주체</td><td>pg_cron + ksys-local-reflex-app 내 VirtualTagScheduler</td></tr>
+<tr><td>주체</td><td>pg_cron + edgeex-local-reflex-app 내 VirtualTagScheduler</td></tr>
 <tr><td>SLA</td><td>가상 태그 (PRESSURE_DIFF, RECOVERY_RATE, OPERATING_TIME, TOTAL_PRODUCT_VOLUME_1H) 1분 내 갱신</td></tr>
 </table>
 
@@ -525,7 +525,7 @@ PerformanceAggregator @ x:03 (1시간 주기)
         ↓ (depends_on: condition: service_healthy)
 [rpi-finished-reflex-app] START
         ↓ env vars from .env interpolation
-        ↓ Python import ksys_app
+        ↓ Python import edgeex_app
         ↓ DB pool init (asyncpg)
         ↓ SchedulerState.start_schedulers (lifespan)
             ↓ ForecastScheduler 시작
@@ -613,7 +613,7 @@ PerformanceAggregator @ x:03 (1시간 주기)
 <h4>흐름</h4>
 <pre>
 [Browser (external)]
-    ↓ HTTPS https://ksys.kr
+    ↓ HTTPS https://ksys.kr /* TODO(오너 확인) */
 [Cloudflare edge]
     ↓ tunnel routing (UUID 09667144-...)
 [cloudflared-tunnel container]

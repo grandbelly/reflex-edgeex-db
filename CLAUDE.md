@@ -38,15 +38,15 @@ Doctrine + 설정 출처: `~/.claude/projects/<this>/memory/reference_karpathy_r
 
 ```bash
 # RPI → 풍도 로컬 동기화
-scp tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/states/forecast_player_state.py \
-    "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/states/"
+scp tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/edgeex_app/states/forecast_player_state.py \
+    "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/edgeex_app/states/"
 
 # 풍도 로컬 → RPI 동기화
-scp "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/ksys_app/states/forecast_player_state.py" \
-    tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/ksys_app/states/
+scp "C:/reflex/reflex-rpi/reflex-rpi-local-deployment-poongdo/edgeex_app/states/forecast_player_state.py" \
+    tion@192.168.0.80:/home/tion/deployment/20251030-rpi-finished/edgeex_app/states/
 ```
 
-**⚠️ 주의: `reflex-ksys-refactor` 폴더가 아닙니다!**
+**⚠️ 주의: `reflex-edgeex-refactor` 폴더가 아닙니다!**
 
 ---
 
@@ -74,4 +74,4 @@ docker exec -it rpi-finished-pgai-db psql -U postgres -d ecoanp
 
 ## 메인 개발 저장소
 
-자세한 개발 가이드는 `C:\reflex\reflex-ksys-refactor\CLAUDE.md` 참조
+자세한 개발 가이드는 `C:\reflex\reflex-edgeex-refactor\CLAUDE.md` 참조

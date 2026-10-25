@@ -80,14 +80,14 @@ When the user requests a durable behavior change, record it here or in the relev
 
 ---
 
-# Project: Reflex-KSys (풍도 RO/수질 모니터링 SCADA)
+# Project: Reflex-edgeEX (풍도 RO/수질 모니터링 SCADA)
 
 A Reflex (Python) web dashboard for reverse-osmosis water-quality monitoring, backed by
 TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron. Deployed to a Raspberry Pi 5 in Docker.
 
 ## Runtime & Ports
 
-- **Framework**: Reflex, `app_name="ksys_app"`. Frontend `:14000`, backend `:14001` (see `rxconfig.py`).
+- **Framework**: Reflex, `app_name="edgeex_app"`. Frontend `:14000`, backend `:14001` (see `rxconfig.py`).
 - **DB**: TimescaleDB, database `ecoanp`. DSN from env var `TS_DSN` (never hardcode).
 - **Theme**: pinned dark ("RO control-room"); no light/dark toggle. Tailwind V3 plugin + `assets/styles.css`.
 - **AI features**: gated by env `ENABLE_AI_FEATURES` (default true). `/ai` page and the `ai_engine`
@@ -104,16 +104,16 @@ TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron. Deployed to a Raspberry Pi 5 in
 | Containers | `rpi-finished-reflex-app`, `rpi-finished-pgai-db` |
 | Web port | 14000 |
 
-- Sync local↔RPI with `scp` (see `CLAUDE.md` for exact paths). This is **not** the `reflex-ksys-refactor` folder.
+- Sync local↔RPI with `scp` (see `CLAUDE.md` for exact paths). This is **not** the `reflex-edgeex-refactor` folder.
 - Restart app: `docker restart rpi-finished-reflex-app`. DB: `docker exec -it rpi-finished-pgai-db psql -U postgres -d ecoanp`.
 - **Never run Reflex on the Windows host** — Docker container only. Host Python kills leak zombie LISTEN sockets.
 
 ## Global Conventions
 
-- **DB access has two sanctioned paths — never open ad-hoc connections.** Raw hot-path: `ksys_app/db.py`
-  asyncpg singleton pool (`get_pool()` / `q(sql, params)`, positional `$1,$2`). ORM/batch path: `ksys_app/db_orm.py`
+- **DB access has two sanctioned paths — never open ad-hoc connections.** Raw hot-path: `edgeex_app/db.py`
+  asyncpg singleton pool (`get_pool()` / `q(sql, params)`, positional `$1,$2`). ORM/batch path: `edgeex_app/db_orm.py`
   SQLAlchemy async session (`get_async_session()`). Services return plain dicts to State, never ORM objects.
-- **Pages register via `@rx.page` decorator** inside their module; importing the module in `ksys_app/ksys_app.py`
+- **Pages register via `@rx.page` decorator** inside their module; importing the module in `edgeex_app/edgeex_app.py`
   is what activates the route. No `app.add_page()` calls.
 - Korean Windows: this repo's dev host defaults to cp949 — read/write files as UTF-8 (`PYTHONUTF8=1`).
 - See `CLAUDE.md` for the agentic-pipeline workflow and `HANDOFF.md` for in-flight session state.
@@ -121,8 +121,8 @@ TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron. Deployed to a Raspberry Pi 5 in
 ## Child DOX Index
 
 - `migrations/AGENTS.md` — TimescaleDB SQL migrations: schema, hypertables, continuous-aggregate refresh policies.
-- `ksys_app/AGENTS.md` — the Reflex application (UI, state, data, AI, schedulers). Owns its own child index.
+- `edgeex_app/AGENTS.md` — the Reflex application (UI, state, data, AI, schedulers). Owns its own child index.
 
 Other repo dirs owned directly by this root (no child doc): `docs/` (PDCA plan/design/report),
-`tests/` & `ksys_app/tests/` (pytest), `scripts/` & `schedulers/` (ops helpers), `backup/` (DB dumps),
+`tests/` & `edgeex_app/tests/` (pytest), `scripts/` & `schedulers/` (ops helpers), `backup/` (DB dumps),
 `assets/` (static + `styles.css`), `saved_models/` (trained model artifacts).

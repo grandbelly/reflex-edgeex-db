@@ -92,7 +92,7 @@
 <tr>
   <td>1</td><td>state.py 1,077 LoC</td><td>1,077</td>
   <td><span class="tag tag-pass">PASS</span></td>
-  <td><code>wc -l ksys_app/states/training_state/state.py</code></td>
+  <td><code>wc -l edgeex_app/states/training_state/state.py</code></td>
 </tr>
 <tr>
   <td>2</td><td>@rx.event 7개</td><td>7 (lines 119, 155, 190, 252, 302, 363, 712)</td>
@@ -139,7 +139,7 @@
 </tr>
 <tr>
   <td>10</td><td><strong>"외부 import 7곳"</strong></td>
-  <td><span class="bad">실제 1곳</span>: <code>ksys_app/states/training_wizard_state.py:8</code></td>
+  <td><span class="bad">실제 1곳</span>: <code>edgeex_app/states/training_wizard_state.py:8</code></td>
   <td><span class="tag tag-fail">FAIL</span></td>
   <td>나머지 6는 docs/reports/prompts 텍스트 매칭 또는 직전 refactor 단계 기록. <code>training_wizard_state_plotly_backup.py</code>는 백업.</td>
 </tr>
@@ -281,16 +281,16 @@ async def filter_configs_for_tag(self):
 <h2>📌 Addendum — 어느 트리가 최신인가 (사용자 지적 후 재확인)</h2>
 
 <div class="callout danger">
-<strong>처음 분석 시 실수:</strong> <code>ksys_app/ksys_app_clean/</code>을 "이름이 clean이니까 dead일 거"라고 추정했음. git log 안 보고 결론. 사용자 지적("최신 파일인지 확인하라고 했자나") 후 재확인.
+<strong>처음 분석 시 실수:</strong> <code>edgeex_app/edgeex_app_clean/</code>을 "이름이 clean이니까 dead일 거"라고 추정했음. git log 안 보고 결론. 사용자 지적("최신 파일인지 확인하라고 했자나") 후 재확인.
 </div>
 
-<h3>ksys_app_clean 디렉터리의 진실</h3>
+<h3>edgeex_app_clean 디렉터리의 진실</h3>
 <table>
 <tr><th>시간순</th><th>이벤트</th></tr>
-<tr><td>① 직전 어느 시점</td><td>master에서 <code>refactor(stage-1): delete ksys_app_clean/ + 18 dead files</code> commit (7618aa2)으로 의도적 삭제</td></tr>
+<tr><td>① 직전 어느 시점</td><td>master에서 <code>refactor(stage-1): delete edgeex_app_clean/ + 18 dead files</code> commit (7618aa2)으로 의도적 삭제</td></tr>
 <tr><td>② 2026-05-19 16:24</td>
-<td><code>sync: import RPI baseline (2025-11-29~12-05)</code> commit (e397d8f) — robocopy /E 로 RPI 서버에서 베이스라인 import. RPI에는 ksys_app_clean이 살아있었고 commit 메시지에 명시: <em>"ksys_app/ksys_app_clean/ (274 dup files, 268/274 MD5 identical)"</em></td></tr>
-<tr><td>③ 사이 어느 시점</td><td>누군가 ksys_app_clean의 .py 파일들을 .backup 확장자로 변환 (현재 .py 0개, .backup 7개만 남음)</td></tr>
+<td><code>sync: import RPI baseline (2025-11-29~12-05)</code> commit (e397d8f) — robocopy /E 로 RPI 서버에서 베이스라인 import. RPI에는 edgeex_app_clean이 살아있었고 commit 메시지에 명시: <em>"edgeex_app/edgeex_app_clean/ (274 dup files, 268/274 MD5 identical)"</em></td></tr>
+<tr><td>③ 사이 어느 시점</td><td>누군가 edgeex_app_clean의 .py 파일들을 .backup 확장자로 변환 (현재 .py 0개, .backup 7개만 남음)</td></tr>
 <tr><td>④ 현재</td><td>git-tracked 상태로 workspace에 존재. import 0건. stage-1 cleanup 원래 의도와 충돌.</td></tr>
 </table>
 
@@ -299,12 +299,12 @@ async def filter_configs_for_tag(self):
 <tr><th>분류</th><th>예시</th><th>제거 방법</th></tr>
 <tr>
   <td><strong>A. git tracked</strong></td>
-  <td><code>ksys_app/ksys_app_clean/</code> (디렉터리),<br><code>docker-compose.yml.backup-20251027171921</code></td>
+  <td><code>edgeex_app/edgeex_app_clean/</code> (디렉터리),<br><code>docker-compose.yml.backup-20251027171921</code></td>
   <td><code>git rm -r</code> 필요</td>
 </tr>
 <tr>
   <td><strong>B. untracked but visible in git status</strong></td>
-  <td>8개 파일: <code>ksys_app.py.backup_20250918_211659</code>, <code>communication_new_backup.py</code>, <code>training_wizard_plotly_backup.py</code>, <code>trend_enhanced.py.bak</code>, <code>trend_enhanced_v2.py.disabled</code>, <code>trend_improved.py.bak</code>, <code>dashboard_realtime_OLD.py</code>, <code>training_wizard_state_plotly_backup.py</code></td>
+  <td>8개 파일: <code>edgeex_app.py.backup_20250918_211659</code>, <code>communication_new_backup.py</code>, <code>training_wizard_plotly_backup.py</code>, <code>trend_enhanced.py.bak</code>, <code>trend_enhanced_v2.py.disabled</code>, <code>trend_improved.py.bak</code>, <code>dashboard_realtime_OLD.py</code>, <code>training_wizard_state_plotly_backup.py</code></td>
   <td>그냥 <code>rm</code> 만 (git 액션 불필요)</td>
 </tr>
 <tr>
@@ -317,10 +317,10 @@ async def filter_configs_for_tag(self):
 <h3>진짜 작업 대상 vs dead 트리 명확화</h3>
 <table>
 <tr><th>트리/파일</th><th>상태</th><th>판정</th></tr>
-<tr><td><code>ksys_app/states/training_state/state.py</code> (1077L, May 19 수정)</td><td>유일 버전. TrainingWizardState가 상속. 다른 트리에 동명 파일 없음.</td><td><span class="good">LIVE — 진짜 Stage 4-1 대상</span></td></tr>
-<tr><td><code>ksys_app/ml/pipeline_v2_hybrid/</code> (디렉터리, 11-module 패키지)</td><td>직전 sprint-2에서 monolith를 분리한 결과. 활발히 사용 중.</td><td><span class="good">LIVE</span></td></tr>
-<tr><td><code>ksys_app/ksys_app_clean/</code> (7 .backup 파일만)</td><td>RPI sync 부작용으로 다시 들어옴. stage-1에서 이미 한 번 삭제됐던 트리.</td><td><span class="bad">DEAD</span></td></tr>
-<tr><td><code>ksys_app/ml/pipeline_v2_hybrid.py.backup</code></td><td>monolith 분리 전 원본 백업</td><td><span class="bad">DEAD</span></td></tr>
+<tr><td><code>edgeex_app/states/training_state/state.py</code> (1077L, May 19 수정)</td><td>유일 버전. TrainingWizardState가 상속. 다른 트리에 동명 파일 없음.</td><td><span class="good">LIVE — 진짜 Stage 4-1 대상</span></td></tr>
+<tr><td><code>edgeex_app/ml/pipeline_v2_hybrid/</code> (디렉터리, 11-module 패키지)</td><td>직전 sprint-2에서 monolith를 분리한 결과. 활발히 사용 중.</td><td><span class="good">LIVE</span></td></tr>
+<tr><td><code>edgeex_app/edgeex_app_clean/</code> (7 .backup 파일만)</td><td>RPI sync 부작용으로 다시 들어옴. stage-1에서 이미 한 번 삭제됐던 트리.</td><td><span class="bad">DEAD</span></td></tr>
+<tr><td><code>edgeex_app/ml/pipeline_v2_hybrid.py.backup</code></td><td>monolith 분리 전 원본 백업</td><td><span class="bad">DEAD</span></td></tr>
 </table>
 
 <p class="meta" style="text-align: center; margin-top: 48px; padding-top: 16px; border-top: 1px solid #30363d;">

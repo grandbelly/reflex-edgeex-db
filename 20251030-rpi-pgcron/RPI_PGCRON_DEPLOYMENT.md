@@ -13,13 +13,13 @@ RPI 환경에 pg_cron을 포함한 TimescaleDB 이미지를 배포하는 가이�
 ### 1. 현재 데이터 백업 (필수)
 ```bash
 ssh tion@192.168.1.80
-cd /home/tion/deployment/reflex-ksys-db
+cd /home/tion/deployment/reflex-edgeex-db
 docker exec pgai-db pg_dump -U postgres -d ecoanp -F c -f /backup/ecoanp_before_pgcron_$(date +%Y%m%d_%H%M%S).dump
 ```
 
 ### 2. Git Pull
 ```bash
-cd /home/tion/deployment/reflex-ksys-db
+cd /home/tion/deployment/reflex-edgeex-db
 git pull origin main
 ```
 
@@ -96,7 +96,7 @@ docker exec pgai-db pg_restore -U postgres -d ecoanp --clean /backup/ecoanp_befo
 1. **데이터 손실 방지**: 배포 전 반드시 백업
 2. **다운타임**: 컨테이너 재생성 시 약 30초 다운타임 발생
 3. **볼륨 유지**: 기존 `pgai_data` 볼륨이 유지되어 데이터는 보존됨
-4. **네트워크**: `ksys-network`가 미리 생성되어 있어야 함
+4. **네트워크**: `edgeex-network`가 미리 생성되어 있어야 함
 
 ## 검증
 

@@ -141,7 +141,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>타이틀</td>
-<td>"Dashboard | KSYS"</td>
+<td>"Dashboard | edgeEX"</td>
 </tr>
 <tr>
 <td>레이아웃 래퍼</td>
@@ -1681,7 +1681,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tbody>
 </table>
 <h3 id="42">4.2 분석 및 권고</h3>
-<p><code>/sensors</code> 페이지는 <code>ksys_app.py</code> 라우트 등록 목록에 없고, pages/ 디렉토리에도 파일이 없다. 센서 관련 기능은 현재 두 곳에 분산되어 있다:</p>
+<p><code>/sensors</code> 페이지는 <code>edgeex_app.py</code> 라우트 등록 목록에 없고, pages/ 디렉토리에도 파일이 없다. 센서 관련 기능은 현재 두 곳에 분산되어 있다:</p>
 <ol>
 <li><strong>대시보드 sensor_edit_dialog</strong> (<code>dashboard_realtime_view.py:645-802</code>): 개별 센서 설명/단위/임계값 편집. 1개씩 처리. 비효율적.</li>
 <li><strong>viewer-tag 페이지</strong> (<code>viewer_tag.py</code>): 태그 가시성 관리. 임계값과 별개.</li>
@@ -1745,7 +1745,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>페이지 함수</td>
-<td><strong>없음</strong> — <code>ksys_app.py</code>에 미등록</td>
+<td><strong>없음</strong> — <code>edgeex_app.py</code>에 미등록</td>
 </tr>
 <tr>
 <td>State</td>

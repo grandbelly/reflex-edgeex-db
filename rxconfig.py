@@ -2,7 +2,7 @@ import reflex as rx
 from reflex.constants import LogLevel
 
 config = rx.Config(
-    app_name="ksys_app",
+    app_name="edgeex_app",
     loglevel=LogLevel.DEBUG,
     show_built_with_reflex=False,
     frontend_packages=[],

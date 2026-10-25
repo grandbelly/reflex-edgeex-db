@@ -89,7 +89,7 @@
 </ol>
 
 <h3>2.2 핵심 API</h3>
-<pre><code># ksys_app.py — 정적 핀 해제 (네이티브에 class 토글 위임)
+<pre><code># edgeex_app.py — 정적 핀 해제 (네이티브에 class 토글 위임)
 rx.theme(appearance="inherit")          # was appearance="dark"
 
 # 헤더 토글 (OQ2 사용자 노출)
@@ -135,8 +135,8 @@ rx.color_mode_cond(light=..., dark=...)
 
 <h2>5. State 변경</h2>
 <ul>
-  <li><code>ksys_app/states/base_state.py</code> — <code>theme_mode</code>(28) + <code>toggle_theme()</code>(35-38) <b>삭제</b>(0 callers). 나머지(toggle_sidebar/polling) 유지.</li>
-  <li><code>ksys_app/ksys_app.py</code> — <code>appearance "dark"→"inherit"</code>(132). dark-pin 스크립트(150-153)→1회성 다크 기본 시드: <code class="mono">try{if(!localStorage.getItem('theme'))localStorage.setItem('theme','dark');localStorage.removeItem('chakra-ui-color-mode')}catch(e){}</code></li>
+  <li><code>edgeex_app/states/base_state.py</code> — <code>theme_mode</code>(28) + <code>toggle_theme()</code>(35-38) <b>삭제</b>(0 callers). 나머지(toggle_sidebar/polling) 유지.</li>
+  <li><code>edgeex_app/edgeex_app.py</code> — <code>appearance "dark"→"inherit"</code>(132). dark-pin 스크립트(150-153)→1회성 다크 기본 시드: <code class="mono">try{if(!localStorage.getItem('theme'))localStorage.setItem('theme','dark');localStorage.removeItem('chakra-ui-color-mode')}catch(e){}</code></li>
   <li>테마 상태 소유권: next-themes <code>localStorage('theme')</code>. BaseState 비관여.</li>
 </ul>
 
@@ -144,7 +144,7 @@ rx.color_mode_cond(light=..., dark=...)
 <div class="phase p1"><h3>Phase 1 — 토큰 + 네이티브 토글 + rx.color 결판 <span class="meta">(OPT-01,14,02,03,13)</span></h3>
 <ul>
 <li><code>assets/styles.css</code> — <code>:root{--am-* 라이트}</code> + <code>.dark{--am-* 다크}</code> 추가; 27-88 다크전용 규칙 <code>.dark</code> 프리픽스(OPT-14).</li>
-<li><code>ksys_app/ksys_app.py</code> — appearance <code>inherit</code> + dark-pin→1회성 시드.</li>
+<li><code>edgeex_app/edgeex_app.py</code> — appearance <code>inherit</code> + dark-pin→1회성 시드.</li>
 <li><code>components/layout_v2.py</code> — 헤더 <code>rx.color_mode.button()</code> 토글(OQ2).</li>
 <li><code>states/base_state.py</code> — theme_mode/toggle_theme 삭제.</li>
 <li><code>components/cards/kpi_card.py</code> — <b>OPT-13 PoC</b>: rx.color 1화면 양테마 자동 flip 실증(게이트).</li>

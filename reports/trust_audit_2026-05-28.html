@@ -75,11 +75,11 @@
 <h2>🔧 작동 방식 재정의 — AI의 잘못된 멘탈 모델 정정</h2>
 
 <div class="callout info">
-<strong>이전 (잘못된) 멘탈 모델:</strong> "ksys-local-reflex-app 컨테이너가 7일간 stop 상태 → 우리 Day 1-7 변경이 일절 적용 안 됨" — <span class="bad">틀림</span>
+<strong>이전 (잘못된) 멘탈 모델:</strong> "edgeex-local-reflex-app 컨테이너가 7일간 stop 상태 → 우리 Day 1-7 변경이 일절 적용 안 됨" — <span class="bad">틀림</span>
 </div>
 
 <div class="callout good">
-<strong>정확한 모델:</strong> docker-compose.local.yml의 reflex-app은 <code>./ksys_app:/app/ksys_app</code> bind mount.
+<strong>정확한 모델:</strong> docker-compose.local.yml의 reflex-app은 <code>./edgeex_app:/app/edgeex_app</code> bind mount.
 호스트 코드 ≡ 컨테이너 코드 (같은 파일 두 경로). <code>docker compose up -d reflex-app</code> 한 줄이면 우리 변경 즉시 작동.
 재빌드는 requirements.txt / Dockerfile 변경 시만.
 </div>
@@ -99,7 +99,7 @@
 <tr><td>1</td><td><code>30f45d3</code> audit</td><td>5-agent audit reports 생성</td><td>7 파일 생성 (.md/.html)</td><td>(a) 읽기 전용</td><td><span class="tag tag-true">TRUSTWORTHY</span></td></tr>
 <tr><td>2</td><td><code>c2202fb</code> Day 1 AM</td><td>모든 compose secret 외부화</td><td>4 compose + sync_monitor_state.py + .env.example + .dockerignore + .gitignore. eyJhIjoi/exaxt00/59.10.187.46 grep 0 hit</td><td>(c) reflex-app 부팅 시 <code>.env</code> 없으면 fail (의도). placeholder 채우니 부팅 성공.</td><td><span class="tag tag-true">TRUE</span></td></tr>
 <tr><td>3</td><td><code>c84016a</code> infra add</td><td>4 live infra 파일 commit</td><td>Dockerfile.pipeline + scripts/* commit</td><td>(c) timeseries-pipeline 컨테이너 빌드 가능 (검증 안 함)</td><td><span class="tag tag-part">PARTIAL</span></td></tr>
-<tr><td>4</td><td><code>28b41cd</code> Day 1 PM</td><td>23 backup + ksys_app_clean/ 삭제</td><td>모두 0 hit (find result)</td><td>(c) reflex-app 부팅 시 import 깨짐 없음</td><td><span class="tag tag-true">TRUE</span></td></tr>
+<tr><td>4</td><td><code>28b41cd</code> Day 1 PM</td><td>23 backup + edgeex_app_clean/ 삭제</td><td>모두 0 hit (find result)</td><td>(c) reflex-app 부팅 시 import 깨짐 없음</td><td><span class="tag tag-true">TRUE</span></td></tr>
 <tr><td>5</td><td><code>cd97fe0</code> Day 2</td><td>base.py 삭제 + alarm_rt dup fix</td><td>base.py 없음, toggle_auto_refresh 정확히 1번</td><td>(c) reflex-app 부팅 시 import 통과, 15/15 routes 200</td><td><span class="tag tag-true">TRUE</span></td></tr>
 <tr><td>6</td><td><code>18249f0</code> Day 3</td><td>save_model bulk INSERT + pickle thread + datetime fix</td><td>3가지 모두 코드에 반영. <code>datetime.now()</code> 실제 호출 1번. <code>asyncio.to_thread</code> 1번. for-loop 내 single execute 패턴 없음.</td><td>(c) 부팅 + import OK. <strong>(d) save_model 실제 호출은 안 함 → "36 round-trips eliminated" 메트릭 미측정</strong></td><td><span class="tag tag-over">OVERSTATED (perf metric)</span></td></tr>
 <tr><td>7</td><td><code>aa3a9df</code> Day 4</td><td>bootstrap_rpi.sh + restore_db.sh, ARM64 + chmod 600 + --harden</td><td>두 스크립트 코드상 모두 반영. bash -n OK.</td><td>(e) <strong>실제 fresh RPI에서 실행 안 함</strong> — syntax only</td><td><span class="tag tag-over">OVERSTATED (untested)</span></td></tr>
@@ -164,9 +164,9 @@
 
 <pre>
 $ docker compose -f docker-compose.local.yml up -d reflex-app
-Container ksys-local-reflex-app Started
+Container edgeex-local-reflex-app Started
 
-$ docker logs ksys-local-reflex-app (boot logs)
+$ docker logs edgeex-local-reflex-app (boot logs)
 INFO | TS_DSN is loaded successfully
 INFO | Global pool created successfully (PID: 707)
 INFO | Database pool initialized successfully
@@ -192,7 +192,7 @@ $ curl 15 routes:
 /api/health               200
 /api/status               200
 
-$ docker exec ksys-local-reflex-app grep -c safe_tags ...dynamic_rag_engine.py
+$ docker exec edgeex-local-reflex-app grep -c safe_tags ...dynamic_rag_engine.py
 6   # ← host 와 동일, bind mount 즉시 동기 증명
 </pre>
 

@@ -62,7 +62,7 @@ _DB_ORM_ENV_KEYS = (
 
 
 def _reload_db_orm(env: dict[str, str]):
-    """Reload ksys_app.db_orm with a controlled env so the module-level
+    """Reload edgeex_app.db_orm with a controlled env so the module-level
     constants (USE_POOLING, COMMAND_TIMEOUT, ...) reflect the test scenario.
 
     Clears any prior DB_* env from earlier tests so each scenario starts
@@ -73,9 +73,9 @@ def _reload_db_orm(env: dict[str, str]):
     for key, value in env.items():
         os.environ[key] = value
     # Force-reload because constants are evaluated at import time
-    if "ksys_app.db_orm" in sys.modules:
-        del sys.modules["ksys_app.db_orm"]
-    return importlib.import_module("ksys_app.db_orm")
+    if "edgeex_app.db_orm" in sys.modules:
+        del sys.modules["edgeex_app.db_orm"]
+    return importlib.import_module("edgeex_app.db_orm")
 
 
 # ---------------------------------------------------------------------------

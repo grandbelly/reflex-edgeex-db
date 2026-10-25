@@ -30,9 +30,9 @@ Related docs:
 
 | 지표 | 시작 (sync 후) | 현재 | 변화 |
 |---|---|---|---|
-| `ksys_app/` .py 파일 | 521 | **253** | **-51%** |
+| `edgeex_app/` .py 파일 | 521 | **253** | **-51%** |
 | 추정 총 LoC | ~136K | **~67K** | **-51%** |
-| `ksys_app.py` (앱 진입점) | 1,130 | **208** | **-82%** |
+| `edgeex_app.py` (앱 진입점) | 1,130 | **208** | **-82%** |
 | 1,000+ LoC 파일 | 8 | **3** | **-63%** |
 | 죽은 페이지 | 14 | 0 | -100% |
 | 죽은 module-level 함수 | 14+ | 0 | -100% |
@@ -43,8 +43,8 @@ Related docs:
 
 | 관점 | 내용 |
 |---|---|
-| **Problem (해결한 문제)** | (1) 작년 Sonnet 4.0 누적 vibe-coding의 결과 — `ksys_app_clean/` 같은 274파일 통째 중복, 18개 `.backup`/`.bak`/`.disabled` 산재, 14개 등록 안 된 페이지, 라우트 등록 3패턴 혼재, `ksys_app.py` 1,130 LoC 모놀리식. (2) Stage 1 시점부터 RPI 운영본의 실 baseline이 어디인지 모호했던 문제. |
-| **Solution (해결 방법)** | RPI 백업을 풍도로 sync해서 단일 baseline 확립 → 7-stage refactor plan 작성 → Stage 1 잡초 제거 → Stage 2 죽은 페이지/서비스 정리 → Stage 3 `@rx.page` 데코레이터로 라우트 등록 통일 → Stage 3.5 `ksys_app.py` 죽은 함수 14개 통째 제거 → Stage 4 모놀리식 5개 파일 패키지화 (training_state, pipeline_v2_hybrid, dashboard, forecast_player_state) + 1개 dead 통째 삭제. |
+| **Problem (해결한 문제)** | (1) 작년 Sonnet 4.0 누적 vibe-coding의 결과 — `edgeex_app_clean/` 같은 274파일 통째 중복, 18개 `.backup`/`.bak`/`.disabled` 산재, 14개 등록 안 된 페이지, 라우트 등록 3패턴 혼재, `edgeex_app.py` 1,130 LoC 모놀리식. (2) Stage 1 시점부터 RPI 운영본의 실 baseline이 어디인지 모호했던 문제. |
+| **Solution (해결 방법)** | RPI 백업을 풍도로 sync해서 단일 baseline 확립 → 7-stage refactor plan 작성 → Stage 1 잡초 제거 → Stage 2 죽은 페이지/서비스 정리 → Stage 3 `@rx.page` 데코레이터로 라우트 등록 통일 → Stage 3.5 `edgeex_app.py` 죽은 함수 14개 통째 제거 → Stage 4 모놀리식 5개 파일 패키지화 (training_state, pipeline_v2_hybrid, dashboard, forecast_player_state) + 1개 dead 통째 삭제. |
 | **Function UX Effect (기능·UX 효과)** | 운영 사용자 경험 변화 = 0 (regression 0 목표). 운영 페이지 (`/`, `/forecast`, `/trend`, `/alarms*`, `/scada-*`, `/comm`, `/training-wizard`, `/model-performance`, `/viewer-tag` 등 ~14개)는 라우트 정리만 되고 외부 URL 1개만 변경 (`/forecast-player-fixed` → `/forecast`). 사이드바 + redirect도 동시 업데이트. |
 | **Core Value (핵심 가치)** | 1년 누적 잡초 제거 + 단일 진실원본 (SSOT) 확립. 이제 Stage 5 (RPI 효율 튜닝) / Stage 6 (공통 패턴) / Stage 7 (품질 gate) 같은 후속 작업이 깨끗한 baseline 위에서 가능. 또한 ARM RPI 4GB 환경에 맞춘 다음 단계의 발판. |
 
@@ -53,17 +53,17 @@ Related docs:
 ## 2. What was Done (Phase by Phase)
 
 ### 2.1 Baseline sync (`e397d8f`)
-- RPI 백업 (`C:\sync\01_remote_ksys\2026-03-24\deployment\20251030-rpi-finished`)을 robocopy로 풍도 로컬에 import
+- RPI 백업 (`C:\sync\01_remote_edgeex\2026-03-24\deployment\20251030-rpi-finished`)을 robocopy로 풍도 로컬에 import
 - 우리 세션 핵심 변경분 6개 파일 (run_schedulers, scheduler_state, forecast_scheduler, scheduler_manager, db_orm, Dockerfile.scheduler) `git checkout master` 로 복원
 - 풍도 환경 폴더 (`.bkit/`, `.web/`, `__pycache__/`, `agentic-runs/`, `graphify-out/`, `saved_models/`, `backup/`, `certification_data/`) 제외
 - 278 파일, +81,391 줄
 
 ### 2.2 Stage 1 — 잡초 제거 (`7618aa2`)
 **285 파일 / -89,601 줄**
-- `ksys_app/ksys_app_clean/` 폴더 통째 삭제 (274 파일 중 268개가 `ksys_app/`와 MD5 정확히 동일)
+- `edgeex_app/edgeex_app_clean/` 폴더 통째 삭제 (274 파일 중 268개가 `edgeex_app/`와 MD5 정확히 동일)
 - 18개 `.backup` / `.bak` / `.bak2` / `.disabled` / `_OLD` / `_backup_2025*` 파일 삭제
 - `pages/forecast_player_state.py` (잘못된 위치, 외부 import 0개) 삭제
-- 검증: `grep ksys_app_clean` → 0 hits, `grep` 삭제된 모듈명들 → 0 imports
+- 검증: `grep edgeex_app_clean` → 0 hits, `grep` 삭제된 모듈명들 → 0 imports
 
 ### 2.3 Plan 문서 (`4d211bf`)
 - `docs/01-plan/features/rpi-refactor-stage2-7.plan.md` 326줄
@@ -83,7 +83,7 @@ Related docs:
 - 7개 페이지에 `@rx.page(...)` 데코레이터 추가:
   `trend_enhanced_v2`, `communication`, `alarms`, `scada_alarm_viewer`,
   `alarms_hist_simple`, `alarms_rt_new`, `alarms_hist_new`
-- `ksys_app.py` 에서 `app.add_page()` 호출 8개 제거 + 죽은 주석 라우트 5개 제거
+- `edgeex_app.py` 에서 `app.add_page()` 호출 8개 제거 + 죽은 주석 라우트 5개 제거
 - `scada_alarm_comparison.py` 중복 등록 (decorator + add_page) 해결
 
 ### 2.6 Stage 3.3 — forecast_player rename (`ec3ba96`)
@@ -93,9 +93,9 @@ Related docs:
 - 라우트 `/forecast-player-fixed` → `/forecast` (URL 깔끔하게)
 - `components/layout.py` (sidebar) + `states/model_performance_state.py` (rx.redirect) 도 같이 업데이트
 
-### 2.7 Stage 3.5 — ksys_app.py 죽은 함수 제거 (`b52ec6b`)
+### 2.7 Stage 3.5 — edgeex_app.py 죽은 함수 제거 (`b52ec6b`)
 **1 파일 / -870 줄** (단일 commit 최대 효과)
-- `ksys_app.py` 1,078 → **208 줄 (-82%)**
+- `edgeex_app.py` 1,078 → **208 줄 (-82%)**
 - 제거: `index_old`, `trend_page`, `tech_page`, `tech_page_original` + 10개 헬퍼 (`_create_gradient`, `create_toggle_group`, `trend_composed_chart_new` 등)
 - 모두 외부 import 0개 + helper 호출 site도 dead 함수 내부에서만 grep 확인
 
@@ -106,7 +106,7 @@ Related docs:
 ### 2.9 Stage 4 Sprint 1 — `training_state.py` 패키지화 (`907a1b4`)
 **3 파일 변경 / +83 / -43**
 - `training_state.py` 1,108L → `training_state/` 패키지 (`__init__.py` 23L + `cache.py` 48L + `state.py` 1,077L)
-- Reflex State 분리 패턴 PoC 성공. `from ksys_app.states.training_state import TrainingState` 호환성 100%.
+- Reflex State 분리 패턴 PoC 성공. `from edgeex_app.states.training_state import TrainingState` 호환성 100%.
 - 깊은 helper extraction (queries.py, fitter.py)은 미실시 — Sprint 1은 패턴 검증만.
 
 ### 2.10 Stage 4 Sprint 2 — `pipeline_v2_hybrid` 패키지화 (`819e841`)
@@ -149,7 +149,7 @@ Related docs:
 
 | AC | 목표 | 현재 | 평가 |
 |---|---|---|---|
-| AC1: ksys_app/ ≤ 150 파일 | 150 | 253 | 미달성 (103 over) |
+| AC1: edgeex_app/ ≤ 150 파일 | 150 | 253 | 미달성 (103 over) |
 | AC2: 1,000+ LoC = 0 | 0 | 3 | 부분 (63% 감소) |
 | AC3: 죽은 페이지 = 0 | 0 | 0 | ✅ |
 | AC4: `ruff check .` exit 0 | 0 errors | 미실행 | Stage 7 |
@@ -177,7 +177,7 @@ Related docs:
 
 1. **PRD 없이 plan/design 진행 OK** — refactor 작업은 PRD 단계 불필요. Plan 문서가 충분.
 2. **잡초가 많을수록 cleanup 효과 큼** — Stage 1+2에서 LoC -70% (95K → 38K 추정). 진짜 코드는 1/3 미만이었음.
-3. **`@rx.page` 데코레이터 패턴 통일** — `ksys_app.py` -82% LoC. 라우트 등록 1방식만 남으니 코드베이스 이해 쉬워짐.
+3. **`@rx.page` 데코레이터 패턴 통일** — `edgeex_app.py` -82% LoC. 라우트 등록 1방식만 남으니 코드베이스 이해 쉬워짐.
 4. **`grep` + `ast.parse` 만으로 sanity check 가능** — Docker build 안 돌려도 commit 신뢰도 높음.
 5. **dead code 발견 시 split보다 delete** — `enhanced_agent_orchestrator.py` (1,097L) 사례. 분해 대신 삭제.
 
@@ -253,7 +253,7 @@ Related docs:
 - HTML page walk: `reports/page_walk_2026-05-19.html`
 - HTML prompt log: `reports/prompt_log_2026-05-19.html`
 - Memory: `~/.claude/projects/<this>/memory/feedback_no_host_reflex_zombie.md`
-- RPI backup origin: `C:\sync\01_remote_ksys\2026-03-24\deployment\20251030-rpi-finished` (read-only)
+- RPI backup origin: `C:\sync\01_remote_edgeex\2026-03-24\deployment\20251030-rpi-finished` (read-only)
 - Working branch: `refactor/rpi-baseline-sync` (13 commits ahead of `master`)
 
 ---

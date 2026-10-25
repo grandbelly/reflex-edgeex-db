@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.edgeex_vqt_raw (
     cond_val      DOUBLE PRECISION NULL,
     final_val     DOUBLE PRECISION NULL,
     final_quality SMALLINT NOT NULL DEFAULT 2,   -- edgeEX OPC quality (2=GOOD, 1=UNCERTAIN, 0=BAD)
-    influx_quality SMALLINT NOT NULL DEFAULT 0,  -- ksys_app quality (0=정상, 1=불확실, 2=불량)
+    influx_quality SMALLINT NOT NULL DEFAULT 0,  -- edgeex_app quality (0=정상, 1=불확실, 2=불량)
     integ_class   SMALLINT NOT NULL DEFAULT 0,   -- 0~5 (NORMAL..COLLECTION_STOPPED)
     integ_status  TEXT NOT NULL DEFAULT 'NORMAL',
     reasons       JSONB NOT NULL DEFAULT '[]'::jsonb,

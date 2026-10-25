@@ -26,7 +26,7 @@ strong { color: #f0f6fc; }
 hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </style></head>
 <body>
-<h1 id="ksys-docker-deployment-infrastructure-audit">KSys Docker / Deployment Infrastructure Audit</h1>
+<h1 id="edgeex-docker-deployment-infrastructure-audit">edgeEX Docker / Deployment Infrastructure Audit</h1>
 <ul>
 <li><strong>Date</strong>: 2026-05-21</li>
 <li><strong>Auditor</strong>: bkit-infra-architect</li>
@@ -214,28 +214,28 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <tr>
 <td><code>docker-compose.yml</code> (RPI prod)</td>
 <td><code>rpi-finished-*</code>, <code>cloudflared-tunnel</code></td>
-<td><code>ksys-network</code> (external)</td>
-<td>bind mounts for <code>./ksys_app</code>, named volume <code>pgai_data</code></td>
+<td><code>edgeex-network</code> (external)</td>
+<td>bind mounts for <code>./edgeex_app</code>, named volume <code>pgai_data</code></td>
 <td>Cloudflare token <strong>in plaintext</strong>, line 130</td>
 </tr>
 <tr>
 <td><code>docker-compose.local.yml</code> (local validation)</td>
-<td><code>ksys-local-*</code></td>
+<td><code>edgeex-local-*</code></td>
 <td><code>dev_network</code> (alias of <code>reflex-rpi-local-deployment-poongdo_default</code>, external)</td>
-<td>bind mounts everywhere — reuses <code>ksys-dev-db</code> from dev compose</td>
+<td>bind mounts everywhere — reuses <code>edgeex-dev-db</code> from dev compose</td>
 <td>Has <code>init: true</code> and <code>stop_grace_period</code> (best practice — only file that does)</td>
 </tr>
 <tr>
 <td><code>docker-compose.dev.yml</code> (DB only)</td>
-<td><code>ksys-dev-db</code></td>
+<td><code>edgeex-dev-db</code></td>
 <td>implicit default</td>
-<td>named volume <code>ksys_dev_pgdata</code>, read-only mounts for backup/migrations</td>
+<td>named volume <code>edgeex_dev_pgdata</code>, read-only mounts for backup/migrations</td>
 <td>Overrides CMD to drop pg_cron (workaround for ABI mismatch)</td>
 </tr>
 <tr>
 <td><code>20251030-rpi-pgcron/docker-compose.rpi-pgcron.yml</code> (legacy RPI DB only)</td>
 <td><code>pgai-db</code></td>
-<td><code>ksys-network</code> (external)</td>
+<td><code>edgeex-network</code> (external)</td>
 <td>named volume <code>pgai_data</code></td>
 <td>Yet another naming scheme</td>
 </tr>
@@ -290,28 +290,28 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 </tr>
 <tr>
 <td>C-06</td>
-<td>Bind mount of source code (<code>./ksys_app:/app/ksys_app</code>) in <strong>production</strong> compose. Means RPI is doing live code reload from filesystem; image content is overridden. Intentional for hot-patch but unsafe for "ship to many RPIs" — code drift between RPIs becomes invisible.</td>
+<td>Bind mount of source code (<code>./edgeex_app:/app/edgeex_app</code>) in <strong>production</strong> compose. Means RPI is doing live code reload from filesystem; image content is overridden. Intentional for hot-patch but unsafe for "ship to many RPIs" — code drift between RPIs becomes invisible.</td>
 <td>HIGH</td>
 <td><code>docker-compose.yml:47-48,82-83</code></td>
 <td>For prod, <code>COPY</code> code in image and drop the bind mount. Keep bind mount only in local/dev compose.</td>
 </tr>
 <tr>
 <td>C-07</td>
-<td>Network <code>ksys-network</code> is <code>external: true</code> but no script creates it on a fresh RPI. First <code>docker compose up</code> on a clean RPI errors out.</td>
+<td>Network <code>edgeex-network</code> is <code>external: true</code> but no script creates it on a fresh RPI. First <code>docker compose up</code> on a clean RPI errors out.</td>
 <td>MED</td>
 <td><code>docker-compose.yml:138-139</code>, <code>20251030-rpi-pgcron/docker-compose.rpi-pgcron.yml:31-32</code></td>
-<td>Either set <code>external: false</code> (let compose create), or add a <code>bootstrap.sh</code> that runs <code>docker network create ksys-network</code> before compose up.</td>
+<td>Either set <code>external: false</code> (let compose create), or add a <code>bootstrap.sh</code> that runs <code>docker network create edgeex-network</code> before compose up.</td>
 </tr>
 <tr>
 <td>C-08</td>
 <td><code>docker-compose.local.yml</code> aliases <code>dev_network</code> to literal name <code>reflex-rpi-local-deployment-poongdo_default</code>. If anyone renames the project directory, dev breaks silently.</td>
 <td>MED</td>
 <td><code>docker-compose.local.yml:112-116</code></td>
-<td>Use <code>name: ksys-dev-default</code> (stable, independent of cwd), or define the network in both compose files identically.</td>
+<td>Use <code>name: edgeex-dev-default</code> (stable, independent of cwd), or define the network in both compose files identically.</td>
 </tr>
 <tr>
 <td>C-09</td>
-<td>Three different container names for the DB across environments (<code>rpi-finished-pgai-db</code>, <code>ksys-dev-db</code>, <code>pgai-db</code>) → in-app DSNs differ per env. Source of past bugs.</td>
+<td>Three different container names for the DB across environments (<code>rpi-finished-pgai-db</code>, <code>edgeex-dev-db</code>, <code>pgai-db</code>) → in-app DSNs differ per env. Source of past bugs.</td>
 <td>MED</td>
 <td>docker-compose.{yml, local.yml, dev.yml}</td>
 <td>Standardise on hostname <code>db</code> (compose service name) inside the network; the app reads <code>TS_DSN</code> from env. Container names can stay different for shell ergonomics.</td>
@@ -403,7 +403,7 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <td><strong>No automation for bringing up a new RPI.</strong> Procedure is tribal knowledge ("ssh in, git pull, docker compose build, restore dump"). 1-month / N-unit goal is unrealistic without scripting.</td>
 <td>CRITICAL</td>
 <td><code>scripts/deploy_gcp.sh:1</code> is a removed stub</td>
-<td>Write <code>scripts/bootstrap_rpi.sh</code> that: (a) installs docker, (b) clones repo, (c) creates <code>ksys-network</code>, (d) generates per-RPI <code>.env</code>, (e) restores DB from a known dump, (f) starts compose, (g) verifies HTTP 200 on :14000.</td>
+<td>Write <code>scripts/bootstrap_rpi.sh</code> that: (a) installs docker, (b) clones repo, (c) creates <code>edgeex-network</code>, (d) generates per-RPI <code>.env</code>, (e) restores DB from a known dump, (f) starts compose, (g) verifies HTTP 200 on :14000.</td>
 </tr>
 <tr>
 <td>R-02</td>
@@ -464,10 +464,10 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 <tbody>
 <tr>
 <td>G-01</td>
-<td><strong>Audit prompt says "no GitHub" but <code>.git/config</code> shows <code>origin = https://github.com/grandbelly/reflex-ksys-db.git</code>.</strong> This is the DB-deployment repo, NOT the app code repo. So the <em>application</em> (ksys_app/, Dockerfile, compose files for prod) is in fact pushed to the DB repo — semantic mismatch. Verify with <code>git log origin/master..HEAD</code>.</td>
+<td><strong>Audit prompt says "no GitHub" but <code>.git/config</code> shows <code>origin = https://github.com/grandbelly/reflex-edgeex-db.git</code>.</strong> This is the DB-deployment repo, NOT the app code repo. So the <em>application</em> (edgeex_app/, Dockerfile, compose files for prod) is in fact pushed to the DB repo — semantic mismatch. Verify with <code>git log origin/master..HEAD</code>.</td>
 <td>HIGH</td>
-<td><code>.git/config:8-9</code>; HANDOFF.md round 2 §file table also lists <code>grandbelly/reflex-ksys-db</code></td>
-<td>Clarify: is <code>reflex-ksys-db</code> now the canonical repo for both? If yes, rename the repo to reflect scope. If no, split: app code in <code>reflex-ksys-app</code>, DB stuff in <code>reflex-ksys-db</code>.</td>
+<td><code>.git/config:8-9</code>; HANDOFF.md round 2 §file table also lists <code>grandbelly/reflex-edgeex-db</code></td>
+<td>Clarify: is <code>reflex-edgeex-db</code> now the canonical repo for both? If yes, rename the repo to reflect scope. If no, split: app code in <code>reflex-edgeex-app</code>, DB stuff in <code>reflex-edgeex-db</code>.</td>
 </tr>
 <tr>
 <td>G-02</td>
@@ -519,9 +519,9 @@ hr { border: 0; border-top: 1px solid #30363d; margin: 30px 0; }
 agentic-runs/
 reports/                # or whitelist .html only
 .claude/worktrees/
-ksys_app/**/*_backup_*.py
-ksys_app/**/*.bak
-ksys_app/**/*.disabled
+edgeex_app/**/*_backup_*.py
+edgeex_app/**/*.bak
+edgeex_app/**/*.disabled
 </code></pre>
 <hr />
 <h2 id="5-timescaledb-arm-pg_cron-specifics">5. TimescaleDB / ARM / pg_cron Specifics</h2>

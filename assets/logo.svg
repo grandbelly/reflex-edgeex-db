@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" width="400" height="80" role="img" aria-label="edgeEX">
+  <defs>
+    <linearGradient id="edBadgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="exAccentGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <!-- ED Monogram Badge (matches edgeEX Console rail-brand "ED") -->
+  <rect x="8" y="10" width="60" height="60" rx="14" fill="url(#edBadgeGrad)"/>
+  <rect x="10" y="12" width="56" height="56" rx="12" fill="none" stroke="#38BDF8" stroke-opacity="0.35" stroke-width="1.5"/>
+  <text x="38" y="49" text-anchor="middle" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="26" font-weight="800" fill="#F8FAFC" letter-spacing="-0.5">ED</text>
+  <!-- Wordmark "edgeEX" -->
+  <text x="84" y="53" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="42" font-weight="700" fill="#0F172A" letter-spacing="-1">edge<tspan fill="url(#exAccentGrad)" font-weight="800">EX</tspan></text>
+</svg>

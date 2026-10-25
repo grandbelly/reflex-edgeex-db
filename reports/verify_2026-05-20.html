@@ -98,14 +98,14 @@
     <td>All 4 containers Up > 1 minute</td>
   </tr>
   <tr>
-    <td>7</td><td><code>docker logs ksys-local-reflex-app --tail 100</code></td>
+    <td>7</td><td><code>docker logs edgeex-local-reflex-app --tail 100</code></td>
     <td><span class="status-pass">PASS</span></td>
     <td>"App Running" + Granian backend started + DB pool init OK + 0 traceback</td>
   </tr>
   <tr>
     <td>8</td><td>Route auto-discovery</td>
     <td><span class="status-pass">PASS</span></td>
-    <td>15 routes found via <code>grep @rx.page</code> in ksys_app/pages/</td>
+    <td>15 routes found via <code>grep @rx.page</code> in edgeex_app/pages/</td>
   </tr>
   <tr>
     <td>9</td><td><code>curl</code> all routes</td>
@@ -122,10 +122,10 @@
 <h2>🐳 Container State (post-up)</h2>
 
 <pre><code>NAMES                           STATUS
-ksys-local-reflex-app           Up About a minute   (recreated)
-ksys-local-forecast-scheduler   Up About an hour    (untouched)
-ksys-local-data-injector        Up About an hour    (untouched)
-ksys-dev-db                     Up About an hour (healthy)   (external network)</code></pre>
+edgeex-local-reflex-app           Up About a minute   (recreated)
+edgeex-local-forecast-scheduler   Up About an hour    (untouched)
+edgeex-local-data-injector        Up About an hour    (untouched)
+edgeex-dev-db                     Up About an hour (healthy)   (external network)</code></pre>
 
 <h2>🚦 Route HTTP Status (15 routes)</h2>
 
@@ -161,7 +161,7 @@ App running at: http://0.0.0.0:14000/
 Backend running at: http://0.0.0.0:14001
 Debug: Running command: ['granian', '--log-level', 'critical', '--host',
 '0.0.0.0', '--port', '14001', '--interface', 'asgi', '--factory',
-'/app/ksys_app/ksys_app.py:app']
+'/app/edgeex_app/edgeex_app.py:app']
 
 00:22:49 | INFO | SESSION STARTED - 20260520_002249
 00:22:50 | INFO | Database pool initialized successfully
@@ -196,10 +196,10 @@ Debug: Running command: ['granian', '--log-level', 'critical', '--host',
 <table>
   <tr><th>commit</th><th>변경</th></tr>
   <tr><td><code>e397d8f</code></td><td>baseline sync</td></tr>
-  <tr><td><code>7618aa2</code></td><td>Stage 1 — ksys_app_clean/ + 18 dead files 삭제 (-89,601L)</td></tr>
+  <tr><td><code>7618aa2</code></td><td>Stage 1 — edgeex_app_clean/ + 18 dead files 삭제 (-89,601L)</td></tr>
   <tr><td><code>4bf9cf9</code> + <code>4c0203b</code></td><td>Stage 2 — 11 dead pages + 7 orphan services/queries</td></tr>
   <tr><td><code>663aee6</code> + <code>ec3ba96</code></td><td>Stage 3 — @rx.page 통일 + /forecast rename</td></tr>
-  <tr><td><code>b52ec6b</code></td><td>Stage 3.5 — ksys_app.py 죽은 함수 14개 제거 (1078→208)</td></tr>
+  <tr><td><code>b52ec6b</code></td><td>Stage 3.5 — edgeex_app.py 죽은 함수 14개 제거 (1078→208)</td></tr>
   <tr><td><code>907a1b4</code> ~ <code>d77988f</code></td><td>Stage 4 Sprint 1-4 — 4 monolith package화 + 1 dead 삭제</td></tr>
   <tr><td><code>fb005ea</code></td><td>session report</td></tr>
   <tr><td><code>811689e</code></td><td>.gitignore .claude/worktrees/</td></tr>

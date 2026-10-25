@@ -54,10 +54,10 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 <!-- ============== 1. KPI Cards ============== -->
 <h2>1. 풀스택 컴포넌트 현황</h2>
 <div class="row">
-  <div class="card"><div class="label">DB (TimescaleDB)</div><div class="value">Running <span class="badge ok">UP 4h+</span></div><div class="subtle">ksys-dev-db · :5432 · ecoanp DB</div></div>
-  <div class="card"><div class="label">Data Injector</div><div class="value">Running <span class="badge ok">5-min cycle</span></div><div class="subtle">ksys-local-data-injector · 5 sensors fresh values</div></div>
-  <div class="card"><div class="label">Forecast Scheduler</div><div class="value">Running <span class="badge ok">x:00/x:10</span></div><div class="subtle">ksys-local-forecast-scheduler · refactor live</div></div>
-  <div class="card"><div class="label">Reflex Backend</div><div class="value">Listen :14002 <span class="badge ok">UP</span></div><div class="subtle">host venv-ksys, uvicorn worker</div></div>
+  <div class="card"><div class="label">DB (TimescaleDB)</div><div class="value">Running <span class="badge ok">UP 4h+</span></div><div class="subtle">edgeex-dev-db · :5432 · ecoanp DB</div></div>
+  <div class="card"><div class="label">Data Injector</div><div class="value">Running <span class="badge ok">5-min cycle</span></div><div class="subtle">edgeex-local-data-injector · 5 sensors fresh values</div></div>
+  <div class="card"><div class="label">Forecast Scheduler</div><div class="value">Running <span class="badge ok">x:00/x:10</span></div><div class="subtle">edgeex-local-forecast-scheduler · refactor live</div></div>
+  <div class="card"><div class="label">Reflex Backend</div><div class="value">Listen :14002 <span class="badge ok">UP</span></div><div class="subtle">host venv-edgeex, uvicorn worker</div></div>
   <div class="card"><div class="label">Reflex Frontend</div><div class="value">Listen :14000 <span class="badge ok">UP</span></div><div class="subtle">host vite/node 24</div></div>
   <div class="card"><div class="label">Deployed Model</div><div class="value">1 row <span class="badge ok">AutoARIMA</span></div><div class="subtle">model_id=1 INLET_PRESSURE 12.5 KB pickle</div></div>
 </div>
@@ -137,7 +137,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
 <table>
 <thead><tr><th>파일</th><th>줄 수</th><th>이슈</th></tr></thead>
 <tbody>
-<tr><td><code>ksys_app/ksys_app.py</code></td><td>1,130 lines</td><td><span class="badge err">사이드바 + 헤더 + 라우트 등록 + 임포트 다 묶임</span></td></tr>
+<tr><td><code>edgeex_app/edgeex_app.py</code></td><td>1,130 lines</td><td><span class="badge err">사이드바 + 헤더 + 라우트 등록 + 임포트 다 묶임</span></td></tr>
 </tbody>
 </table>
 
@@ -179,7 +179,7 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 20px 0; }
       <li>9개 backup/disabled 파일 제거</li>
       <li>중복 페이지 통합 (<code>alarms_rt_simple</code> / <code>_new</code> / <code>alarms.py</code> 셋 중 진짜 사용되는 것만 남김)</li>
       <li><code>feature_config_service</code> 4 버전 → 1</li>
-      <li><code>ksys_app.py</code> 1,130 lines를 <code>app.py</code> + <code>routes.py</code> + <code>layout.py</code>로 분리</li>
+      <li><code>edgeex_app.py</code> 1,130 lines를 <code>app.py</code> + <code>routes.py</code> + <code>layout.py</code>로 분리</li>
     </ul>
   </li>
   <li><strong>UI 디자인 개선</strong>: design-system-demo 페이지가 이미 존재 — 거기서 정의된 컴포넌트로 dashboard / forecast-player / alarms 페이지 visual refresh</li>

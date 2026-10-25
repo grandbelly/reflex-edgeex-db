@@ -1,6 +1,6 @@
-# Reflex-KSys Database Deployment
+# Reflex-edgeEX Database Deployment
 
-TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron deployment for Reflex-KSys SCADA system.
+TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron deployment for Reflex-edgeEX SCADA system.
 
 ## 📦 Contents
 
@@ -238,4 +238,4 @@ docker exec pgai-db psql -U postgres -d ecoanp -c "SELECT pg_terminate_backend(p
 
 ## 📄 License
 
-Part of Reflex-KSys SCADA system.
+Part of Reflex-edgeEX SCADA system.

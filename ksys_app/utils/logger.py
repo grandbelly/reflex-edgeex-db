@@ -16,8 +16,8 @@ import asyncio
 import inspect
 
 # Create logs directory structure
-# Use /tmp/ksys_logs to avoid Reflex hot reload issues
-LOG_DIR = Path("/tmp/ksys_logs") if os.path.exists("/tmp") else Path("logs")
+# Use /tmp/ksys_logs on Linux/Docker to avoid Reflex hot reload issues; on Windows use relative logs/
+LOG_DIR = Path(os.environ.get("KSYS_LOG_DIR", "/tmp/ksys_logs" if (sys.platform != "win32" and os.path.exists("/tmp")) else "logs"))
 LOG_DIR.mkdir(exist_ok=True, parents=True)
 
 # Session-based log directory (one per app start)

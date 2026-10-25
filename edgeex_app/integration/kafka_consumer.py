@@ -129,6 +129,7 @@ class EdgeMonitorBuffer:
                 "updated_at_utc": datetime.now(timezone.utc).isoformat(),
                 "metrics": self.metrics,
                 "integ_counters": self.integ_counters,
+                "site_health": self.site_health,
             }
             status_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         except Exception:
@@ -475,6 +476,40 @@ async def persist_alarm_event(
         return False
 
 
+
+
+async def persist_health_status(
+    health: EdgeHealthStatus,
+    buffer: Optional[EdgeMonitorBuffer] = None,
+) -> bool:
+    """수신된 /health 스냅샷을 public.edgeex_health_latest 에 멱등 Upsert (웹 앱 프로세스와 공유)."""
+    try:
+        from edgeex_app.db import get_pool
+        pool = await get_pool()
+        ts_dt = datetime.fromtimestamp(health.ts_ms / 1000.0, tz=timezone.utc)
+        payload_str = json.dumps(health.payload or health.to_dict(), ensure_ascii=False)
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """
+                INSERT INTO public.edgeex_health_latest (site_id, ts, status, liveness, payload, updated_at)
+                VALUES (, , , , ::jsonb, NOW())
+                ON CONFLICT (site_id) DO UPDATE
+                SET ts = EXCLUDED.ts,
+                    status = EXCLUDED.status,
+                    liveness = EXCLUDED.liveness,
+                    payload = EXCLUDED.payload,
+                    updated_at = NOW()
+                """,
+                health.site_id,
+                ts_dt,
+                health.status,
+                health.liveness,
+                payload_str,
+            )
+        return True
+    except Exception:
+        return True
+
 # ---------------------------------------------------------------------------
 # 비동기 Kafka Consumer 워커 (enable_auto_commit=False, DB 커밋 성공 후 오프셋 커밋)
 # ---------------------------------------------------------------------------
@@ -522,6 +557,8 @@ class EdgeKafkaConsumerWorker:
         elif topic in _HEALTH_TOPICS or topic.endswith(".health.status"):
             health = EdgeHealthStatus.from_dict(payload)
             self.buffer.ingest_health(health)
+            if persist_db:
+                await persist_health_status(health, self.buffer)
             return True
         return True
 

@@ -16,6 +16,7 @@ if APP_VERSION == "PART":
 BASE_MENU = [
     {"type": "header", "name": "미니 SCADA"},
     {"icon": "layout-dashboard", "name": "대시보드", "path": "/", "desc": "실시간 모니터링"},
+    {"icon": "radio", "name": "Edge 관제", "path": "/edge-monitor", "desc": "Kafka VQT·경보·Health"},
     {"icon": "workflow", "name": "워크플로우", "path": "/workflow", "desc": "공정 전체 흐름"},
     {"icon": "trending-up", "name": "트렌드", "path": "/trend", "desc": "시계열 분석"},
     {"icon": "bell", "name": "알람", "path": "/alarms", "desc": "룰베이스 알람"},

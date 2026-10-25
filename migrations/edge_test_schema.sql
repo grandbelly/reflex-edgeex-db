@@ -1,15 +1,19 @@
 -- ============================================================================
--- CR-EXAT-277 상위 Consumer 엣지 통합 시험용 최소 스키마 (migrations/edge_test_schema.sql)
+-- CR-EXAT-277 상위 Consumer 및 상위 웹 앱(edgeex_app) 엣지 통합 시험용 스키마 (migrations/edge_test_schema.sql)
 -- 대상 이미지: timescale/timescaledb:2.28.2-pg16 (빈 DB에 즉시 적용 가능)
 -- 특징:
---   1. Consumer가 적재하는 표 5종 생성:
+--   1. Consumer가 적재하는 표 6종 생성:
 --      - public.influx_tag
 --      - public.viewer_tag
 --      - public.influx_hist (TimescaleDB hypertable)
 --      - public.alarm_history
 --      - public.edgeex_vqt_raw (TimescaleDB hypertable)
---   2. 모든 ON CONFLICT 대상 고유 제약(PRIMARY KEY / UNIQUE) 포함
---   3. 완전 멱등(Idempotent): 2회 이상 반복 실행 및 014_create_edgeex_vqt_lossless.sql 후속 실행 시 무오류 보장
+--      - public.edgeex_health_latest (사이트별 최신 /health 스냅샷 영속화)
+--   2. 상위 웹 앱(edgeex_app) 화면(/, /edge-monitor, /alarms, /trend 등)이 참조하는 보조 표·뷰 포함:
+--      - public.influx_qc_rule
+--      - public.influx_latest / influx_latest_dashboard / influx_latest_alarm / influx_latest_trend / influx_latest_model
+--   3. 모든 ON CONFLICT 대상 고유 제약(PRIMARY KEY / UNIQUE) 포함
+--   4. 완전 멱등(Idempotent): 2회 이상 반복 실행 및 014_create_edgeex_vqt_lossless.sql 후속 실행 시 무오류 보장
 -- ============================================================================
 
 CREATE EXTENSION IF NOT EXISTS timescaledb;
@@ -116,3 +120,66 @@ CREATE INDEX IF NOT EXISTS idx_edgeex_vqt_raw_tag_ts
 
 CREATE INDEX IF NOT EXISTS idx_edgeex_vqt_raw_quality_ts
     ON public.edgeex_vqt_raw (final_quality, ts DESC);
+
+-- 6. public.edgeex_health_latest (사이트별 최신 /health 스냅샷 영속화 — 웹 앱 프로세스와 공유)
+CREATE TABLE IF NOT EXISTS public.edgeex_health_latest (
+    site_id    TEXT PRIMARY KEY,
+    ts         TIMESTAMPTZ NOT NULL,
+    status     TEXT NOT NULL DEFAULT 'OK',
+    liveness   TEXT NOT NULL DEFAULT 'OK',
+    payload    JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 7. public.influx_qc_rule (대시보드/알람 화면 QC 임계치 참조용 보조 표)
+CREATE TABLE IF NOT EXISTS public.influx_qc_rule (
+    tag_name  TEXT PRIMARY KEY,
+    min_val   DOUBLE PRECISION NULL,
+    max_val   DOUBLE PRECISION NULL,
+    warn_min  DOUBLE PRECISION NULL,
+    warn_max  DOUBLE PRECISION NULL,
+    crit_min  DOUBLE PRECISION NULL,
+    crit_max  DOUBLE PRECISION NULL,
+    unit      TEXT NULL
+);
+
+-- 8. 상위 웹 앱(edgeex_app) 화면이 참조하는 최신값 뷰 5종
+CREATE OR REPLACE VIEW public.influx_latest_dashboard AS
+SELECT DISTINCT ON (h.tag_name)
+    h.tag_name, h.ts, h.value, h.quality
+FROM public.influx_hist h
+LEFT JOIN public.viewer_tag v ON h.tag_name = v.tag_name
+WHERE COALESCE(v.show_dashboard, TRUE) = TRUE
+ORDER BY h.tag_name, h.ts DESC;
+
+CREATE OR REPLACE VIEW public.influx_latest_alarm AS
+SELECT DISTINCT ON (h.tag_name)
+    h.tag_name, h.ts, h.value, h.quality
+FROM public.influx_hist h
+LEFT JOIN public.viewer_tag v ON h.tag_name = v.tag_name
+WHERE COALESCE(v.show_alarm, TRUE) = TRUE
+ORDER BY h.tag_name, h.ts DESC;
+
+CREATE OR REPLACE VIEW public.influx_latest_trend AS
+SELECT DISTINCT ON (h.tag_name)
+    h.tag_name, h.ts, h.value, h.quality
+FROM public.influx_hist h
+LEFT JOIN public.viewer_tag v ON h.tag_name = v.tag_name
+WHERE COALESCE(v.show_trend, TRUE) = TRUE
+ORDER BY h.tag_name, h.ts DESC;
+
+CREATE OR REPLACE VIEW public.influx_latest_model AS
+SELECT DISTINCT ON (h.tag_name)
+    h.tag_name, h.ts, h.value, h.quality
+FROM public.influx_hist h
+LEFT JOIN public.viewer_tag v ON h.tag_name = v.tag_name
+WHERE COALESCE(v.show_model, TRUE) = TRUE
+ORDER BY h.tag_name, h.ts DESC;
+
+CREATE OR REPLACE VIEW public.influx_latest AS
+SELECT DISTINCT ON (h.tag_name)
+    h.tag_name, h.ts, h.value, h.quality
+FROM public.influx_hist h
+LEFT JOIN public.viewer_tag v ON h.tag_name = v.tag_name
+WHERE COALESCE(v.show_dashboard, TRUE) = TRUE
+ORDER BY h.tag_name, h.ts DESC;

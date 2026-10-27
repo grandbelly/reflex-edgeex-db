@@ -12,7 +12,7 @@ Key files: `base_state.py` (shared base), `dashboard_realtime_grouped.py`, `tren
 
 ## Local Contracts
 
-- All states inherit `BaseState(rx.State)` (polling control, loading/error, sidebar/theme).
+- The active `ScadaState` inherits `rx.State` directly. Legacy State classes use `BaseState`; do not mix their lifecycle/private connection helpers into the active profile.
 - Naming: `<Feature>State`. Private fields use leading underscore (`_polling_active`, `_polling_task`).
 - Event handlers use `@rx.event`; background polling uses `@rx.event(background=True)` + `async def`.
 - States call **services** (instantiated with a DB session), get back dicts, store them on Vars.
@@ -38,4 +38,6 @@ None. Subpackages here are implementation detail, not separate DOX boundaries.
 
 ## Shared SCADA context
 
-`ScadaState` owns site/tag/5-15-60-minute context across the six migration routes. Only one read per browser is active; pending reads coalesce and stale responses cannot overwrite a changed context. Five-second live updates stop on disconnection; fixed-time mode preserves the same completed snapshot across menu navigation. No command/write events are provided.
+`ScadaState` owns site/tag/5-15-60-minute context, snapshot, local search and 12-row pagination across the six routes. A native browser `rx.moment` timer calls finite background events; it stops producing requests when the component/tab disappears. Single-flight reads coalesce; obsolete scope responses cannot overwrite new scope. Every mutation in a background event occurs under `async with self`.
+
+Fixed mode invalidates in-flight reads and preserves the completed snapshot across navigation. Tag selection in fixed mode only selects that snapshot's detail and clears history; explicit refresh/apply or live resume gets new data. All controls have explicit events; no automatic setters or inherited mutable fields. There are no command/write events.

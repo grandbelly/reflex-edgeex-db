@@ -6,7 +6,7 @@
 
 기존 상위 Kafka 연계(CR277)의 VQT를 여섯 메뉴에서 같은 현장·태그·품질·시각으로 읽는다. 운전 Consumer/설치본/채널/브로커/컨테이너 변경 없이 별도 worktree와 localhost 검증 앱을 사용한다. 새 CR 번호를 임의 발급하거나 엣지 제품 범위를 확장하지 않는다.
 
-명시적인 `SCADA_DATA_SOURCE=edge_vqt` 조회 프로필로 전환한다. 기본 legacy 프로필과 기존 3100/8100 시연 앱은 보존한다. 프로필은 API·조회·화면 계약 전환 단위이며 SQL 오류 때 자동으로 legacy 자료로 우회하지 않는다.
+`SCADA_DATA_SOURCE=edge_vqt` 조회 프로필로 전환한다. 2026-10-28 오너의 최신 Reflex·템플릿 지시로 새 앱의 기본 진입점도 이 프로필로 한정한다. 기존 3100/8100 설치 트리와 venv는 보존한다. SQL 오류 때 legacy 자료로 우회하지 않는다. 새 화면의 근거와 이관 기준은 `docs/reflex_template_source.md`에 적는다.
 
 ## 계약
 

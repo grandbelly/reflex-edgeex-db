@@ -22,18 +22,12 @@ One module per route; multi-step flows become subpackages (e.g. `training_wizard
 
 ## Verification
 
-Navigate the route on `:14000` after a container restart (prod recompile).
+Verify the six routes in isolated localhost preview (`:3101`) using orca; production/container verification is separate.
 
-## Routes (current)
+## Active routes
 
-`/` dashboard · `/trend` trend_enhanced_v2 · `/alarms` + `/alarms_rt` + `/alarms_hist` (+ `_new` variants) ·
-`/forecast` · `/model-performance` · `/comm` · `/training-wizard` · `/viewer-tag` · `/workflow` ·
-`/scada-alarms` + `/scada-alarm-comparison` · `/ai` (guarded).
+`scada.py` registers `/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm` through `@rx.page` and the shared Dashboard template decorator. `on_load=ScadaState.initialize` reads only when live or not loaded. Other page files are migration history and are not imported by the active app. Do not mount their write routes or dashboard schedulers.
 
 ## Child DOX Index
 
 None.
-
-## Core profile selection
-
-The six core routes (`/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm`) select shared `ScadaState`/`scada_view` only when `SCADA_DATA_SOURCE=edge_vqt`. Profile selection changes on_load as well as rendering. Dashboard visits in this profile must not start forecasting schedulers. Legacy branches remain available only in the default profile.

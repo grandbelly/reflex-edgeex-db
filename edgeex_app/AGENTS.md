@@ -8,8 +8,7 @@ route → page → view → components, fed by State, fed by services/queries ov
 ## Ownership
 
 Owns app bootstrap and cross-layer wiring. Files at this level:
-- `edgeex_app.py` — app entry: loads `.env`, inits DB pool, registers pages (by importing page modules),
-  pins dark theme, starts schedulers via `SchedulerState` on mount.
+- `edgeex_app.py` — native Reflex 0.10 entry; registers only `pages/scada.py`, without import-time DB connections, environment-file loading or schedulers.
 - `db.py` — asyncpg singleton pool: `get_pool()`, `q(sql, params)`. Raw hot-path SQL.
 - `db_orm.py` — SQLAlchemy async engine/session: `get_async_session()`. ORM/batch path. NullPool by
   default (Reflex bg events need fresh conns); `USE_DB_POOLING=true` opts schedulers into a real pool.
@@ -34,7 +33,7 @@ Smaller dirs owned here without their own doc: `config/`, `utils/` (incl. `logge
 - New feature = new State (`states/`) + view (`views/`) + page (`pages/`); reuse `components/`.
 - New data need = add a query fn in `queries/`, wrap business logic in a `services/` method, call from State.
 - Log via `edgeex_app.utils.logger.get_logger(__name__)`; mask secrets (see `load_env` masking).
-- `/edge-monitor` uses the CSS tokens and reactive `page_container`, `header_bar`, `section_header`,
+- Legacy `/edge-monitor` used the CSS tokens and reactive `page_container`, `header_bar`, `section_header`,
   `card`, `status_pill`, `pill_button`, and `kpi_tile` helpers in `design_system/am.py`.
 
 ## Verification
@@ -58,8 +57,12 @@ Smaller dirs owned here without their own doc: `config/`, `utils/` (incl. `logge
 `views/` (thin page↔component composition, `*_view.py`) is owned here — add a child doc only if it grows
 its own contracts.
 
-## Core SCADA migration profile
+## Active SCADA profile (Reflex 0.10.1)
 
-`SCADA_DATA_SOURCE=edge_vqt` explicitly selects the six read-only core routes; default `legacy` retains existing routes. `scada_config.py` validates the profile and applies read-only session defaults to both DB access paths. Invalid profiles fail rather than fall back. AI, legacy write routes, in-app Consumer and dashboard-triggered schedulers are not part of this profile.
+The owner requested latest Reflex via Context7 and an official template on 2026-10-28. `components/scada.py` adapts the pinned official Dashboard template (source in `docs/reflex_template_source.md`). `pages/scada.py` registers the six routes. `views/scada_view.py` composes only native Reflex components. `assets/scada.css` provides small responsive overrides; the theme is configured through `RadixThemesPlugin` in `rxconfig.py`.
 
-On the edge Windows host, this profile is verified in the dedicated test venv with `python -m unittest discover -s tests -p test_scada_contract.py -v`, Reflex compilation and orca computer browser checks. Container/RPI production acceptance remains separate; do not modify running containers for these checks. See `docs/mini_scada_contract_plan.md`.
+`SCADA_DATA_SOURCE` defaults to `edge_vqt`; the active entry rejects legacy/unknown profiles. `TS_DSN` must be provided explicitly. All DB sessions are read-only. Legacy modules remain as migration source and are not claimed to work under 0.10; do not import their State, ORM, write handlers or schedulers into the active entry.
+
+`ScadaState(rx.State)` is independent of the old BaseState. A browser moment timer requests bounded five-second reads. No private Reflex connection map or infinite server polling loop is used. The common form applies site/tag/time together. Search/pagination use the received snapshot. Fixed mode preserves it through navigation; explicit apply/refresh requests a new snapshot.
+
+Verify in an isolated Windows venv: install `requirements-edge-web.txt`, `pip check`, `python -m unittest discover -s tests -p test_scada_contract.py -v`, `reflex compile --no-rich`, preview build and orca browser checks. Set `PYTHONUTF8=1` and a separate `REFLEX_DIR`. Actual read-only SQL parity is recorded in the acceptance receipt. Container/RPI production checks are separate; this work does not change running containers.

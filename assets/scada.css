@@ -1,0 +1,17 @@
+/* Native Radix/Reflex theme. No Chakra providers or external font dependency. */
+html, body { margin: 0; min-height: 100%; }
+* { box-sizing: border-box; }
+.scada-shell { min-height: 100dvh; background: var(--gray-1); }
+.scada-sidebar { width: 224px; flex-shrink: 0; position: sticky; top: 0; height: 100dvh; border-right: 1px solid var(--gray-5); background: var(--gray-2); }
+.scada-main { min-width: 0; flex: 1; }
+.scada-workspace { max-width: 1640px; margin: auto; padding: 28px 32px; }
+.scada-panel { min-width: 0; width: 100%; }
+.scada-panel .rt-TableRoot { border-radius: 0; }
+.scada-point-row { cursor: pointer; }
+.scada-point-row:hover { background: var(--gray-3); }
+.scada-detail { overflow-wrap: anywhere; }
+.scada-mono { font-family: Consolas, monospace; }
+@media (max-width: 1023px) {
+  .scada-sidebar { display: none; }
+  .scada-workspace { padding: 20px 16px; }
+}

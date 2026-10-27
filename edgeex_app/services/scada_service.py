@@ -23,7 +23,7 @@ def display(value):
 def stamp(value):
     if value is None or value.tzinfo is None:
         return "—"
-    return value.astimezone(ZoneInfo("Asia/Seoul")).isoformat(timespec="milliseconds")
+    return value.astimezone(ZoneInfo("Asia/Seoul")).isoformat(timespec="microseconds")
 
 
 def freshness(observed, at, stale_after):

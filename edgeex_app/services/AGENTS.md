@@ -40,3 +40,5 @@ None.
 ## Shared SCADA semantics
 
 `ScadaService` shapes the canonical site-scoped snapshot for all six migration routes. Preserve numeric values separately from display strings; NULL/NaN/infinity are never numeric zero. BAD FINAL is not plotted. Value-contract validity, quality and source-time freshness are distinct. Unknown thresholds/definitions/collection plans never imply normal or 100%. Health payload failures remain partial failures.
+
+Source and ingestion timestamps preserve DB microseconds in ISO 8601 with timezone. Display formatting must not discard precision in the shared data contract.

@@ -1,3 +1,9 @@
+## 2026-10-28 — ongoing mini SCADA / Reflex 0.10.1
+
+Owner: use Context7, latest Reflex, official template for the full mini SCADA. Branch `feat/mini-scada-data-contract`, base `pl/edge-monitor-candidate-20261027` dd958d7. Native six-route read-only profile is the new entry. See `docs/mini_scada_contract_plan.md` and `docs/reflex_template_source.md`.
+
+Dedicated venv `C:/edgeex-it/cr277/refactor-venv010`, separate Reflex/Bun cache `C:/edgeex-it/cr277/reflex-cache010`, localhost preview3101. Operating Consumer/Redis/channels/installations/containers and Chrome9333 untouched. Health table remains absent in the upper DB; display partial failure, do not create schema. No registry/process bindings/collection plan/authorized ACK contract supplied yet. Production deployment is separate.
+
 # Mini SCADA common-contract implementation — 2026-10-27
 
 - Owner approved full review then continuation. Isolated `upper-refactor`, branch `feat/mini-scada-data-contract`, base dd958d7. Existing upper-web dirty files and 3100/8100 left untouched.

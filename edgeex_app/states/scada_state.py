@@ -1,21 +1,25 @@
-"""One site/tag/time context for the six read-only migration routes."""
+"""Shared, bounded read events. Browser timer owns polling lifetime."""
 import asyncio
 import os
-from typing import Any
+from typing import Any, TypedDict
 import reflex as rx
-from .base_state import BaseState
-from ._connection import client_connected
 from ..services.scada_service import ScadaService
 
 
-class ScadaState(BaseState):
+class ScopeForm(TypedDict):
+    site: str
+    tag: str
+    minutes: str
+
+
+class ScadaState(rx.State):
     site_id: str = os.getenv("SCADA_SITE_ID", "")
     tag: str = os.getenv("SCADA_TAG_ID", "")
     minutes: str = "15"
     as_of: str = "—"
     served_at: str = "—"
-    source_label: str = "edge_vqt · 읽기 전용"
     query_state: str = "조회 전"
+    error_message: str = ""
     health_state: str = "조회 전"
     alarm_state: str = "조회 전"
     tags: list[str] = []
@@ -32,29 +36,48 @@ class ScadaState(BaseState):
     uncertain: int = 0
     bad: int = 0
     series_truncated: bool = False
-    polling: bool = False
     live: bool = True
-    _generation: int = 0
+    search: str = ""
+    page: int = 0
     _request: int = 0
     _reading: bool = False
     _pending: bool = False
 
+    @rx.var
+    def filtered_rows(self) -> list[dict[str, Any]]:
+        term = self.search.casefold().strip()
+        return [r for r in self.rows if term in str(r["tag"]).casefold()
+                or term in str(r["channel"]).casefold()]
+
+    @rx.var
+    def page_count(self) -> int:
+        return max(1, (len(self.filtered_rows) + 11) // 12)
+
+    @rx.var
+    def visible_rows(self) -> list[dict[str, Any]]:
+        start = min(self.page, self.page_count - 1) * 12
+        return self.filtered_rows[start:start + 12]
+
+    @rx.var
+    def selected(self) -> dict[str, Any]:
+        return next((r for r in self.rows if r["tag"] == self.tag), {
+            k: "—" for k in ("tag", "channel", "raw", "cond", "final", "unit", "quality",
+                              "validity", "freshness", "observed_at", "ingested_at", "reasons")
+        })
+
     @rx.event(background=True)
     async def initialize(self):
         async with self:
-            self._generation += 1
-            generation = self._generation
-            if not self.live:
-                return
-            self.polling = True
-        while True:
-            async with self:
-                if generation != self._generation or not self.polling:
-                    return
-            if not client_connected(self):
-                return
+            live, empty = self.live, self.as_of == "—"
+        if live or empty:
             await self._refresh()
-            await asyncio.sleep(5)
+
+    @rx.event(background=True)
+    async def poll_tick(self):
+        async with self:
+            live = self.live
+        if live:
+            await self._refresh()
 
     async def _refresh(self):
         async with self:
@@ -84,15 +107,16 @@ class ScadaState(BaseState):
                 self.series_truncated = snapshot["series_truncated"]
                 for field in ("received", "good", "uncertain", "bad"):
                     setattr(self, field, int(snapshot["counts"][field]))
-                self.query_state = "조회 성공" if self.rows else "조회 성공 · 표본 없음"
+                self.page = min(self.page, self.page_count - 1)
+                self.query_state = "조회 완료" if self.rows else "표본 없음"
                 self.error_message = ""
         except Exception as exc:
             async with self:
                 if request != self._request:
                     return
                 code = getattr(exc, "code", None) or type(exc).__name__
-                self.query_state = "조회 실패 · 이전 자료일 수 있음"
-                self.error_message = "관제 조회 불가 · " + code
+                self.query_state = "조회 실패"
+                self.error_message = "새 자료를 읽지 못했습니다. 마지막 조회 시각을 확인하세요. · " + code
         finally:
             async with self:
                 self._reading = False
@@ -105,46 +129,53 @@ class ScadaState(BaseState):
         await self._refresh()
 
     @rx.event(background=True)
-    async def change_site(self, value: str):
+    async def apply_scope(self, form_data: ScopeForm):
+        site, tag, minutes = form_data["site"].strip(), form_data["tag"], form_data["minutes"]
+        if not site or len(site) > 200 or len(tag) > 300 or minutes not in {"5", "15", "60"}:
+            async with self:
+                self.error_message = "현장 ID와 조회 기간을 확인하세요."
+            return
         async with self:
             self._request += 1
-            self.site_id, self.tag = value.strip(), ""
+            if site != self.site_id:
+                tag = ""
+            self.site_id, self.tag, self.minutes = site, tag, minutes
             self.rows, self.series, self.tags, self.alarms, self.health_rows = [], [], [], [], []
             self.observed_tags = self.bad_tags = self.stale_tags = 0
             self.stale_label = "—"
             self.received = self.good = self.uncertain = self.bad = 0
             self.as_of = self.served_at = "—"
-            self.query_state = self.health_state = self.alarm_state = "조회 전"
+            self.query_state = self.health_state = self.alarm_state = "조회 중"
+            self.page = 0
         await self._refresh()
 
     @rx.event(background=True)
-    async def change_tag(self, value: str):
+    async def select_tag(self, value: str):
         async with self:
+            if value not in self.tags:
+                return
             self._request += 1
-            self.tag = value
-            self.series = []
-        await self._refresh()
-
-    @rx.event(background=True)
-    async def change_minutes(self, value: str):
-        async with self:
-            self._request += 1
-            self.minutes = value
-        await self._refresh()
+            self.tag, self.series = value, []
+            live = self.live
+        if live:
+            await self._refresh()
 
     @rx.event
-    def stop(self):
-        self.polling = False
-        self._generation += 1
-        self._request += 1
-        self._pending = False
+    def change_search(self, value: str):
+        self.search, self.page = value, 0
+
+    @rx.event
+    def previous_page(self):
+        self.page = max(0, self.page - 1)
+
+    @rx.event
+    def next_page(self):
+        self.page = min(self.page_count - 1, self.page + 1)
 
     @rx.event
     def toggle_live(self):
         self.live = not self.live
         if self.live:
-            return ScadaState.initialize
-        self.polling = False
-        self._generation += 1
+            return ScadaState.refresh_now
         self._request += 1
         self._pending = False

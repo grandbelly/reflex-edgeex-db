@@ -55,6 +55,12 @@ class ValueContract(unittest.TestCase):
         data = fixture(); data["latest"][0]["ts"] = AT-timedelta(hours=2)
         self.assertEqual(shape_snapshot(data, 10)["stale_tags"], 1)
 
+    def test_timestamp_preserves_database_microseconds(self):
+        data = fixture()
+        data["latest"][0]["ingested_at"] = AT.replace(microsecond=38037)
+        value = shape_snapshot(data, 10)["rows"][0]["ingested_at"]
+        self.assertEqual(datetime.fromisoformat(value), data["latest"][0]["ingested_at"])
+
     def test_unknown_and_future_clocks_are_visible(self):
         self.assertEqual(freshness(AT, AT, None), "현재성 기준 미설정")
         self.assertEqual(freshness(AT+timedelta(milliseconds=1), AT, 10), "시각 불일치")

@@ -1,4 +1,6 @@
 # 미니 SCADA에 사용할 공식 Reflex 템플릿 스터디
+2026-10-28 후속 전수 조사: **등록 27종 + 미등록 1종 전체 비교의 정본은 [템플릿 전수 비교](reflex_template_catalog.md)**다. 최종 조합·비율·데이터/동작 계약은 [컴포넌트·레이아웃 설계](mini_scada_component_layout_design.md), 검토할 화면 배치는 [설계 보드](mini_scada_layout_board.html)에 있다. 아래는 처음 선정한 후보의 상세 관찰이며 전체 목록이 아니다.
+
 
 2026-10-28 오너가 `stock_market_dashboard` 배치와 `stock_graph_app` 실시간 그래프를 직접 선택했다. 초기 Dashboard 기본형과 Company Dashboard는 비교 자료이며 최종 기준이 아니다.
 

@@ -78,6 +78,8 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
+- 미니 SCADA는 메뉴별 판단 목적을 먼저 정하고 공식 Reflex 템플릿과 컴포넌트를 매칭한다. 전체 비교는 `docs/reflex_template_catalog.md`, 화면/동작/자료/수용 설계는 `docs/mini_scada_component_layout_design.md`, 오프라인 배치 보드는 `docs/mini_scada_layout_board.html`이 소유한다. stock_market_dashboard의 공통 외형과 stock_graph_app의 실시간 그래프를 기준으로 삼되 여섯 메뉴를 같은 KPI·태그 표로 반복하지 않는다. 예제 State·가짜 수치·정상 애니메이션을 운전 근거로 이식하지 않는다.
+
 - 상위 앱의 엣지 연동 시연은 엣지 PC에서 실행하고, 오너 PC에서는 원격 화면 또는 터널을 통한 브라우저 접속으로 확인한다.
 - 오너 PC의 앱 직접 실행이나 DB 미연결 화면을 엣지 연동 시연으로 대체하지 않는다. 시연 요청을 로컬 실행 허가로 해석하지 않는다.
 - 엣지 셸·GUI·설치본 조작은 전담 엣지 Codex 세션이 수행한다. 터널은 프런트엔드와 백엔드 WebSocket 경로를 함께 제공해야 한다.

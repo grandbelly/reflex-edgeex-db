@@ -1,4 +1,6 @@
-# Reflex 0.10와 Dashboard 템플릿 적용
+# Reflex 0.10 기술 기반과 템플릿 전환
+
+화면 설계의 현재 정본은 [메뉴별 시각화 계약](mini_scada_visualization_contract.md) → [28종 전수 비교](reflex_template_catalog.md) → [컴포넌트·레이아웃 설계](mini_scada_component_layout_design.md)다. 아래 Dashboard 기반 구현은 초기 기술 기반이다. 최종 외형은 오너가 선택한 stock_market/stock_graph를 중심으로 이식하며, 아직 여섯 메뉴의 UX 수용이 끝난 상태가 아니다.
 
 오너 지시(2026-10-28): Context7으로 최신 Reflex 사용법을 읽고 업그레이드하며, 미니 SCADA 전체에 템플릿을 활용한다.
 
@@ -7,7 +9,7 @@
 - 공식 템플릿: https://github.com/reflex-dev/templates/tree/e56a1a065208924dada4d23c769d15114381c6b5/dashboard
 - 참조 파일: `dashboard/templates/template.py`, `components/sidebar.py`, `components/navbar.py`, `components/card.py`, `views/stats_cards.py`, `styles.py`.
 - `edgeex_app/components/scada.py`는 공통 페이지 래퍼·데스크톱 사이드바·모바일 탐색·native `rx.card` 합성 구조를 이 템플릿에서 가져와 여섯 운전 메뉴에 맞게 재구성했다. 카드 수치와 내용은 예제 데이터를 복사하지 않고 실제 VQT 조회에 연결한다.
-- 기본 레이아웃은 템플릿을 따른다. 현장·태그·시간·시점 고정, 품질/현재성 분리, 읽기 전용 표출은 이 프로젝트 계약이다. 수익·증감률 예제와 설정 편집 페이지는 가져오지 않는다.
+- 초기 래퍼는 Dashboard 템플릿을 따랐다. 최종 배치는 메뉴별 설계의 비율과 역할을 따른다. 현장·태그·시간·시점 고정, 품질/현재성 분리, 읽기 전용 표출은 이 프로젝트 계약이다. 수익·증감률 예제와 설정 편집 페이지는 가져오지 않는다.
 
 ## 확인한 버전과 문서
 

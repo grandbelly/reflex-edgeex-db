@@ -91,7 +91,7 @@ def metrics():
         metric("현재 BAD", measured(S.bad_tags), "태그별 최신 표본의 품질", "shield-alert", "red"),
         metric("오래된 표본", S.stale_label, "원천 시각 기준 · 기준 없으면 —", "clock-3", "amber"),
         metric("기간 내 저장 표본", measured(S.received), "선택한 조회 기간의 실제 저장 건수", "database", "blue"),
-        columns=rx.breakpoints({"0px": "1", "640px": "2", "1100px": "4"}), spacing="4", width="100%",
+        grid_template_columns=rx.breakpoints({"0px": "1fr", "640px": "repeat(2, minmax(0, 1fr))", "1100px": "repeat(4, minmax(0, 1fr))"}), spacing="4", width="100%",
     )
 
 
@@ -160,7 +160,7 @@ def flow():
                 step("수집 / 전달", "radio-tower", "시도·응답 이력 근거 필요"),
                 step("Kafka", "network", "브로커·토픽 지표 근거 필요"),
                 step("상위 저장소", "database", "선택 현장의 VQT를 조회합니다"),
-                columns=rx.breakpoints({"0px": "1", "640px": "2", "1100px": "4"}), spacing="4"),
+                grid_template_columns=rx.breakpoints({"0px": "1fr", "640px": "repeat(2, minmax(0, 1fr))", "1100px": "repeat(4, minmax(0, 1fr))"}), spacing="4"),
         card(section_title("상위 도착 표본", "표본의 도착만으로 앞선 구간의 현재 연결 상태를 추정하지 않습니다."),
              rx.flex(rx.text("선택 기간 저장 표본", size="2"), rx.spacer(),
                      rx.heading(S.received, size="6"), align="center")),
@@ -185,7 +185,7 @@ def communication():
                       ("GOOD", S.good, "원천 품질 2", "shield-check", "teal"),
                       ("UNCERTAIN", S.uncertain, "원천 품질 1", "shield-question", "amber"),
                       ("BAD", S.bad, "원천 품질 0 · NULL 보존", "shield-alert", "red")]],
-                columns=rx.breakpoints({"0px": "1", "640px": "2", "1100px": "4"}), spacing="4"),
+                grid_template_columns=rx.breakpoints({"0px": "1fr", "640px": "repeat(2, minmax(0, 1fr))", "1100px": "repeat(4, minmax(0, 1fr))"}), spacing="4"),
         card(section_title("통신 완전성", "저장 표본과 통신 시도는 서로 다른 지표입니다."),
              rx.callout("수집 계획과 시도·응답 이력이 아직 연결되지 않았습니다. 통신 성공률과 무손실 여부는 판정할 수 없습니다.",
                         icon="info", color_scheme="gray")),

@@ -78,6 +78,8 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
+- 오너가 연속 진행을 지시한 작업은 설계·스터디·중간 산출물 보고만으로 종료하지 않는다. PL 배정의 완료 조건까지 승인된 구현·검증·영수증·PR을 이어가며 진행 보고는 중간 업데이트로 남긴다. PL의 새 범위가 필요한 경우 구체적인 현황·다음 행동을 전달하고, 회신 대기 중에는 독립적으로 가능한 준비를 계속한다. 받은 지시와 요청 중인 지시는 구별해 기록한다.
+
 - 미니 SCADA는 메뉴별 판단 목적을 먼저 정하고 공식 Reflex 템플릿과 컴포넌트를 매칭한다. 전체 비교는 `docs/reflex_template_catalog.md`, 화면/동작/자료/수용 설계는 `docs/mini_scada_component_layout_design.md`, 오프라인 배치 보드는 `docs/mini_scada_layout_board.html`이 소유한다. stock_market_dashboard의 공통 외형과 stock_graph_app의 실시간 그래프를 기준으로 삼되 여섯 메뉴를 같은 KPI·태그 표로 반복하지 않는다. 예제 State·가짜 수치·정상 애니메이션을 운전 근거로 이식하지 않는다.
 
 - 상위 앱의 엣지 연동 시연은 엣지 PC에서 실행하고, 오너 PC에서는 원격 화면 또는 터널을 통한 브라우저 접속으로 확인한다.

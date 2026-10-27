@@ -1,3 +1,13 @@
+# D-1027-20 엣지 웹 시연 인계 — 2026-10-27
+
+- 엣지 전용 worktree: `C:/edgeex-it/cr277/upper-web`, 후보 `pl/edge-monitor-candidate-20261027`.
+- URL `http://192.168.219.41:3100/edge-monitor`, backend `192.168.219.41:8100`; 오너 Orca peer `192.168.219.43`만 시연 방화벽 두 규칙으로 허용.
+- 별도 `.venv`, AI·앱 내 Kafka Consumer 비활성. DSN은 기존 secrets에서 자식 환경에만 읽으며 DB 세션은 읽기 전용이다.
+- 운영 Consumer는 `C:/edgeex-it/cr277/upper`의 `74b048e`, PID 30620/22576 그대로다. 그룹·수집·전달기·브로커는 변경하지 않았다.
+- 실제 상위 DB `127.0.0.1:55432/postgres`: VQT·경보·SY 차트 조회 가능. **edgeex_health_latest 표 부재(42P01)**로 전체 시연 PASS가 아니다. 앱에 조회 실패를 표시한다. 스키마 생성은 하지 않았다.
+- 런타임 로그 `C:/edgeex-it/cr277/web-runtime/`, 현재 상위 프로세스 PID 8144. 시연 종료 뒤 `C:/edgeex-it/cr277/stop-demo-firewall.ps1`로 이 과제의 두 규칙만 제거한다. 운전 Consumer는 정지하지 않는다.
+- 엣지 영수증: `fable/receipts/acceptance/20261027T224126+0900__d1027-20-edge-monitor-demo/` (edgeex 저장소). 최종 후보 시험 4건, 화면/DB 관측 364개 불일치 0, backend WS 101. 오너 원격 브라우저 입회는 별도 확인한다.
+
 # Session Handoff — 2026-05-18 (Round 3)
 
 다음 Claude Code 세션에게 전달하는 작업 인계서. 이 폴더에서 새 세션 시작 시 가장 먼저 읽을 것.

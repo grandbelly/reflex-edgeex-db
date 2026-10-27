@@ -31,4 +31,6 @@ None — sub-folders are organizational, governed by this contract.
 
 ## Active Dashboard template
 
+For the next UI iteration, follow `docs/mini_scada_visualization_contract.md`. The owner selected `stock_market_dashboard` for observation layout and `stock_graph_app` for real-time charts. Preserve their information hierarchy and controls while binding the SCADA contracts; document the actual source adaptations. Do not treat every menu as a generic KPI/table page. The existing wrapper is the previous baseline and awaits this migration.
+
 `scada.py` owns the shared template wrapper, navigation, scope form and native card/metric/quality components. Upstream commit and adaptations are in `docs/reflex_template_source.md`. Keep six-page layout, spacing, typography and responsive navigation shared. Views bind only to typed State Vars; no example KPI values, DB calls or inferred healthy states. Site/tag/time form changes apply on submit. Search and table pagination are local to the completed snapshot. Preserve accessible control names and native buttons.

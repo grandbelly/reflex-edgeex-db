@@ -1,5 +1,7 @@
 ## 2026-10-28 — ongoing mini SCADA / Reflex 0.10.1
 
+Latest owner steering: study GitHub templates first; use stock_market_dashboard layout and stock_graph_app live chart; define distinct visualization purposes for each original menu before implementation. Read `docs/mini_scada_visualization_contract.md` and `docs/reflex_template_study.md`. PR#2 is a technical baseline with UI revision ongoing. Do not report the existing common tables as completed UX. Current Company-style edits in components/scada.py, views/scada_view.py, states/scada_state.py, assets/scada.css and rxconfig.py are uncommitted experiments, not the chosen stock template implementation. The isolated preview was stopped for these edits; XG5000/SimCore/502 and operating services remain untouched.
+
 Owner: use Context7, latest Reflex, official template for the full mini SCADA. Branch `feat/mini-scada-data-contract`, base `pl/edge-monitor-candidate-20261027` dd958d7. Native six-route read-only profile is the new entry. See `docs/mini_scada_contract_plan.md` and `docs/reflex_template_source.md`.
 
 Dedicated venv `C:/edgeex-it/cr277/refactor-venv010`, separate Reflex/Bun cache `C:/edgeex-it/cr277/reflex-cache010`, localhost preview3101. Operating Consumer/Redis/channels/installations/containers and Chrome9333 untouched. Health table remains absent in the upper DB; display partial failure, do not create schema. No registry/process bindings/collection plan/authorized ACK contract supplied yet. Production deployment is separate.

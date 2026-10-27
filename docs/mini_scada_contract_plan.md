@@ -2,6 +2,8 @@
 
 오너 지시: 미니 SCADA 전체 재검토 뒤 “계속 진행한다”(2026-10-27). 기준 dd958d7.
 
+2026-10-28 추가 지시로 **[메뉴별 시각화 계약](mini_scada_visualization_contract.md)**을 화면 정보 설계의 우선 기준으로 삼는다. 공식 템플릿 스터디는 [reflex_template_study.md](reflex_template_study.md). 오너 선택은 stock_market_dashboard의 관제 배치와 stock_graph_app의 실시간 그래프다. 아래 첫 수용 단위는 데이터 기반 검증이며 메뉴별 UX 완료를 뜻하지 않는다.
+
 ## 첫 수용 단위
 
 기존 상위 Kafka 연계(CR277)의 VQT를 여섯 메뉴에서 같은 현장·태그·품질·시각으로 읽는다. 운전 Consumer/설치본/채널/브로커/컨테이너 변경 없이 별도 worktree와 localhost 검증 앱을 사용한다. 새 CR 번호를 임의 발급하거나 엣지 제품 범위를 확장하지 않는다.

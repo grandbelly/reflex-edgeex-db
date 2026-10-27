@@ -10,6 +10,8 @@
 
 설치된 0.10.1 Recharts `Area`의 필드와 생성 JSX를 대조했다. `hide`, `fillOpacity`, `strokeDasharray`는 이 버전의 Python 선언 필드가 아니므로 `custom_attrs`로 전달한다. 일반 키워드는 CSS `wrapperStyle`로 들어가 비교 계열 표시 전환·점선이 작동하지 않을 수 있다. 숫자 시간 축과 tooltip formatter도 생성 JSX에서 확인하며, 실제 동작 수용과 구별한다.
 
+최종 번들은 Reflex의 frontend export 경로를 사용한다. `bun run export`만 부르면 Reflex가 만드는 SPA `404.html` 후처리를 건너뛰어 하위 URL 직접 접속이 404가 됐다. 원시 실패를 보존하고 공식 export로 다시 만든다. 설정의 loglevel도 문자열 대신 `rx.constants.LogLevel.WARNING`을 사용하여 CLI 밖의 설정 import에서 발생한 0.10.1 타입 오류를 해소했다.
+
 전용 Edge 프로필을 셸에서 기동하려던 명령이 자동 승인 검토에서 `rejected: blocked by policy`로 거절됐다. 오너 열람 창이나 Chrome9333으로 우회하지 않았다. 실제 새 화면 GUI/키보드/반응형 수용은 NOT RUN이며, compile/계약 시험/독립 SQL/HTTP 확인과 구별한다. 이 제한이 해소되기 전 UI 합격·운전 배포 완료로 보고하지 않는다.
 
 오너 지시(2026-10-28): Context7으로 최신 Reflex 사용법을 읽고 업그레이드하며, 미니 SCADA 전체에 템플릿을 활용한다.

@@ -10,11 +10,108 @@ Apple-mode Dual-Theme Component Library (`edgeex_app/design_system/am.py`).
   3. `am_button(label, variant="primary", on_click=None, icon=None, **props)`
   4. `am_search(placeholder="", value=None, on_change=None, **props)`
   5. `am_kpi_tile(label, value, unit=None, status="normal", delta=None, subtitle=None, icon=None, **props)`
+- Edge 관제 화면용 레이아웃/상태 API: `page_container`, `header_bar`, `section_header`,
+  `card`, `status_pill`, `pill_button`, `kpi_tile` 및 CSS 변수 토큰 상수.
 """
 from __future__ import annotations
 
 from typing import Any, Optional
 import reflex as rx
+
+ACCENT = "var(--am-accent)"
+TEXT = "var(--am-text)"
+MUTED = "var(--am-muted)"
+MUTED_2 = "var(--am-muted-2)"
+ERROR = "var(--am-error)"
+WARNING = "var(--am-warning)"
+ROW = "var(--am-row)"
+BORDER = "var(--am-border)"
+HAIRLINE = "var(--am-hairline)"
+R_LG = "var(--am-r-lg)"
+FONT_MONO = "var(--am-font-mono)"
+
+
+def page_container(*children: rx.Component, **props: Any) -> rx.Component:
+    """Full-width page body inside the shared application shell."""
+    return rx.box(*children, width="100%", padding="24px", **props)
+
+
+def status_pill(label: Any, tone: Any = "info", **props: Any) -> rx.Component:
+    """Status badge whose tone can be a reactive State expression."""
+    color = rx.match(
+        tone,
+        ("success", "var(--am-success)"),
+        ("warning", WARNING),
+        ("error", ERROR),
+        ("muted", MUTED),
+        "var(--am-info)",
+    )
+    return rx.el.span(
+        label,
+        style={
+            "color": color,
+            "background": f"color-mix(in srgb, {color} 14%, transparent)",
+            "border": f"1px solid color-mix(in srgb, {color} 32%, transparent)",
+            "borderRadius": "var(--am-r-pill)",
+            "padding": "3px 10px",
+            "fontSize": "11px",
+            "fontFamily": FONT_MONO,
+            "display": "inline-flex",
+        },
+        **props,
+    )
+
+
+def section_header(title: Any, subtitle: Any = None, right: Any = None) -> rx.Component:
+    children = [rx.heading(title, size="3", color=TEXT)]
+    if subtitle is not None:
+        children.append(rx.text(subtitle, size="1", color=MUTED))
+    return rx.flex(
+        rx.vstack(*children, spacing="1", align="start"),
+        rx.spacer(),
+        *([right] if right is not None else []),
+        align="center", wrap="wrap", gap="12px", margin_bottom="16px", width="100%",
+    )
+
+
+def header_bar(title: Any, subtitle: Any = None, badge: Any = None, actions: Any = None) -> rx.Component:
+    return rx.vstack(
+        section_header(title, subtitle, badge),
+        *([actions] if actions is not None else []),
+        align="start", spacing="2", margin_bottom="24px", width="100%",
+    )
+
+
+def card(*children: rx.Component, **props: Any) -> rx.Component:
+    return am_card(*children, **props)
+
+
+def pill_button(label: Any, **props: Any) -> rx.Component:
+    return am_button(label, **props)
+
+
+def kpi_tile(label: Any, value: Any, unit: Any = None, delta: Any = None,
+             delta_tone: Any = "info", subtitle: Any = None,
+             icon: Optional[str] = None, **props: Any) -> rx.Component:
+    """KPI with a reactive badge and the existing shared tile styling."""
+    return am_card(
+        rx.vstack(
+            rx.hstack(
+                rx.text(label, size="2", color=MUTED), rx.spacer(),
+                *([rx.icon(icon, size=18, color=MUTED)] if icon else []),
+                width="100%", align="center",
+            ),
+            rx.hstack(
+                rx.text(value, size="6", weight="bold", font_family=FONT_MONO, color=TEXT),
+                *([rx.text(unit, size="2", color=MUTED)] if unit is not None else []),
+                align="baseline",
+            ),
+            *([status_pill(delta, tone=delta_tone)] if delta is not None else []),
+            *([rx.text(subtitle, size="1", color=MUTED_2)] if subtitle is not None else []),
+            align="start", spacing="2", width="100%",
+        ),
+        raised=True, height="100%", **props,
+    )
 
 
 _SEVERITY_TOKEN_MAP = {
@@ -250,6 +347,10 @@ def am_kpi_tile(
 
 
 __all__ = [
+    "ACCENT", "TEXT", "MUTED", "MUTED_2", "ERROR", "WARNING", "ROW",
+    "BORDER", "HAIRLINE", "R_LG", "FONT_MONO",
+    "page_container", "header_bar", "section_header", "card", "status_pill",
+    "pill_button", "kpi_tile",
     "am_card",
     "am_badge",
     "am_button",

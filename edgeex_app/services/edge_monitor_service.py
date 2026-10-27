@@ -116,7 +116,7 @@ class EdgeMonitorService:
                     "ts_ms": str(r.get("ts_ms") or "-"),
                     "raw_val": _fmt_num(raw_v, "NULL"),
                     "cond_val": _fmt_num(cond_v, "NULL"),
-                    "final_val": _fmt_num(final_v, "NULL (BAD)" if fq == 0 else "NULL"),
+                    "final_val": _fmt_num(final_v, "NULL (BAD 보존)" if fq == 0 else "NULL"),
                     "diff_abs": f"{diff_v:.2f}",
                     "unit": str(r.get("unit") or ""),
                     "final_quality": str(fq),
@@ -148,7 +148,7 @@ class EdgeMonitorService:
                     "ts_ms": str(v.get("ts_ms", "-")),
                     "raw_val": _fmt_num(raw_v, "NULL"),
                     "cond_val": _fmt_num(cond_v, "NULL"),
-                    "final_val": _fmt_num(final_v, "NULL (BAD)" if fq == 0 else "NULL"),
+                    "final_val": _fmt_num(final_v, "NULL (BAD 보존)" if fq == 0 else "NULL"),
                     "diff_abs": f"{float(v.get('diff_abs', 0.0)):.2f}",
                     "unit": str(v.get("unit", "")),
                     "final_quality": str(fq),
@@ -184,7 +184,7 @@ class EdgeMonitorService:
                 "tag_id": str(r.get("tag_id") or ""),
                 "raw_val": _fmt_num(raw_v, "NULL"),
                 "cond_val": _fmt_num(cond_v, "NULL"),
-                "final_val": _fmt_num(final_v, "NULL (BAD)" if fq == 0 else "NULL"),
+                "final_val": _fmt_num(final_v, "NULL (BAD 보존)" if fq == 0 else "NULL"),
                 "final_quality": str(fq),
                 "quality_label": f"{opc_quality_label(fq)} ({fq})",
                 "quality_severity": _quality_severity(fq),
@@ -204,14 +204,12 @@ class EdgeMonitorService:
                 raw_v = row.get("raw_val")
                 cond_v = row.get("cond_val")
                 final_v = row.get("final_val")
-                fv_num = float(final_v) if final_v is not None else (float(cond_v) if cond_v is not None else 0.0)
-                rv_num = float(raw_v) if raw_v is not None else fv_num
                 chart_series.append({
                     "time": ts_obj.astimezone().strftime("%H:%M:%S") if ts_obj else str(row.get("ts_ms") or ""),
-                    "raw_val": rv_num,
-                    "cond_val": fv_num,
-                    "diff_abs": round(abs(fv_num - rv_num), 3),
-                    "status": str(row.get("integ_status") or "NORMAL"),
+                    "raw": float(raw_v) if raw_v is not None else None,
+                    "cond": float(cond_v) if cond_v is not None else None,
+                    "final": float(final_v) if final_v is not None else None,
+                    "quality": int(row.get("final_quality") if row.get("final_quality") is not None else 2),
                 })
 
         # 5. 경보 목록 (alarm_history)
@@ -306,12 +304,13 @@ class EdgeMonitorService:
             if merged_metrics.get("broker_status") in ("STANDBY", None):
                 merged_metrics["broker_status"] = "CONNECTED"
 
-        quality_ratio = round((good_rows / total_rows) * 100.0, 1) if total_rows > 0 else 100.0
+        quality_ratio = round((good_rows / total_rows) * 100.0, 1) if total_rows > 0 else 0.0
         health_count = max(len(sites_list), int(merged_metrics.get("health_count") or 0))
         health_status_label = sites_list[0]["status"] if sites_list else "STANDBY"
         active_site_id = sites_list[0]["site_id"] if sites_list else (tag_rows[0]["site_id"] if tag_rows else "edge-acceptance")
 
         return {
+            "db_connected": "total_rows" in counts,
             "available_tags": available_tags,
             "selected_tag": active_tag,
             "metrics": merged_metrics,

@@ -16,6 +16,9 @@ pagination), `SensorService` (latest values + QC rules + status), `ForecastServi
 - **Return dicts, not ORM objects.** Use `.mappings().all()` then `dict(row)`.
 - **No lazy loading** — ORM relationships set `lazy="raise"`; fetch joined data eagerly in one query.
 - Call `queries/` functions for raw SQL; do not inline complex SQL that belongs in a query module.
+- `EdgeMonitorService` uses the shared asyncpg query functions without an ORM session.
+  Its snapshot contains `db_connected`, nested `kpi`, table lists, and `chart_series` points
+  with `time`, `raw`, `cond`, `final`, `quality`; preserve nullable values without substitution.
 
 ## Work Guidance
 

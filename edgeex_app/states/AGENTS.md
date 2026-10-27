@@ -17,6 +17,9 @@ Key files: `base_state.py` (shared base), `dashboard_realtime_grouped.py`, `tren
 - Event handlers use `@rx.event`; background polling uses `@rx.event(background=True)` + `async def`.
 - States call **services** (instantiated with a DB session), get back dicts, store them on Vars.
   States do not embed raw SQL — that belongs in `queries/` behind a service.
+- `EdgeMonitorState` instantiates `EdgeMonitorService` (uses the shared asyncpg query pool),
+  reads KPI fields from `snapshot["kpi"]`, and chart points from `snapshot["chart_series"]`.
+  A failed DB summary query must display a connection error, not a successful empty result.
 
 ## Work Guidance
 

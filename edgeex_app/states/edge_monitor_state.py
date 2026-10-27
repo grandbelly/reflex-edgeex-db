@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from datetime import datetime
 from typing import Any, Dict, List
 
 import plotly.graph_objects as go
@@ -32,6 +33,7 @@ class EdgeMonitorState(BaseState):
     kafka_bootstrap: str = ""
     consumer_status: str = "DB Direct"
     last_updated: str = "-"
+    db_connected: bool = False
 
     # Top KPI summary vars
     active_site_id: str = "-"
@@ -203,9 +205,13 @@ class EdgeMonitorState(BaseState):
         async with self:
             current_tag = self.selected_tag
 
-        snap = await EdgeMonitorService.get_dashboard_snapshot(selected_tag=current_tag)
+        snap = await EdgeMonitorService().get_dashboard_snapshot(selected_tag=current_tag)
+        kpi = snap.get("kpi", {})
+        snap = {**snap, **kpi}
 
         async with self:
+            self.db_connected = snap.get("db_connected", False)
+            self.error_message = "" if self.db_connected else "상위 DB 연결 실패 · 실데이터를 조회할 수 없습니다."
             self.active_site_id = snap.get("active_site_id", "-")
             self.site_count = snap.get("site_count", 0)
             self.online_sites = snap.get("online_sites", 0)
@@ -220,7 +226,7 @@ class EdgeMonitorState(BaseState):
             self.messages_processed = snap.get("messages_processed", 0)
             self.duplicates_absorbed = snap.get("duplicates_absorbed", 0)
             self.commits_succeeded = snap.get("commits_succeeded", 0)
-            self.quality_ratio = snap.get("quality_ratio", 100.0)
+            self.quality_ratio = float(snap.get("quality_ratio", 0.0))
             self.protection_count = snap.get("protection_count", 0)
             self.spike_suppressed = snap.get("spike_suppressed", 0)
             self.missing_held = snap.get("missing_held", 0)
@@ -237,10 +243,11 @@ class EdgeMonitorState(BaseState):
             self.recent_alarms = snap.get("recent_alarms", [])
             self.available_tags = snap.get("available_tags", [])
             self.selected_tag = snap.get("selected_tag", "")
-            self.selected_series = snap.get("selected_series", [])
-            self.last_updated = snap.get("last_updated", "-")
+            self.selected_series = snap.get("chart_series", [])
+            self.last_updated = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
             self.consumer_status = (
-                f"Active (commits={self.commits_succeeded})"
+                "DB 연결 실패" if not self.db_connected else
+                f"수신 기록 (commits={self.commits_succeeded})"
                 if self.commits_succeeded > 0
                 else ("DB Ready" if self.vqt_total_rows > 0 else "Waiting for Edge Messages")
             )

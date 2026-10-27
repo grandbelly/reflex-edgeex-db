@@ -78,6 +78,10 @@ Default section order:
 
 When the user requests a durable behavior change, record it here or in the relevant child AGENTS.md
 
+- 상위 앱의 엣지 연동 시연은 엣지 PC에서 실행하고, 오너 PC에서는 원격 화면 또는 터널을 통한 브라우저 접속으로 확인한다.
+- 오너 PC의 앱 직접 실행이나 DB 미연결 화면을 엣지 연동 시연으로 대체하지 않는다. 시연 요청을 로컬 실행 허가로 해석하지 않는다.
+- 엣지 셸·GUI·설치본 조작은 전담 엣지 Codex 세션이 수행한다. 터널은 프런트엔드와 백엔드 WebSocket 경로를 함께 제공해야 한다.
+
 ---
 
 # Project: Reflex-edgeEX (풍도 RO/수질 모니터링 SCADA)
@@ -106,7 +110,7 @@ TimescaleDB 17 (PostgreSQL 17) + pgai + pg_cron. Deployed to a Raspberry Pi 5 in
 
 - Sync local↔RPI with `scp` (see `CLAUDE.md` for exact paths). This is **not** the `reflex-edgeex-refactor` folder.
 - Restart app: `docker restart rpi-finished-reflex-app`. DB: `docker exec -it rpi-finished-pgai-db psql -U postgres -d ecoanp`.
-- **Never run Reflex on the Windows host** — Docker container only. Host Python kills leak zombie LISTEN sockets.
+- **Never run Reflex on the owner Windows PC.** Run on the deployment/edge host under that host's operating rules; the owner browser connects remotely or through a tunnel. Host Python kills can leak zombie LISTEN sockets.
 
 ## Global Conventions
 

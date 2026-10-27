@@ -41,10 +41,10 @@ def _integ_badge(integ_state: rx.Var) -> rx.Component:
 def _health_row_card(site: Dict[str, Any]) -> rx.Component:
     """Render a single Edge `/health` site status row."""
     tone = rx.match(
-        site["status_tone"],
-        ("success", "success"),
-        ("warning", "warning"),
-        ("error", "error"),
+        site["status"],
+        ("OK", "success"),
+        ("DEGRADED", "warning"),
+        ("ERROR", "error"),
         "info",
     )
     return rx.el.div(
@@ -112,7 +112,7 @@ def _health_row_card(site: Dict[str, Any]) -> rx.Component:
 def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
     """Render a row in the Tag Latest VQT Snapshot table."""
     is_selected = EdgeMonitorState.selected_tag == row["tag_id"]
-    is_bad = row["quality"] == 0
+    is_bad = row["final_quality"] == "0"
     return rx.el.tr(
         rx.el.td(
             rx.el.span(
@@ -139,7 +139,7 @@ def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
             style={"padding": "10px 12px", "fontSize": "12px", "color": am.MUTED_2, "fontFamily": am.FONT_MONO},
         ),
         rx.el.td(
-            row["raw_str"],
+            row["raw_val"],
             style={
                 "padding": "10px 12px",
                 "textAlign": "right",
@@ -149,7 +149,7 @@ def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
             },
         ),
         rx.el.td(
-            row["cond_str"],
+            row["cond_val"],
             style={
                 "padding": "10px 12px",
                 "textAlign": "right",
@@ -160,7 +160,7 @@ def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
         ),
         rx.el.td(
             rx.el.span(
-                row["final_str"],
+                row["final_val"],
                 class_name="edge-latest-final-val",
                 style={
                     "fontFamily": am.FONT_MONO,
@@ -177,16 +177,16 @@ def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
             style={"padding": "10px 12px", "textAlign": "center"},
         ),
         rx.el.td(
-            _integ_badge(row["integ_state"]),
+            _integ_badge(row["integ_status"]),
             style={"padding": "10px 12px", "textAlign": "center"},
         ),
         rx.el.td(
             rx.el.span(
-                row["reasons_str"],
+                row["reasons"],
                 style={
                     "fontFamily": am.FONT_MONO,
                     "fontSize": "11px",
-                    "color": rx.cond(row["reasons_str"] == "정상 (0x0)", am.MUTED, am.WARNING),
+                    "color": rx.cond(row["reasons"] == "정상 (0x0)", am.MUTED, am.WARNING),
                 },
             ),
             style={"padding": "10px 12px"},
@@ -203,7 +203,7 @@ def _tag_latest_tr(row: Dict[str, Any]) -> rx.Component:
 
 def _vqt_history_tr(item: Dict[str, Any]) -> rx.Component:
     """Render a row in the VQT Lossless History table (`edgeex_vqt_raw`)."""
-    is_bad = item["quality"] == 0
+    is_bad = item["final_quality"] == "0"
     return rx.el.tr(
         rx.el.td(
             item["time"],
@@ -227,16 +227,16 @@ def _vqt_history_tr(item: Dict[str, Any]) -> rx.Component:
             style={"padding": "8px 10px"},
         ),
         rx.el.td(
-            item["raw_str"],
+            item["raw_val"],
             style={"padding": "8px 10px", "textAlign": "right", "fontSize": "12px", "fontFamily": am.FONT_MONO, "color": am.MUTED},
         ),
         rx.el.td(
-            item["cond_str"],
+            item["cond_val"],
             style={"padding": "8px 10px", "textAlign": "right", "fontSize": "12px", "fontFamily": am.FONT_MONO, "color": am.TEXT},
         ),
         rx.el.td(
             rx.el.span(
-                item["final_str"],
+                item["final_val"],
                 class_name="edge-vqt-final-val",
                 style={
                     "fontSize": "12px",
@@ -253,12 +253,12 @@ def _vqt_history_tr(item: Dict[str, Any]) -> rx.Component:
             style={"padding": "8px 10px", "textAlign": "center"},
         ),
         rx.el.td(
-            _integ_badge(item["integ_state"]),
+            _integ_badge(item["integ_status"]),
             style={"padding": "8px 10px", "textAlign": "center"},
         ),
         rx.el.td(
             rx.el.span(
-                item["reasons_str"],
+                item["reasons"],
                 style={"fontSize": "11px", "fontFamily": am.FONT_MONO, "color": am.MUTED},
             ),
             style={"padding": "8px 10px"},
@@ -274,9 +274,9 @@ def _vqt_history_tr(item: Dict[str, Any]) -> rx.Component:
 def _alarm_tr(alarm: Dict[str, Any]) -> rx.Component:
     """Render an Edge alarm row from `public.alarm_history`."""
     tone = rx.match(
-        alarm["level_tone"],
-        ("error", "error"),
-        ("warning", "warning"),
+        alarm["level"],
+        ("1", "error"),
+        ("2", "warning"),
         "info",
     )
     return rx.el.tr(
@@ -301,7 +301,7 @@ def _alarm_tr(alarm: Dict[str, Any]) -> rx.Component:
             style={"padding": "10px 12px"},
         ),
         rx.el.td(
-            am.status_pill(alarm["level_name"], tone=tone),
+            am.status_pill(rx.match(alarm["level"], ("1", "CRITICAL"), ("2", "WARNING"), "INFO"), tone=tone),
             class_name="edge-alarm-level",
             style={"padding": "10px 12px", "textAlign": "center"},
         ),
@@ -323,8 +323,8 @@ def _alarm_tr(alarm: Dict[str, Any]) -> rx.Component:
         ),
         rx.el.td(
             am.status_pill(
-                alarm["resolved_label"],
-                tone=rx.cond(alarm["resolved"], "success", "error"),
+                alarm["resolved"],
+                tone=rx.cond(alarm["resolved"] == "CLEAR", "success", "error"),
             ),
             style={"padding": "10px 12px", "textAlign": "center"},
         ),
@@ -342,7 +342,7 @@ def edge_monitor_view() -> rx.Component:
             subtitle="edgeex_vqt_raw (무손실 VQT · BAD NULL 보존) · alarm_history · edgeex_health_latest 실시간 조회",
             badge=am.status_pill(
                 f"Consumer: {EdgeMonitorState.consumer_status} · {EdgeMonitorState.last_updated}",
-                tone="success",
+                tone=rx.cond(EdgeMonitorState.db_connected, "info", "error"),
             ),
             actions=rx.el.div(
                 rx.el.label(
@@ -362,6 +362,11 @@ def edge_monitor_view() -> rx.Component:
                 ),
                 style={"display": "flex", "alignItems": "center", "gap": "10px", "flexWrap": "wrap"},
             ),
+        ),
+        rx.cond(
+            EdgeMonitorState.error_message != "",
+            rx.callout(EdgeMonitorState.error_message, icon="database", color_scheme="red",
+                       id="edge-db-error", margin_bottom="20px", width="100%"),
         ),
         # ── Top KPI Grid (5 cards) ──
         rx.el.div(
@@ -484,7 +489,7 @@ def edge_monitor_view() -> rx.Component:
                             rx.el.tr(
                                 rx.el.th("태그 ID", style={"padding": "10px 12px", "textAlign": "left"}),
                                 rx.el.th("사이트", style={"padding": "10px 12px", "textAlign": "left"}),
-                                rx.el.th("수집 시각 (UTC)", style={"padding": "10px 12px", "textAlign": "left"}),
+                                rx.el.th("수집 시각 (서버 현지)", style={"padding": "10px 12px", "textAlign": "left"}),
                                 rx.el.th("ts_ms", style={"padding": "10px 12px", "textAlign": "left"}),
                                 rx.el.th("RAW", style={"padding": "10px 12px", "textAlign": "right"}),
                                 rx.el.th("COND", style={"padding": "10px 12px", "textAlign": "right"}),
@@ -529,7 +534,7 @@ def edge_monitor_view() -> rx.Component:
                     rx.el.table(
                         rx.el.thead(
                             rx.el.tr(
-                                rx.el.th("수집 시각 (UTC)", style={"padding": "8px 10px", "textAlign": "left"}),
+                                rx.el.th("수집 시각 (서버 현지)", style={"padding": "8px 10px", "textAlign": "left"}),
                                 rx.el.th("ts_ms", style={"padding": "8px 10px", "textAlign": "left"}),
                                 rx.el.th("사이트", style={"padding": "8px 10px", "textAlign": "left"}),
                                 rx.el.th("태그 ID", style={"padding": "8px 10px", "textAlign": "left"}),
@@ -578,7 +583,7 @@ def edge_monitor_view() -> rx.Component:
                         rx.el.table(
                             rx.el.thead(
                                 rx.el.tr(
-                                    rx.el.th("발생 시각 (UTC)", style={"padding": "10px 12px", "textAlign": "left"}),
+                                    rx.el.th("발생 시각 (서버 현지)", style={"padding": "10px 12px", "textAlign": "left"}),
                                     rx.el.th("event_id", style={"padding": "10px 12px", "textAlign": "left"}),
                                     rx.el.th("태그 ID", style={"padding": "10px 12px", "textAlign": "left"}),
                                     rx.el.th("등급 (Level)", style={"padding": "10px 12px", "textAlign": "center"}),

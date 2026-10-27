@@ -33,11 +33,15 @@ Smaller dirs owned here without their own doc: `config/`, `utils/` (incl. `logge
 - New feature = new State (`states/`) + view (`views/`) + page (`pages/`); reuse `components/`.
 - New data need = add a query fn in `queries/`, wrap business logic in a `services/` method, call from State.
 - Log via `edgeex_app.utils.logger.get_logger(__name__)`; mask secrets (see `load_env` masking).
+- `/edge-monitor` uses the CSS tokens and reactive `page_container`, `header_bar`, `section_header`,
+  `card`, `status_pill`, `pill_button`, and `kpi_tile` helpers in `design_system/am.py`.
 
 ## Verification
 
 - `pytest` (suites in `edgeex_app/tests/` and repo `tests/`). Run inside the Docker container, not the host.
 - Manual: app on `:14000`; restart container to recompile (prod mode).
+- Kafka ingestion acceptance does not verify the web UI. Verify `/edge-monitor` in a browser,
+  including backend events, DB connectivity, row values, and BAD/NULL chart gaps.
 
 ## Child DOX Index
 

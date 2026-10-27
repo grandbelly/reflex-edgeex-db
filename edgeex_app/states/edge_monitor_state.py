@@ -50,7 +50,7 @@ class EdgeMonitorState(BaseState):
     messages_processed: int = 0
     duplicates_absorbed: int = 0
     commits_succeeded: int = 0
-    quality_ratio: float = 100.0
+    quality_ratio: float = 0.0
     protection_count: int = 0
     spike_suppressed: int = 0
     missing_held: int = 0

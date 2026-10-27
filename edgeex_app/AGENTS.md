@@ -27,6 +27,7 @@ Smaller dirs owned here without their own doc: `config/`, `utils/` (incl. `logge
 - **Services return plain dicts**, never ORM objects (greenlet-safe, serializes cleanly to State).
 - **Register a page** by adding `@rx.page(...)` in its module and importing it in `edgeex_app.py`. No `app.add_page()`.
 - **AI imports stay lazy** behind `ENABLE_AI_FEATURES` — never import openai/sklearn/numpy on an unconditional boot path.
+- DSN helpers must never log the DSN, its prefix, or its return value through a logging decorator.
 
 ## Work Guidance
 

@@ -20,6 +20,7 @@ Key files: `base_state.py` (shared base), `dashboard_realtime_grouped.py`, `tren
 - `EdgeMonitorState` instantiates `EdgeMonitorService` (uses the shared asyncpg query pool),
   reads KPI fields from `snapshot["kpi"]`, and chart points from `snapshot["chart_series"]`.
   A failed DB summary query must display a connection error, not a successful empty result.
+  The initial quality ratio is 0 until measured data arrive.
 
 ## Work Guidance
 

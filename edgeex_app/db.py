@@ -32,13 +32,12 @@ def _normalize_sql_placeholders(sql: str) -> str:
     return "".join(out)
 
 
-@log_function
 def _dsn() -> str:
     dsn = os.environ.get("TS_DSN", "")
     if not dsn:
         logger.error("TS_DSN is not set in environment")
         raise RuntimeError("TS_DSN is not set in environment")
-    logger.debug(f"DSN retrieved: {dsn[:30]}...")  # Log only first 30 chars for security
+    logger.debug("Database DSN configured")
     return dsn
 
 

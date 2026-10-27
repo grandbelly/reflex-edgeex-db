@@ -57,3 +57,9 @@ Smaller dirs owned here without their own doc: `config/`, `utils/` (incl. `logge
 
 `views/` (thin page↔component composition, `*_view.py`) is owned here — add a child doc only if it grows
 its own contracts.
+
+## Core SCADA migration profile
+
+`SCADA_DATA_SOURCE=edge_vqt` explicitly selects the six read-only core routes; default `legacy` retains existing routes. `scada_config.py` validates the profile and applies read-only session defaults to both DB access paths. Invalid profiles fail rather than fall back. AI, legacy write routes, in-app Consumer and dashboard-triggered schedulers are not part of this profile.
+
+On the edge Windows host, this profile is verified in the dedicated test venv with `python -m unittest discover -s tests -p test_scada_contract.py -v`, Reflex compilation and orca computer browser checks. Container/RPI production acceptance remains separate; do not modify running containers for these checks. See `docs/mini_scada_contract_plan.md`.

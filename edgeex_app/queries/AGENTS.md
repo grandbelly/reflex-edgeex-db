@@ -30,3 +30,7 @@ Query modules, e.g.: `latest.py` (latest snapshot), `metrics.py` (timeseries fro
 ## Child DOX Index
 
 None.
+
+## Core SCADA read model
+
+`scada.py` requires a site, binds every telemetry/series/alarm/health read to that site and uses a short read-only REPEATABLE READ transaction. It requires the VQT columns, bounds tags/series/window and reports overflow. Optional sections use savepoints; missing/incompatible schema is an explicit section failure. No DDL, seed rows or silent source fallback.

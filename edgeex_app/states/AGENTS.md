@@ -35,3 +35,7 @@ Key files: `base_state.py` (shared base), `dashboard_realtime_grouped.py`, `tren
 ## Child DOX Index
 
 None. Subpackages here are implementation detail, not separate DOX boundaries.
+
+## Shared SCADA context
+
+`ScadaState` owns site/tag/5-15-60-minute context across the six migration routes. Only one read per browser is active; pending reads coalesce and stale responses cannot overwrite a changed context. Five-second live updates stop on disconnection; fixed-time mode preserves the same completed snapshot across menu navigation. No command/write events are provided.

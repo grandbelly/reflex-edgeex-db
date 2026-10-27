@@ -1,3 +1,11 @@
+# Mini SCADA common-contract implementation — 2026-10-27
+
+- Owner approved full review then continuation. Isolated `upper-refactor`, branch `feat/mini-scada-data-contract`, base dd958d7. Existing upper-web dirty files and 3100/8100 left untouched.
+- Explicit edge_vqt read profile routes all six menus through a site-scoped read model. SQL read-only snapshot, partial optional-section errors, NULL/zero/quality/source-time semantics, bounded trends, one shared context/fixed-time mode. No inferred metadata/expected counts/PLC status. No ACK/control writes or in-app jobs.
+- Dedicated existing test venv `upper-web/.venv` is read for dependencies; source/outputs are in this worktree and `C:/edgeex-it/cr277/refactor-*`. New 3101/8101 candidate binds localhost only. Existing running XG-SIM/Consumer/forwarder/containers/config remain untouched.
+- 15 contract tests passed; four semantic mutants detected. Actual upper DB read: SY106 and 60-minute counts, Health missing reported separately, readonly on. Reflex compile passed after initializing the isolated .web directory. First compile failure (missing package.json) is preserved.
+- Next: freeze source, browser checks on all six pages/fixed-time context, independent SQL parity, evidence/PR. NOT overall mini-SCADA completion or operational deployment. Future units: definition/version sync, process bindings, scheduled-slot completeness, long-term aggregates, authenticated ACK ownership, load/rollout.
+
 # D-1027-20 엣지 웹 시연 인계 — 2026-10-27
 
 - 엣지 전용 worktree: `C:/edgeex-it/cr277/upper-web`, 후보 `pl/edge-monitor-candidate-20261027`.

@@ -1,5 +1,6 @@
 import reflex as rx
 import os
+from ..scada_config import scada_enabled
 
 # Import BaseState for sidebar toggle functionality (shared across all pages)
 from ..states.base_state import BaseState as B
@@ -22,6 +23,20 @@ BASE_MENU = [
     {"icon": "bell", "name": "알람", "path": "/alarms", "desc": "룰베이스 알람"},
     {"icon": "signal", "name": "통신 상태", "path": "/comm", "desc": "통신 성공률"},
 ]
+
+if scada_enabled():
+    _profile_labels = {
+        "/": ("운전 개요", "선택 현장 최신 값·품질"),
+        "/edge-monitor": ("데이터 흐름", "적재·Health 근거"),
+        "/workflow": ("공정 감시", "태그·공정 연결 정의"),
+        "/trend": ("트렌드", "RAW·COND·FINAL"),
+        "/alarms": ("경보", "원천 사건·확인 상태"),
+        "/comm": ("통신 이력", "표본·품질·계획 부재"),
+    }
+    BASE_MENU = [
+        {**m, "name": _profile_labels[m["path"]][0], "desc": _profile_labels[m["path"]][1]}
+        if m.get("path") in _profile_labels else m for m in BASE_MENU
+    ]
 
 # AI 메뉴 그룹 (학습 → 분석 워크플로우)
 AI_MENU = [

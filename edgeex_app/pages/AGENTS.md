@@ -33,3 +33,7 @@ Navigate the route on `:14000` after a container restart (prod recompile).
 ## Child DOX Index
 
 None.
+
+## Core profile selection
+
+The six core routes (`/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm`) select shared `ScadaState`/`scada_view` only when `SCADA_DATA_SOURCE=edge_vqt`. Profile selection changes on_load as well as rendering. Dashboard visits in this profile must not start forecasting schedulers. Legacy branches remain available only in the default profile.

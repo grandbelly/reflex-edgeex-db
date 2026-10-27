@@ -138,7 +138,8 @@ app = rx.App(
 )
 
 # AI features - controlled by ENABLE_AI_FEATURES environment variable
-ENABLE_AI_FEATURES = os.getenv('ENABLE_AI_FEATURES', 'true').lower() == 'true'
+from .scada_config import scada_enabled
+ENABLE_AI_FEATURES = os.getenv('ENABLE_AI_FEATURES', 'true').lower() == 'true' and not scada_enabled()
 if os.getenv("APP_VERSION", "FULL").upper() == "PART":
     ENABLE_AI_FEATURES = False
 logger.info(f"AI Features: {'ENABLED' if ENABLE_AI_FEATURES else 'DISABLED'}")
@@ -146,7 +147,12 @@ logger.info(f"AI Features: {'ENABLED' if ENABLE_AI_FEATURES else 'DISABLED'}")
 # ============================================================================
 # Page registration — core SCADA + Edge Monitor pages
 # ============================================================================
-from .pages import (
+from .scada_config import scada_enabled
+
+if scada_enabled():
+    from .pages import dashboard, edge_monitor, workflow, trend_enhanced_v2, alarms, communication
+else:
+    from .pages import (
     alarms,                  # /alarms
     alarms_hist_new,         # /alarms_hist_new
     alarms_hist_simple,      # /alarms_hist

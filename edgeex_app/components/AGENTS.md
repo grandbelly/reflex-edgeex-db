@@ -28,3 +28,7 @@ Visual: render via the owning page on `:14000`. No component unit harness.
 ## Child DOX Index
 
 None — sub-folders are organizational, governed by this contract.
+
+## Core profile navigation
+
+`layout.py` labels the six migration routes by operational purpose. The site/tag/time context lives in ScadaState, not the sidebar. Readiness, fixed-time mode and missing definitions must stay visible on every migration page.

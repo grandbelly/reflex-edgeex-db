@@ -16,6 +16,7 @@ Query modules, e.g.: `latest.py` (latest snapshot), `metrics.py` (timeseries fro
   1d beyond (`_auto_view()`-style pickers). Never scan raw hypertable for wide windows.
 - Hot reads may use a short in-memory TTL cache (`cachetools.TTLCache`, ~10s) — keep TTLs small.
 - No business logic, no cross-query orchestration — that lives in `services/`.
+- The edge health query propagates failures to the service for explicit UI error reporting.
 
 ## Work Guidance
 

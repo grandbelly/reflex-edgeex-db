@@ -19,6 +19,10 @@ pagination), `SensorService` (latest values + QC rules + status), `ForecastServi
 - `EdgeMonitorService` uses the shared asyncpg query functions without an ORM session.
   Its snapshot contains `db_connected`, nested `kpi`, table lists, and `chart_series` points
   with `time`, `raw`, `cond`, `final`, `quality`; preserve nullable values without substitution.
+  Alarm KPI counts all stored alarms, independent of the recent-list limit. Health query failures
+  appear in `db_error`; received-message counters are not a count of health sites.
+  Initial chart selection uses the newest stored sample, so old smoke-test tags cannot displace
+  current site data merely through alphabetical ordering.
 
 ## Work Guidance
 

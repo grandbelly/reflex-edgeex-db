@@ -123,21 +123,10 @@ class EdgeMonitorState(BaseState):
                 if int(pt.get("quality", 2)) == 0
             ]
             if bad_xs:
-                ref_vals = [
-                    v for v in (finals + conds + raws) if isinstance(v, (int, float))
-                ]
-                y_mark = sum(ref_vals) / len(ref_vals) if ref_vals else 0.0
-                fig.add_trace(
-                    go.Scatter(
-                        x=bad_xs,
-                        y=[y_mark for _ in bad_xs],
-                        mode="markers+text",
-                        name="BAD (final_quality=0, NULL 보존)",
-                        text=["BAD(NULL)" for _ in bad_xs],
-                        textposition="top center",
-                        marker=dict(color="#ef4444", size=11, symbol="diamond"),
-                    )
-                )
+                # 품질 표식은 도표 좌표에 둔다. 결측값에 가짜 Y=0을 만들지 않는다.
+                for bad_x in bad_xs:
+                    fig.add_annotation(x=bad_x, y=1, yref="paper", text="BAD(NULL)",
+                                       showarrow=False, font=dict(color="#ef4444", size=9))
 
         fig.update_layout(
             margin=dict(l=40, r=20, t=28, b=36),
@@ -211,7 +200,7 @@ class EdgeMonitorState(BaseState):
 
         async with self:
             self.db_connected = snap.get("db_connected", False)
-            self.error_message = "" if self.db_connected else "상위 DB 연결 실패 · 실데이터를 조회할 수 없습니다."
+            self.error_message = snap.get("db_error", "") if self.db_connected else "상위 DB 연결 실패 · 실데이터를 조회할 수 없습니다."
             self.active_site_id = snap.get("active_site_id", "-")
             self.site_count = snap.get("site_count", 0)
             self.online_sites = snap.get("online_sites", 0)

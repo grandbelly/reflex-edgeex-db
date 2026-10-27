@@ -17,6 +17,7 @@ from edgeex_app.integration.kafka_config import opc_quality_label
 from edgeex_app.integration.kafka_consumer import get_edge_monitor_buffer
 from edgeex_app.queries.edge_monitor import (
     query_edge_alarms,
+    query_edge_alarm_count,
     query_edgeex_health_latest,
     query_edgeex_vqt_latest_by_tag,
     query_edgeex_vqt_recent_rows,
@@ -74,7 +75,17 @@ class EdgeMonitorService:
         db_latest_tags = await query_edgeex_vqt_latest_by_tag()
         db_recent_rows = await query_edgeex_vqt_recent_rows(limit=50)
         db_alarms = await query_edge_alarms(limit=20)
-        db_health_rows = await query_edgeex_health_latest()
+        db_errors = []
+        try:
+            alarm_count = await query_edge_alarm_count()
+        except Exception as exc:
+            alarm_count = 0
+            db_errors.append(f"alarm_history 조회 실패: {type(exc).__name__}: {exc}")
+        try:
+            db_health_rows = await query_edgeex_health_latest()
+        except Exception as exc:
+            db_health_rows = []
+            db_errors.append(f"edgeex_health_latest 조회 실패: {type(exc).__name__}: {exc}")
 
         total_rows = int(counts.get("total_rows") or 0)
         bad_null_rows = int(counts.get("bad_quality_null_rows") or 0)
@@ -163,7 +174,8 @@ class EdgeMonitorService:
                     "time": str(v.get("time", "-")),
                 })
 
-        active_tag = selected_tag if (selected_tag and selected_tag in available_tags) else (available_tags[0] if available_tags else "")
+        newest_tag = max(db_latest_tags, key=lambda row: int(row.get("ts_ms") or 0)).get("tag_id", "") if db_latest_tags else (available_tags[0] if available_tags else "")
+        active_tag = selected_tag if (selected_tag and selected_tag in available_tags) else newest_tag
 
         # 3. 최근 VQT 무손실 적재 이력 (edgeex_vqt_raw 전수 표본 — 8행 연기 시험 시 8행 모두 표시)
         recent_feed: List[Dict[str, Any]] = []
@@ -282,7 +294,7 @@ class EdgeMonitorService:
                 "summary": raw_json[:160],
             })
 
-        if not sites_list:
+        if not sites_list and not db_errors:
             merged_mem_health = {**file_health, **buf.site_health}
             for s_id, h in merged_mem_health.items():
                 sites_list.append({
@@ -305,12 +317,14 @@ class EdgeMonitorService:
                 merged_metrics["broker_status"] = "CONNECTED"
 
         quality_ratio = round((good_rows / total_rows) * 100.0, 1) if total_rows > 0 else 0.0
-        health_count = max(len(sites_list), int(merged_metrics.get("health_count") or 0))
-        health_status_label = sites_list[0]["status"] if sites_list else "STANDBY"
-        active_site_id = sites_list[0]["site_id"] if sites_list else (tag_rows[0]["site_id"] if tag_rows else "edge-acceptance")
+        health_count = len(sites_list)
+        health_status_label = "조회 실패" if db_errors else (sites_list[0]["status"] if sites_list else "STANDBY")
+        active_row = next((row for row in tag_rows if row["tag_id"] == active_tag), {})
+        active_site_id = sites_list[0]["site_id"] if sites_list else active_row.get("site_id", "-")
 
         return {
             "db_connected": "total_rows" in counts,
+            "db_error": " · ".join(db_errors),
             "available_tags": available_tags,
             "selected_tag": active_tag,
             "metrics": merged_metrics,
@@ -340,7 +354,7 @@ class EdgeMonitorService:
                 "stale_alarms": class_3,
                 "hunting_detected": class_4,
                 "collection_stopped": class_5,
-                "process_alarms": len(alarms_list),
+                "process_alarms": alarm_count,
                 "health_count": health_count,
                 "health_status": health_status_label,
                 "ntp_offset_ms": f"{ntp_offset_ms:.1f}",

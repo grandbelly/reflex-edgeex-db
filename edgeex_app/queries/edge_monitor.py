@@ -192,7 +192,10 @@ async def query_edgeex_health_latest() -> List[Dict[str, Any]]:
         FROM public.edgeex_health_latest
         ORDER BY site_id ASC
     """
-    try:
-        return await q(sql, ())
-    except Exception:
-        return []
+    return await q(sql, ())
+
+
+async def query_edge_alarm_count() -> int:
+    """경보 KPI는 최근 목록의 길이가 아니라 전체 저장 건수다."""
+    rows = await q("SELECT COUNT(*)::BIGINT AS n FROM public.alarm_history", ())
+    return int(rows[0]["n"]) if rows else 0

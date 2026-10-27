@@ -26,7 +26,7 @@ Verify the six routes in isolated localhost preview (`:3101`) using orca; produc
 
 ## Active routes
 
-`scada.py` registers `/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm` through `@rx.page` and the shared Dashboard template decorator. `on_load=ScadaState.initialize` reads only when live or not loaded. Other page files are migration history and are not imported by the active app. Do not mount their write routes or dashboard schedulers.
+`scada.py` registers `/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm` through `@rx.page` and the stock template decorator. Preserve the six menu concepts: dashboard, workflow, trend, alarms, communication status and Edge monitoring. `on_load=ScadaState.initialize` reads only when live or not loaded. Other page files are migration history and are not imported by the active app. Do not mount their write routes or dashboard schedulers.
 
 ## Child DOX Index
 

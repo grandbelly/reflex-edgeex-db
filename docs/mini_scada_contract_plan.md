@@ -1,5 +1,9 @@
 # 미니 SCADA 공통 데이터 계약 전환
 
+## 2026-10-28 연속 구현 승인
+
+오너 원문: “Pl한테 지시 요청해라 쉬지마 그리고 다 승인한다”(03:42 KST 관측). [PL 재요청](https://github.com/grandbelly/edgeex/pull/1076#issuecomment-6450633131)을 남기고, 회신 대기만으로 멈추지 않고 기존 격리 읽기 전용 프로필의 화면 이식을 수행한다. 허용 범위는 공통 stock 외형·여섯 메뉴 합성·State 선택/기간/표본 상세·읽기 query/service의 표본 근거 보존·표적 시험·독립 읽기·별도 브라우저 검증·기록/PR이다. 원시 VQT/품질/현장 격리 계약과 운전 변경0 제약은 유지한다. 별도 CR/배정이 도착하면 이 진행과 증거를 보존해 연결한다.
+
 오너 지시: 미니 SCADA 전체 재검토 뒤 “계속 진행한다”(2026-10-27). 기준 dd958d7.
 
 2026-10-28 추가 지시로 **[메뉴별 시각화 계약](mini_scada_visualization_contract.md)**을 화면 정보 설계의 우선 기준으로 삼는다. 공식 템플릿 스터디는 [reflex_template_study.md](reflex_template_study.md). 오너 선택은 stock_market_dashboard의 관제 배치와 stock_graph_app의 실시간 그래프다. 아래 첫 수용 단위는 데이터 기반 검증이며 메뉴별 UX 완료를 뜻하지 않는다.

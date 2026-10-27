@@ -61,6 +61,46 @@ class ValueContract(unittest.TestCase):
         value = shape_snapshot(data, 10)["rows"][0]["ingested_at"]
         self.assertEqual(datetime.fromisoformat(value), data["latest"][0]["ingested_at"])
 
+    def test_inspection_uses_historical_sample_provenance_not_latest(self):
+        data = fixture(12)
+        historical = data["series"][0]
+        historical.update(ts=AT-timedelta(seconds=9, microseconds=38037),
+                          ingested_at=AT-timedelta(seconds=1, microseconds=156), reasons=["HISTORICAL"])
+        data["latest"][0]["reasons"] = ["LATEST"]
+        sample = shape_snapshot(data)["series"][0]
+        self.assertEqual(datetime.fromisoformat(sample["time"]), historical["ts"])
+        self.assertEqual(datetime.fromisoformat(sample["ingested_at"]), historical["ingested_at"])
+        self.assertIn("HISTORICAL", sample["reasons"])
+        self.assertNotIn("LATEST", sample["reasons"])
+
+    def test_numeric_axis_preserves_irregular_source_intervals(self):
+        data = fixture()
+        data["series"] = [{**data["series"][0], "ts": AT-timedelta(seconds=s)} for s in [10, 8, 1]]
+        series = shape_snapshot(data)["series"]
+        self.assertEqual(series[1]["epoch_ms"]-series[0]["epoch_ms"], 2000)
+        self.assertEqual(series[2]["epoch_ms"]-series[1]["epoch_ms"], 7000)
+
+    def test_negative_precision_and_uncertain_series_are_not_green(self):
+        value = -1.23456789012345
+        sample = shape_snapshot(fixture(value, 1))["series"][0]
+        self.assertEqual(sample["final"], value)
+        self.assertEqual(float(sample["final_display"]), value)
+        self.assertIsNone(sample["final_good"])
+        self.assertEqual(sample["final_uncertain"], value)
+
+    def test_null_sample_does_not_acquire_plot_phase_value(self):
+        sample = shape_snapshot(fixture(None, 0))["series"][0]
+        self.assertIsNone(sample["final_good"])
+        self.assertIsNone(sample["final_uncertain"])
+        self.assertEqual(sample["final_display"], "—")
+
+    def test_unknown_alarm_lifecycle_is_not_unacknowledged_or_active(self):
+        data = fixture()
+        data["sections"]["alarms"]["rows"] = [dict(event_id="e", triggered_at=AT,
+            message="unknown", level=None, resolved=None, acknowledged=None)]
+        event = shape_snapshot(data)["alarms"][0]
+        self.assertEqual((event["condition"], event["acknowledgement"], event["level"]), ("—", "—", "—"))
+
     def test_unknown_and_future_clocks_are_visible(self):
         self.assertEqual(freshness(AT, AT, None), "현재성 기준 미설정")
         self.assertEqual(freshness(AT+timedelta(milliseconds=1), AT, 10), "시각 불일치")

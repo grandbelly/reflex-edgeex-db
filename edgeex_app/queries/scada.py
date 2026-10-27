@@ -46,7 +46,7 @@ async def read_snapshot(site: str, tag: str = "", minutes: int = 15) -> dict:
             series = []
             if selected:
                 series = await conn.fetch(
-                    "SELECT ts,raw_val,cond_val,final_val,final_quality,reasons "
+                    "SELECT ts,ingested_at,raw_val,cond_val,final_val,final_quality,reasons "
                     "FROM public.edgeex_vqt_raw WHERE site_id=$1 AND tag_id=$2 "
                     "AND ts >= $3::timestamptz - $4 * interval '1 minute' "
                     "AND ts <= $3 ORDER BY ts DESC LIMIT 2001",

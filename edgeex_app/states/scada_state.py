@@ -39,6 +39,9 @@ class ScadaState(rx.State):
     live: bool = True
     search: str = ""
     page: int = 0
+    phase: str = "FINAL"
+    sample_key: str = ""
+    alarm_key: str = ""
     _request: int = 0
     _reading: bool = False
     _pending: bool = False
@@ -65,6 +68,83 @@ class ScadaState(rx.State):
                               "validity", "freshness", "observed_at", "ingested_at", "reasons")
         })
 
+    @rx.var
+    def attention_rows(self) -> list[dict[str, Any]]:
+        result = []
+        for row in self.rows:
+            issue = ("값 계약 오류" if row["validity"] != "값 계약 일치" else
+                     "품질 불량" if row["quality"] == "BAD" else
+                     "갱신 지연" if row["freshness"] == "오래된 표본" else "")
+            if issue:
+                result.append({**row, "issue": issue})
+        return result
+
+    @rx.var
+    def channel_rows(self) -> list[dict[str, Any]]:
+        groups = {}
+        for row in self.rows:
+            key = row["channel"]
+            group = groups.setdefault(key, {"channel": key, "count": 0, "bad": 0, "latest": "—"})
+            group["count"] += 1
+            group["bad"] += int(row["quality"] == "BAD")
+            if group["latest"] == "—" or row["observed_at"] > group["latest"]:
+                group["latest"] = row["observed_at"]
+        return list(groups.values())
+
+    @rx.var
+    def inspected_sample(self) -> dict[str, Any]:
+        if self.series:
+            return next((r for r in self.series if r["sample_key"] == self.sample_key), self.series[-1])
+        return {**{k: "—" for k in ["time", "ingested_at", "raw_display", "cond_display",
+                                    "final_display", "reasons", "quality", "sample_key"]}, "epoch_ms": 0}
+
+    @rx.var
+    def sample_position(self) -> int:
+        return next((i for i, r in enumerate(self.series) if r["sample_key"] == self.sample_key),
+                    max(0, len(self.series) - 1))
+
+    @rx.var
+    def sample_max(self) -> int:
+        return max(1, len(self.series) - 1)
+
+    @rx.var
+    def cursor_time(self) -> int:
+        # Recharts ReferenceLine accepts integer milliseconds; precise source ISO stays in the inspector.
+        return round(float(self.inspected_sample["epoch_ms"]))
+
+    @rx.var
+    def selected_alarm(self) -> dict[str, str]:
+        return next((r for r in self.alarms if r["event"] == self.alarm_key),
+                    self.alarms[0] if self.alarms else {k: "—" for k in
+                    ["event", "time", "message", "level", "condition", "acknowledgement"]})
+
+    @rx.event
+    def inspect_sample(self, positions: list[int | float]):
+        if positions and self.series:
+            index = max(0, min(int(positions[0]), len(self.series) - 1))
+            self.sample_key = self.series[index]["sample_key"]
+
+    @rx.event
+    def select_alarm(self, key: str):
+        if any(row["event"] == key for row in self.alarms):
+            self.alarm_key = key
+
+    @rx.event
+    def set_phase(self, phase: str | list[str]):
+        if isinstance(phase, list):
+            phase = phase[0] if phase else ""
+        if phase in {"FINAL", "비교"}:
+            self.phase = phase
+
+    @rx.event(background=True)
+    async def change_window(self, minutes: str):
+        if minutes not in {"5", "15", "60"}:
+            return
+        async with self:
+            self._request += 1
+            self.minutes, self.series, self.sample_key = minutes, [], ""
+        await self._refresh()
+
     @rx.event(background=True)
     async def initialize(self):
         async with self:
@@ -85,6 +165,7 @@ class ScadaState(rx.State):
                 self._pending = True
                 return
             self._reading = True
+            self.query_state = "조회 중"
             self._request += 1
             request = self._request
             site, tag, minutes = self.site_id, self.tag, self.minutes

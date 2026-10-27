@@ -1,6 +1,16 @@
 # Reflex 0.10 기술 기반과 템플릿 전환
 
-화면 설계의 현재 정본은 [메뉴별 시각화 계약](mini_scada_visualization_contract.md) → [28종 전수 비교](reflex_template_catalog.md) → [컴포넌트·레이아웃 설계](mini_scada_component_layout_design.md)다. 아래 Dashboard 기반 구현은 초기 기술 기반이다. 최종 외형은 오너가 선택한 stock_market/stock_graph를 중심으로 이식하며, 아직 여섯 메뉴의 UX 수용이 끝난 상태가 아니다.
+화면 설계의 현재 정본은 [메뉴별 시각화 계약](mini_scada_visualization_contract.md) → [28종 전수 비교](reflex_template_catalog.md) → [컴포넌트·레이아웃 설계](mini_scada_component_layout_design.md)다. stock_market 상단 탐색/고밀도 표와 stock_graph 헤더/기간/연한 area/tooltip을 실제 Reflex 화면으로 이식했다. 아래 Dashboard 기록은 초기 기술 기반의 이력이다. 여섯 메뉴의 실제 브라우저 UX 수용은 아직 완료되지 않았다.
+
+## stock 이식의 실제 범위
+
+공통 외형은 상단 여섯 메뉴, dark 토큰, 작은 context bar와 section frame이다. 대시보드는 실제 자료 확인 대상/관측 채널/최근 경보, 워크플로우는 정본 모델 미연결 구획, 트렌드는 numeric source-time 축·실제 기간 선택·불확실 점선·받은 표본 선택/근거, 알람은 사건 ID 목록·상세, 통신 상태는 연결 이력 미연결/Health 구획, Edge 관제는 다섯 전달 단계의 관측 범위와 실제 최신 표본이다. 다른 메뉴에 전체 태그 표를 반복하지 않는다.
+
+트렌드 슬라이더는 새 DB 조회 없이 원래 표본의 source/ingestion·값·사유를 고른다. brush는 받은 범위의 로컬 확대다. 템플릿의 random/yfinance·금융 손익 색·0 대체/음수 절단·이벤트 없는 버튼은 복사하지 않았다. 이력 query는 ingested_at/reasons를 읽고 서비스에서 표본별로 보존한다. 실제 모델/시도 분모/전달 지표가 없는 메뉴는 근거 없는 상태나 성공률을 만들지 않는다.
+
+설치된 0.10.1 Recharts `Area`의 필드와 생성 JSX를 대조했다. `hide`, `fillOpacity`, `strokeDasharray`는 이 버전의 Python 선언 필드가 아니므로 `custom_attrs`로 전달한다. 일반 키워드는 CSS `wrapperStyle`로 들어가 비교 계열 표시 전환·점선이 작동하지 않을 수 있다. 숫자 시간 축과 tooltip formatter도 생성 JSX에서 확인하며, 실제 동작 수용과 구별한다.
+
+전용 Edge 프로필을 셸에서 기동하려던 명령이 자동 승인 검토에서 `rejected: blocked by policy`로 거절됐다. 오너 열람 창이나 Chrome9333으로 우회하지 않았다. 실제 새 화면 GUI/키보드/반응형 수용은 NOT RUN이며, compile/계약 시험/독립 SQL/HTTP 확인과 구별한다. 이 제한이 해소되기 전 UI 합격·운전 배포 완료로 보고하지 않는다.
 
 오너 지시(2026-10-28): Context7으로 최신 Reflex 사용법을 읽고 업그레이드하며, 미니 SCADA 전체에 템플릿을 활용한다.
 
@@ -8,7 +18,7 @@
 
 - 공식 템플릿: https://github.com/reflex-dev/templates/tree/e56a1a065208924dada4d23c769d15114381c6b5/dashboard
 - 참조 파일: `dashboard/templates/template.py`, `components/sidebar.py`, `components/navbar.py`, `components/card.py`, `views/stats_cards.py`, `styles.py`.
-- `edgeex_app/components/scada.py`는 공통 페이지 래퍼·데스크톱 사이드바·모바일 탐색·native `rx.card` 합성 구조를 이 템플릿에서 가져와 여섯 운전 메뉴에 맞게 재구성했다. 카드 수치와 내용은 예제 데이터를 복사하지 않고 실제 VQT 조회에 연결한다.
+- 초기 `edgeex_app/components/scada.py`는 공통 페이지 래퍼·사이드바·native `rx.card` 합성 구조를 Dashboard에서 가져왔다. 현재 stock 이식은 사이드바를 상단 탐색으로 바꾸고, 카드 대신 메뉴별 section/grid/표/차트의 위계를 적용했다. 수치와 내용은 실제 VQT 조회에 연결한다.
 - 초기 래퍼는 Dashboard 템플릿을 따랐다. 최종 배치는 메뉴별 설계의 비율과 역할을 따른다. 현장·태그·시간·시점 고정, 품질/현재성 분리, 읽기 전용 표출은 이 프로젝트 계약이다. 수익·증감률 예제와 설정 편집 페이지는 가져오지 않는다.
 
 ## 확인한 버전과 문서

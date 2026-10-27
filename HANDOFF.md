@@ -1,4 +1,14 @@
-## 2026-10-28 — ongoing mini SCADA / Reflex 0.10.1
+## 2026-10-28 04:05 KST — stock migration implemented, GUI acceptance blocked
+
+Owner approved continuation explicitly: “Pl한테 지시 요청해라 쉬지마 그리고 다 승인한다”. Renewed PL request is recorded at https://github.com/grandbelly/edgeex/pull/1076#issuecomment-6450633131; no new PL assignment or CR response is claimed. Continue the existing isolated read-only UI scope. The Company-style experiment was backed up to `C:/edgeex-it/cr277/refactor-run/continuation-wip-20261028T014335/` and deliberately superseded in the owned source files.
+
+The first stock implementation replaces repeated menu tables with attention/channel overview, unbound business workflow, numeric-time trend with historical sample inspector, alarm list/detail, connection-history capability/Health and delivery evidence. All six original routes remain. See `docs/reflex_template_source.md` for actual adaptations and deferred contracts. The shared State/query snapshot is retained; full purpose-specific query separation is deferred.
+
+Contract tests21/compile pass. Independent psycopg reference versus asyncpg app under the same exported read-only snapshot compared106 tags and269 historical samples with0 mismatches; all7 checker mutants were detected. Frozen checker SHA256 `91ed8e58ad05aa50eb2135f47ede2fa41cd55aac6418fb35ec2acdd2ade160d2`; raw `C:/edgeex-it/cr277/refactor-run/stock-independent.{txt,json}`. Final source SHA checks and receipt are being sealed.
+
+The isolated preview listens on127.0.0.1:3101 (wrapper16180/server8244 when observed). A dedicated Edge profile launch via Start-Process was rejected before execution by automatic approval review: `rejected: blocked by policy`. No bypass, owner-window interaction or Chrome9333 access followed. Actual GUI, keyboard, responsive and visual acceptance are NOT RUN; do not label compile/HTTP/SQL checks as UI acceptance. Health schema and workflow/connection history remain absent. Operating installations/channels/forwarder/Consumer/containers are unchanged.
+
+## Earlier continuity and design notes (superseded by the implementation status above)
 
 Owner explicitly objected to stopping after a design report. Continue within the PL assignment's completion criteria instead of closing on intermediate artifacts. A continuation request was posted to edgeEX PR#1076 comment6447732006 (https://github.com/grandbelly/edgeex/pull/1076#issuecomment-6447732006); no PL reply had been observed when this note was written. The local Orca terminal list has four edge tabs and no PL, saved remote environments are empty. Independent code/scope comparison continues; do not claim a new PL assignment was received before an actual reply. Keep all operating exclusions and the existing source experiments intact.
 

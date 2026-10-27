@@ -5,7 +5,7 @@ config = rx.Config(
     app_name="edgeex_app", loglevel="warning", show_built_with_reflex=False,
     state_manager_mode="memory",
     plugins=[rx.plugins.RadixThemesPlugin(theme=rx.theme(
-        appearance="dark", accent_color="teal", gray_color="slate",
+        appearance="dark", accent_color="blue", gray_color="slate",
         radius="medium", scaling="100%", panel_background="solid",
     ))],
     disable_plugins=[rx.plugins.SitemapPlugin],

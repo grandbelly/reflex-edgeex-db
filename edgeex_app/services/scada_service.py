@@ -65,17 +65,29 @@ def shape_snapshot(raw, stale_after=None):
         ))
     series = []
     for r in raw["series"]:
-        series.append(dict(time=stamp(r["ts"]), raw=number(r["raw_val"]),
+        source_time = stamp(r["ts"])
+        received_time = stamp(r.get("ingested_at"))
+        final = None if r["final_quality"] == 0 else number(r["final_val"])
+        reason = r.get("reasons", [])
+        series.append(dict(time=source_time, raw=number(r["raw_val"]),
                            cond=number(r["cond_val"]),
-                           final=None if r["final_quality"] == 0 else number(r["final_val"]),
+                           final=final, epoch_ms=r["ts"].timestamp() * 1000,
+                           ingested_at=received_time,
+                           sample_key=f"{site}/{raw['selected_tag']}/{source_time}/{received_time}",
+                           raw_display="—" if number(r["raw_val"]) is None else repr(number(r["raw_val"])),
+                           cond_display="—" if number(r["cond_val"]) is None else repr(number(r["cond_val"])),
+                           final_display="—" if final is None else repr(final),
+                           reasons=reason if isinstance(reason, str) else json.dumps(reason, ensure_ascii=False),
+                           final_good=final if r["final_quality"] == 2 else None,
+                           final_uncertain=final if r["final_quality"] == 1 else None,
                            quality=QUALITY.get(r["final_quality"], "품질 미정의")))
     alarms = []
     alarm_section = raw["sections"]["alarms"]
     for r in alarm_section["rows"]:
         alarms.append(dict(event=str(r["event_id"]), time=stamp(r["triggered_at"]),
-                           message=r["message"], level=str(r["level"]),
-                           condition="복귀" if r["resolved"] else "발생",
-                           acknowledgement="확인" if r["acknowledged"] else "미확인"))
+                           message=r["message"], level="—" if r["level"] is None else str(r["level"]),
+                           condition="복귀" if r["resolved"] is True else "발생" if r["resolved"] is False else "—",
+                           acknowledgement="확인" if r["acknowledged"] is True else "미확인" if r["acknowledged"] is False else "—"))
     health = raw["sections"]["health"]
     health_rows = []
     for r in health["rows"]:

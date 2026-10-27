@@ -47,7 +47,7 @@ def scope_bar(current):
         rx.form(rx.flex(
             rx.input(name="site", default_value=S.site_id, placeholder="현장 ID", required=True,
                      max_length=200, width="110px", aria_label="현장 ID"), tag_control,
-            rx.select(["5", "15", "60"], name="minutes", default_value=S.minutes,
+            rx.select(["5", "15", "60"], name="minutes", default_value=S.minutes, key=S.minutes,
                       width="82px", aria_label="조회 범위 (분)"),
             rx.text("분", size="1", color="var(--scada-muted)"),
             rx.button("적용", type="submit", size="2", variant="soft", color_scheme="gray"),

@@ -4,6 +4,7 @@ import os
 from typing import Any, TypedDict
 import reflex as rx
 from ..services.scada_service import ScadaService
+from . import scada_display as D
 
 
 class ScopeForm(TypedDict):
@@ -65,8 +66,34 @@ class ScadaState(rx.State):
     def selected(self) -> dict[str, Any]:
         return next((r for r in self.rows if r["tag"] == self.tag), {
             k: "—" for k in ("tag", "channel", "raw", "cond", "final", "unit", "quality",
-                              "validity", "freshness", "observed_at", "ingested_at", "reasons")
-        })
+                              "validity", "freshness", "observed_at", "ingested_at", "reasons",
+                              "raw_d", "cond_d", "final_d", "unit_d", "quality_d", "observed_d", "observed_p",
+                              "ingested_d", "reasons_d")
+        } | {"tone": "neutral"})
+
+    @rx.var
+    def selected_facts(self) -> list[list[str]]:
+        return D.facts(self.selected, [("채널", "channel"), ("원시값", "raw_d"), ("처리값", "cond_d"),
+                                       ("최종값", "final_d"), ("단위", "unit"), ("원천 시각", "observed_p"),
+                                       ("적재 시각", "ingested_d"), ("현재성", "freshness"),
+                                       ("처리 사유", "reasons_d")])
+
+    @rx.var
+    def as_of_d(self) -> str:
+        return D.kst_short(self.as_of)
+
+    @rx.var
+    def health_note(self) -> str:
+        return D.health_message(self.health_state)
+
+    @rx.var
+    def quality_mix(self) -> list[dict[str, Any]]:
+        total = self.good + self.uncertain + self.bad
+        return [{"label": label, "count_d": D.group(str(n)), "tone": tone,
+                 "width": f"{100 * n / total:.2f}%" if total else "0%"}
+                for label, n, tone in [("양호", self.good, "neutral"),
+                                       ("불확실", self.uncertain, "uncertain"),
+                                       ("불량", self.bad, "bad")]]
 
     @rx.var
     def attention_rows(self) -> list[dict[str, Any]]:
@@ -76,7 +103,8 @@ class ScadaState(rx.State):
                      "품질 불량" if row["quality"] == "BAD" else
                      "갱신 지연" if row["freshness"] == "오래된 표본" else "")
             if issue:
-                result.append({**row, "issue": issue})
+                result.append({**row, "issue": issue,
+                               "issue_tone": "uncertain" if issue == "갱신 지연" else "bad"})
         return result
 
     @rx.var
@@ -89,14 +117,22 @@ class ScadaState(rx.State):
             group["bad"] += int(row["quality"] == "BAD")
             if group["latest"] == "—" or row["observed_at"] > group["latest"]:
                 group["latest"] = row["observed_at"]
-        return list(groups.values())
+        return [{**g, "count_d": D.group(str(g["count"])), "bad_d": D.group(str(g["bad"])),
+                 "latest_d": D.kst_short(g["latest"])} for g in groups.values()]
 
     @rx.var
     def inspected_sample(self) -> dict[str, Any]:
         if self.series:
             return next((r for r in self.series if r["sample_key"] == self.sample_key), self.series[-1])
         return {**{k: "—" for k in ["time", "ingested_at", "raw_display", "cond_display",
-                                    "final_display", "reasons", "quality", "sample_key"]}, "epoch_ms": 0}
+                                    "final_display", "reasons", "reasons_d", "quality", "quality_d",
+                                    "sample_key", "time_p", "ingested_p"]}, "epoch_ms": 0, "tone": "neutral"}
+
+    @rx.var
+    def sample_facts(self) -> list[list[str]]:
+        return D.facts(self.inspected_sample, [("원천 시각", "time_p"), ("적재 시각", "ingested_p"),
+                                               ("원시값", "raw_display"), ("처리값", "cond_display"),
+                                               ("최종값", "final_display"), ("처리 사유", "reasons_d")])
 
     @rx.var
     def sample_position(self) -> int:
@@ -116,7 +152,18 @@ class ScadaState(rx.State):
     def selected_alarm(self) -> dict[str, str]:
         return next((r for r in self.alarms if r["event"] == self.alarm_key),
                     self.alarms[0] if self.alarms else {k: "—" for k in
-                    ["event", "time", "message", "level", "condition", "acknowledgement"]})
+                    ["event", "time", "time_d", "time_p", "message", "message_d", "level", "condition",
+                     "acknowledgement"]} | {"tone": "neutral"})
+
+    @rx.var
+    def alarm_facts(self) -> list[list[str]]:
+        return D.facts(self.selected_alarm, [("사건 ID", "event"), ("발생 시각", "time_p"),
+                                             ("원천 우선순위", "level"), ("원천 상태", "condition"),
+                                             ("확인", "acknowledgement")])
+
+    @rx.var
+    def recent_alarms(self) -> list[dict[str, str]]:
+        return self.alarms[:5]
 
     @rx.event
     def inspect_sample(self, positions: list[int | float]):
@@ -179,8 +226,10 @@ class ScadaState(rx.State):
                     return
                 self.as_of, self.served_at = snapshot["as_of"], snapshot["served_at"]
                 self.tags, self.tag = snapshot["tags"], snapshot["selected_tag"]
-                self.rows, self.series = snapshot["rows"], snapshot["series"]
-                self.alarms, self.health_rows = snapshot["alarms"], snapshot["health_rows"]
+                self.rows = [D.point_row(r) for r in snapshot["rows"]]
+                self.series = [D.sample_row(r) for r in snapshot["series"]]
+                self.alarms = [D.alarm_row(r) for r in snapshot["alarms"]]
+                self.health_rows = [{**r, "time_d": D.kst_short(r["time"])} for r in snapshot["health_rows"]]
                 self.health_state, self.alarm_state = snapshot["health_state"], snapshot["alarm_state"]
                 self.observed_tags, self.stale_tags = snapshot["observed_tags"], snapshot["stale_tags"]
                 self.bad_tags = snapshot["bad_tags"]

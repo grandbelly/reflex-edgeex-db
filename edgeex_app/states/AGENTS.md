@@ -38,6 +38,8 @@ None. Subpackages here are implementation detail, not separate DOX boundaries.
 
 ## Shared SCADA context
 
+`scada_display.py` is pure display shaping (no Reflex import): State adds `*_d` keys (short KST time, padded decimals, Korean quality terms, tone) beside the unchanged service fields, and `facts()` omits unknown values. It also owns the table spec and the 1366/1920 width model tested in `tests/test_scada_display.py`.
+
 `ScadaState` owns site/tag/5-15-60-minute context, snapshot, local search and 12-row pagination across the six routes. A native browser `rx.moment` timer calls finite background events; it stops producing requests when the component/tab disappears. Single-flight reads coalesce; obsolete scope responses cannot overwrite new scope. Every mutation in a background event occurs under `async with self`.
 
 Fixed mode invalidates in-flight reads and preserves the completed snapshot across navigation. Tag selection in fixed mode only selects that snapshot's detail and clears history; explicit refresh/apply or live resume gets new data. All controls have explicit events; no automatic setters or inherited mutable fields. There are no command/write events.

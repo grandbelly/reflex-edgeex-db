@@ -76,8 +76,12 @@ class EmptyOmission(unittest.TestCase):
     def test_alarm_text_uses_ds017_terms(self):
         row = D.alarm_row(dict(event="1", time="2026-10-28T09:27:02+09:00", message="품질 UNCERTAIN — 헌팅",
                                level="2", condition="발생", acknowledgement="미확인"))
-        self.assertEqual((row["message_d"], row["tone"]), ("품질 불확실 — 헌팅", "p2"))
-        self.assertEqual(D.alarm_row({**row, "condition": "복귀"})["tone"], "neutral")
+        # Source level has no P1-P3 contract yet, so no alarm colour is asserted.
+        self.assertEqual((row["message_d"], row["tone"]), ("품질 불확실 — 헌팅", "neutral"))
+
+    def test_precise_time_keeps_every_digit(self):
+        self.assertEqual(D.kst_precise("2026-10-28T09:27:02.038037+09:00"), "10-28 09:27:02.038037")
+        self.assertEqual(D.kst_precise("2026-10-28T09:27:02+09:00"), "10-28 09:27:02")
 
 
 class Wording(unittest.TestCase):

@@ -67,14 +67,14 @@ class ScadaState(rx.State):
         return next((r for r in self.rows if r["tag"] == self.tag), {
             k: "—" for k in ("tag", "channel", "raw", "cond", "final", "unit", "quality",
                               "validity", "freshness", "observed_at", "ingested_at", "reasons",
-                              "raw_d", "cond_d", "final_d", "unit_d", "quality_d", "observed_d",
+                              "raw_d", "cond_d", "final_d", "unit_d", "quality_d", "observed_d", "observed_p",
                               "ingested_d", "reasons_d")
         } | {"tone": "neutral"})
 
     @rx.var
     def selected_facts(self) -> list[list[str]]:
         return D.facts(self.selected, [("채널", "channel"), ("원시값", "raw_d"), ("처리값", "cond_d"),
-                                       ("최종값", "final_d"), ("단위", "unit"), ("원천 시각", "observed_d"),
+                                       ("최종값", "final_d"), ("단위", "unit"), ("원천 시각", "observed_p"),
                                        ("적재 시각", "ingested_d"), ("현재성", "freshness"),
                                        ("처리 사유", "reasons_d")])
 
@@ -126,11 +126,11 @@ class ScadaState(rx.State):
             return next((r for r in self.series if r["sample_key"] == self.sample_key), self.series[-1])
         return {**{k: "—" for k in ["time", "ingested_at", "raw_display", "cond_display",
                                     "final_display", "reasons", "reasons_d", "quality", "quality_d",
-                                    "sample_key"]}, "epoch_ms": 0, "tone": "neutral"}
+                                    "sample_key", "time_p", "ingested_p"]}, "epoch_ms": 0, "tone": "neutral"}
 
     @rx.var
     def sample_facts(self) -> list[list[str]]:
-        return D.facts(self.inspected_sample, [("원천 시각", "time"), ("적재 시각", "ingested_at"),
+        return D.facts(self.inspected_sample, [("원천 시각", "time_p"), ("적재 시각", "ingested_p"),
                                                ("원시값", "raw_display"), ("처리값", "cond_display"),
                                                ("최종값", "final_display"), ("처리 사유", "reasons_d")])
 
@@ -152,12 +152,12 @@ class ScadaState(rx.State):
     def selected_alarm(self) -> dict[str, str]:
         return next((r for r in self.alarms if r["event"] == self.alarm_key),
                     self.alarms[0] if self.alarms else {k: "—" for k in
-                    ["event", "time", "time_d", "message", "message_d", "level", "condition",
+                    ["event", "time", "time_d", "time_p", "message", "message_d", "level", "condition",
                      "acknowledgement"]} | {"tone": "neutral"})
 
     @rx.var
     def alarm_facts(self) -> list[list[str]]:
-        return D.facts(self.selected_alarm, [("사건 ID", "event"), ("발생 시각", "time"),
+        return D.facts(self.selected_alarm, [("사건 ID", "event"), ("발생 시각", "time_p"),
                                              ("원천 우선순위", "level"), ("원천 상태", "condition"),
                                              ("확인", "acknowledgement")])
 

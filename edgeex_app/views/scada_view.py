@@ -132,7 +132,7 @@ def signal_chart():
                        rx.cond(S.series_truncated, rx.el.span("최근 2,000개 표본만 표시")),
                        class_name="scada-legend"),
                 rx.box(rx.flex(rx.text("표본 선택", size="1", color="var(--muted)"), rx.spacer(),
-                               rx.text(S.inspected_sample["time"], size="1", class_name="scada-mono")),
+                               rx.text(S.inspected_sample["time_p"], size="1", class_name="scada-mono")),
                        rx.slider(value=[S.sample_position], min=0, max=S.sample_max, step=1,
                                  on_change=S.inspect_sample, aria_label="이력 표본 선택", margin_top="12px"),
                        class_name="scada-inspection-slider")),
@@ -158,7 +158,7 @@ def overview():
     return stack(
         rx.box(kpi("관측 태그", known(S.observed_tags), "선택 현장 최신 표본"),
                kpi("확인 대상", known(S.attention_rows.length()), "품질·값 계약·갱신 지연"),
-               kpi("불량 태그", known(S.bad_tags), "최종 품질 불량", "bad"),
+               kpi("불량 태그", known(S.bad_tags), "최종 품질 불량", rx.cond(S.bad_tags > 0, "bad", "")),
                kpi("관측 채널", known(S.channel_rows.length()), "최신 표본의 채널"),
                class_name="scada-kpis"),
         split(card(section_title("우선 확인할 자료", "선택하면 트렌드로 이동"),
@@ -247,9 +247,8 @@ def flow():
         card(section_title("전달 경로", "상위 DB 저장분만 관측"),
              rx.box(*path, class_name="scada-path"),
              rx.box(kpi("저장 표본", known(S.received), "선택 기간"),
-                    kpi("관측 태그", known(S.observed_tags), "최신 표본"),
                     kpi("조회 기준", S.as_of_d, "KST"),
-                    class_name="scada-kpis", style={"gridTemplateColumns": "repeat(3,minmax(0,1fr))",
+                    class_name="scada-kpis", style={"gridTemplateColumns": "repeat(2,minmax(0,1fr))",
                                                     "padding": "0 16px 16px"}),
              note("단계별 지연·보충 지표 미연결 — cursor·offset 기록 연결 뒤 표시", foot=True)),
         split(point_table(), latest_detail()))

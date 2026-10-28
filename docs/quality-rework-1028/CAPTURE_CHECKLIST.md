@@ -21,15 +21,14 @@
   const longText = [...document.querySelectorAll('.scada-shell *')]
     .filter(e => e.children.length === 0 && e.textContent.trim().length > 80).length;
   const english = /\b(GOOD|UNCERTAIN|BAD)\b/.test(document.body.innerText);
-  const iso = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}/.test(
-    [...document.querySelectorAll('.scada-table-scroll')].map(t => t.innerText).join(' '));
+  const iso = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(document.body.innerText);
   return {pageOverflow: d.scrollWidth - d.clientWidth, tableOverflow: Math.max(0, ...tables),
-          numericNotRight: numeric, textOver80: longText, englishQuality: english, isoInTables: iso};
+          numericNotRight: numeric, textOver80: longText, englishQuality: english, isoOnPage: iso};
 })()
 ```
 
 기대값: `pageOverflow 0`, `tableOverflow 0`, `numericNotRight 0`, `textOver80 0`,
-`englishQuality false`, `isoInTables false`. 표본 검사기·선택 사건의 원천 시각은 전체 ISO를 유지한다(정밀도 보존).
+`englishQuality false`, `isoOnPage false`. 표본 검사기·선택 사건 시각은 `10-28 09:27:02.038037`처럼 원천 자릿수를 모두 유지하되 ISO `T`·오프셋은 표시하지 않는다.
 
 ## 수용 기준 10 대응
 

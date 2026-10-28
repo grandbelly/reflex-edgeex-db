@@ -57,6 +57,12 @@ def kst_short(value) -> str:
     return f"{m.group(1)} {m.group(2)}" if m else "—"
 
 
+def kst_precise(value) -> str:
+    """'2026-10-28T09:27:02.038037+09:00' -> '10-28 09:27:02.038037': every source digit, no T/offset."""
+    m = re.match(r"\d{4}-(\d{2}-\d{2})T(\d{2}:\d{2}:\d{2}(?:\.\d+)?)", str(value or ""))
+    return f"{m.group(1)} {m.group(2)}" if m else "—"
+
+
 def group(text: str) -> str:
     """Thousands separators on the integer part; digits are never dropped."""
     if not re.fullmatch(r"-?\d+(\.\d+)?", text):
@@ -109,20 +115,23 @@ def point_row(r: dict) -> dict:
     return {**r, "raw_d": raw, "cond_d": cond, "final_d": final,
             "unit_d": r["unit"] if r.get("unit") not in EMPTY else "—",
             "quality_d": QUALITY_KO.get(q, q), "tone": QUALITY_TONE.get(q, "neutral"),
-            "observed_d": kst_short(r["observed_at"]), "ingested_d": kst_short(r["ingested_at"]),
+            "observed_d": kst_short(r["observed_at"]), "observed_p": kst_precise(r["observed_at"]),
+            "ingested_d": kst_precise(r["ingested_at"]),
             "reasons_d": reasons_text(r["reasons"])}
 
 
 def alarm_row(r: dict) -> dict:
-    tone = {"1": "p1", "2": "p2", "3": "p3"}.get(r["level"], "neutral") \
-        if r["condition"] == "발생" else "neutral"
-    return {**r, "time_d": kst_short(r["time"]), "message_d": ko_terms(r["message"]), "tone": tone}
+    # ponytail: no contract maps source `level` to P1-P3 yet; neutral until one does (alarm colours
+    # would otherwise assert an operating priority the source never stated).
+    return {**r, "time_d": kst_short(r["time"]), "time_p": kst_precise(r["time"]),
+            "message_d": ko_terms(r["message"]), "tone": "neutral"}
 
 
 def sample_row(r: dict) -> dict:
     q = r["quality"]
     return {**r, "quality_d": QUALITY_KO.get(q, q), "tone": QUALITY_TONE.get(q, "neutral"),
-            "reasons_d": reasons_text(r["reasons"])}
+            "reasons_d": reasons_text(r["reasons"]), "time_p": kst_precise(r["time"]),
+            "ingested_p": kst_precise(r["ingested_at"])}
 
 
 def health_message(state: str) -> str:

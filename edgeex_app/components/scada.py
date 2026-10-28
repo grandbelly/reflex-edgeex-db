@@ -31,7 +31,7 @@ def quality_pill(row):
 def kpi(label, value, note="", variant=""):
     return rx.box(rx.text(label, class_name="label"), rx.text(value, class_name="value"),
                   rx.text(note, class_name="note") if note else rx.fragment(),
-                  class_name="scada-kpi " + variant)
+                  class_name=f"scada-kpi {variant}")
 
 
 def note(text, foot=False):

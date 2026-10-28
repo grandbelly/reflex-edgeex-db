@@ -177,7 +177,7 @@ def overview():
               card(section_title("저장 표본 품질", rx.text("선택 기간 ", S.received, "건", class_name="scada-mono")),
                    rx.cond(S.good + S.uncertain + S.bad > 0,
                            rx.box(rx.box(rx.foreach(S.quality_mix, lambda m: rx.box(
-                                         class_name=m["tone"], width=m["width"])), class_name="scada-mix-bar"),
+                                         class_name=m["tone"].to(str), width=m["width"])), class_name="scada-mix-bar"),
                                   rx.foreach(S.quality_mix, mix_row), class_name="scada-mix"),
                            note("선택 기간 저장 표본 없음")))))
 

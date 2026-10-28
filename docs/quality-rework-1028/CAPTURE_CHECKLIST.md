@@ -2,6 +2,7 @@
 
 엣지 PC에서 실행한다(상위 `AGENTS.md`: 오너 PC에서 Reflex 실행 금지). 기동·환경은 엣지 수용 영수증
 `20261028T091746+0900__d1028-06-mini-scada-edge-accept`와 같게 둔다. 실데이터 SY 현장, 읽기 전용 DSN.
+`bun … dev`로 프런트를 띄우기 전에 `.web/env.json`이 있는지 확인한다. `reflex compile`만으로는 생기지 않아 10095cc 재수용 1차 기동이 실패했다. `reflex export --frontend-only --no-zip`을 실행하면 생성된다.
 
 ## 캡처
 

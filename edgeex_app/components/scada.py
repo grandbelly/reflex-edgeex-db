@@ -14,8 +14,11 @@ def card(*children, **props):
 
 
 def section_title(title, note=""):
-    return rx.flex(rx.text(title, class_name="title"), rx.spacer(),
-                   rx.text(note, class_name="note") if note else rx.fragment(),
+    if isinstance(note, str):
+        note = rx.text(note, class_name="note") if note else rx.fragment()
+    else:
+        note = rx.box(note, class_name="note")  # already text; rx.text here renders <p> inside <p>
+    return rx.flex(rx.text(title, class_name="title"), rx.spacer(), note,
                    align="center", gap="12px", class_name="scada-section-head")
 
 

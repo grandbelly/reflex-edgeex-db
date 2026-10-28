@@ -7,7 +7,8 @@ from edgeex_app.states import scada_display as D
 ROOT = Path(__file__).resolve().parents[1]
 SCREEN_FILES = ["edgeex_app/views/scada_view.py", "edgeex_app/components/scada.py",
                 "edgeex_app/pages/scada.py", "edgeex_app/states/scada_display.py"]
-NUMERIC_KEYS = {"count_d", "bad_d", "raw_d", "cond_d", "final_d"}
+# Every column whose cells are numbers, codes included (edge re-acceptance: priority '3' left-aligned).
+NUMERIC_KEYS = {"count_d", "bad_d", "raw_d", "cond_d", "final_d", "level"}
 
 
 class OverflowWidth(unittest.TestCase):

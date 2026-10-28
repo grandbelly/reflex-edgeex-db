@@ -17,7 +17,7 @@ TABLES = {
                  ("bad_d", "불량", 64, True)],
     "recent_alarms": [("time_d", "발생", 112, False), ("message_d", "내용", 220, False),
                       ("condition", "상태", 72, False)],
-    "alarms": [("message_d", "사건", 240, False), ("level", "원천 우선순위", 96, False),
+    "alarms": [("message_d", "사건", 240, False), ("level", "원천 우선순위", 96, True),
                ("time_d", "발생 시각", 112, False), ("condition", "발생/복귀", 80, False),
                ("acknowledgement", "확인", 64, False)],
     "points": [("tag", "태그 / 채널", 180, False), ("raw_d", "원시값", 96, True),

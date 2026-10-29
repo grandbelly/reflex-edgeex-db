@@ -77,17 +77,19 @@ def segment(options, current, on_pick):
 
 def select(name, options, value, label):
     """Native select §7.2 with the chevron overlay; `options` is a list or a list Var."""
-    items = (rx.foreach(options, lambda o: rx.el.option(o, value=o)) if isinstance(options, rx.Var)
+    # Splat the static list: one list child compiles to an unkeyed JS array (React key warning).
+    items = ([rx.foreach(options, lambda o: rx.el.option(o, value=o))] if isinstance(options, rx.Var)
              else [rx.el.option(text, value=v) for v, text in options])
-    return rx.box(rx.el.select(items, name=name, default_value=value, key=value, aria_label=label,
+    return rx.box(rx.el.select(*items, name=name, default_value=value, key=value, aria_label=label,
                                class_name="scada-select"),
                   rx.icon("chevron-down", size=14, class_name="chev"), class_name="scada-select-wrap")
 
 
 def search(value, on_change, placeholder):
+    # type="text" keeps the textbox role the edge event regression finds the box by (searchbox misses it).
     return rx.box(rx.icon("search", size=16, class_name="icon"),
                   rx.debounce_input(rx.el.input(value=value, on_change=on_change, placeholder=placeholder,
-                                                aria_label=placeholder, type="search"), debounce_timeout=300),
+                                                aria_label=placeholder, type="text"), debounce_timeout=300),
                   class_name="scada-search")
 
 

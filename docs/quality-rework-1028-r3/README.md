@@ -48,6 +48,23 @@ Radix 컴포넌트(표·슬라이더·링크)는 Radix 변수(`--accent-*`, `--g
 
 WCAG 2.x 상대 휘도 공식으로 계산했다. hover·선택 바탕은 반투명 토큰을 흰색(또는 `#fafafc`) 위에 합성한 값이다. 후보 `#6e6e73`은 선택 행에서 4.40이라 쓰지 않았다. `LightContrast` 시험이 6개 바탕 모두에서 4.5 이상을 고정한다(변이 M10).
 
+12. **차트 축·brush 글자색: 가이드 §8 이탈(엣지 031faff FAIL 1, PL 4차 지시).** 가이드는 축을 `--am-axis`(light 검정 45%, dark 흰 30%)로 둔다. SVG 글자로 쓰면 알파 합성 값이 되어 엣지 실측 light 2.84:1(10 px)이었다. 글자 전용 불투명 토큰 `--am-axis-text`를 두 모드에 짝으로 추가했다. light는 `#68686d`(muted-2와 같은 값), dark는 `#a1a1a6`이다. 축 선 획은 가이드 `--am-axis` 그대로다. 글자 크기는 10 → 11 px(축 tick·brush 글자 모두)로 올렸다.
+
+| 바탕 | 이전 `--am-axis` | 적용 `--am-axis-text` |
+|---|---|---|
+| light 카드 `#ffffff` | 2.84(엣지 실측) | 5.54 |
+| light 헤더·행 `#fafafc` | — | 5.32 |
+| light 페이지 `#f5f5f7` | — | 5.09 |
+| light 행 hover `#f2f2f2` | — | 4.95 |
+| light 헤더 행 hover `#eeeeef` | — | 4.78 |
+| light 선택 행 `#e6f0fa` | — | 4.81 |
+| dark 카드 `#18191b` | 2.71(계산) | 6.84 |
+| dark 카드-2 `#1e2022` | — | 6.35 |
+| dark 행 `#151617` | — | 7.04 |
+| dark 페이지 `#111214` | — | 7.29 |
+
+`ChartText` 시험이 CSS의 축 tick·brush 글자 규칙 2개와 뷰의 `AXIS_TICK`가 이 토큰을 쓰는지, 토큰이 불투명 6자리 hex인지, 두 모드의 모든 바탕에서 4.5 이상인지, 크기가 11 px 이상인지 고정한다(변이 M11–M14).
+
 ## 이전 브라우저의 `theme=system`
 
 이전 빌드는 브라우저 `localStorage`에 `theme=system`을 남겼다. 그러면 OS가 라이트일 때 dark 기본이 깨진다. 오너 브라우저도 해당된다.
@@ -116,6 +133,21 @@ prod 빌드로 띄울 때만 남은 `system`이 그대로 쓰인다. 캡처 절�
   - 빌드된 HTML 6개 모두 `<p>` 안 블록 요소 0.
   - 빌드 CSS 첫 문장이 Google Fonts `@import`임을 확인했다. 뒤에 오면 무시된다.
 - 검색창은 `rx.debounce_input`(300 ms)으로 감쌌다. Radix `rx.input`에서 바꾸면서 debounce가 빠져 글자마다 서버를 왕복하던 것을 되돌린 것이다. `reflex.lock`은 생성 파일이라 커밋하지 않는다.
+
+## 4차 수정(엣지 031faff 재수용 FAIL 2·PARTIAL 1)
+
+영수증: edgeex `fable/receipts/acceptance/20261029T122549+0900__mini-scada-reaccept-031faff/`.
+
+| 지적 | 원인 | 수정 | 시험·변이 |
+|---|---|---|---|
+| FAIL 13: light SVG 축·brush 글자 2.84:1 | `--am-axis` 알파 토큰을 글자에 씀, 10 px | 불투명 `--am-axis-text` 짝 추가, 11 px(해석 12) | `ChartText` 2건, M11–M14 |
+| FAIL 9: `Select` key 경고 console.error 1 | `select()`가 정적 option 목록을 자식 하나(배열)로 넘겨 키 없는 `[jsx(option)…]`로 컴파일됨 | 목록을 풀어(`*items`) 자식으로 넘김. `rx.foreach` 경로는 Reflex가 index 키를 붙인다 | `Markup.test_no_unkeyed_array_children`(6메뉴 렌더 트리에 `[(jsx(` 0), M15 |
+| PARTIAL 8: 자동 이벤트가 textbox로 검색창을 못 찾음 | `type="search"`의 역할은 searchbox | `type="text"`로 두어 역할 textbox, 이름 "태그·채널 검색" 유지 | `Markup.test_search_box_has_the_textbox_role`, M16 |
+
+- 시험 51건 OK(`tests-r4.txt`): 47 + `ChartText` 2 + `Markup` 2.
+- 변이 6건 모두 잡힘(`mutants-r4.txt`). M15는 정적 목록 페이지 4곳 FAIL, `rx.foreach`를 쓰는 트렌드·흐름은 생성 단계 ERROR로 잡힌다.
+- 빌드: `reflex compile` exit 0. `reflex export --frontend-only`는 첫 시도에 `/` 사전 렌더 시간 초과(exit 1, 2·3차와 같은 증상), 재시도 exit 0. 빌드 CSS에 `--am-axis-text`가 있고 빌드 결과에 `type="search"` 0.
+- key 경고가 정적 검사로 잡히는 범위는 "목록을 자식 하나로 넘기는" 형태다. 다른 React 콘솔 경고는 엣지 실측으로 확인한다.
 
 ## 미검증(엣지 재수용으로 넘김)
 

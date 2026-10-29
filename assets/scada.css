@@ -15,6 +15,9 @@
 --am-series-a:#0066cc;--am-series-violet:#a855f7;--am-series-emerald:#10b981;
 --am-series-amber:#f59e0b;--am-series-alarm:#ef4444;
 --am-grid:#f0f0f0;--am-axis:rgba(29,29,31,.45);
+/* Chart tick/brush text departs from §8 (axis 45% alpha, 2.84:1 measured at the edge): opaque, AA on
+   every chart surface in both modes; the 45% axis stays for axis lines only. */
+--am-axis-text:#68686d;
 --am-r-card:18px;--am-r-card-2:16px;--am-r-lg:8px;--am-r-input:6px;--am-r-sm:2px;--am-r-pill:9999px;
 --am-ease:cubic-bezier(.25,1,.5,1);--am-dur:.3s;
 --am-font-sans:"Inter",ui-sans-serif,system-ui,sans-serif;
@@ -34,7 +37,7 @@
 --am-accent:#2997ff;--am-info:#2997ff;
 --am-border:rgba(255,255,255,.05);--am-border-strong:rgba(255,255,255,.1);
 --am-hairline:rgba(255,255,255,.05);
---am-series-a:#2997ff;--am-grid:rgba(255,255,255,.05);--am-axis:rgba(255,255,255,.3);
+--am-series-a:#2997ff;--am-grid:rgba(255,255,255,.05);--am-axis:rgba(255,255,255,.3);--am-axis-text:#a1a1a6;
 --am-selection:rgba(0,102,204,.4);--am-hover:rgba(255,255,255,.05);
 --am-scrollbar:rgba(255,255,255,.16);--am-scrollbar-hover:rgba(255,255,255,.24);
 --am-subnav:#18191b;--am-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
@@ -211,13 +214,13 @@ font-size:12px;color:var(--am-text);vertical-align:middle}
 .scada-signal-value{font-family:var(--am-font-mono);font-size:34px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .scada-chart{padding:0 16px 0 0;min-width:0}
 .scada-chart .recharts-cartesian-grid line{stroke:var(--am-grid)}
-.scada-chart .recharts-cartesian-axis-tick-value{fill:var(--am-axis);font-family:var(--am-font-mono);font-size:10px}
+.scada-chart .recharts-cartesian-axis-tick-value{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}
 .scada-chart .series-a .recharts-area-curve{stroke:var(--am-series-a)}
 .scada-chart .series-amber .recharts-area-curve{stroke:var(--am-series-amber)}
 .scada-chart .series-violet .recharts-area-curve{stroke:var(--am-series-violet)}
 .scada-chart .series-raw .recharts-area-curve{stroke:var(--am-muted-2)}
 .scada-chart .recharts-brush rect:first-child{fill:var(--am-row);stroke:var(--am-border-strong)}
-.scada-chart .recharts-brush-texts text{fill:var(--am-axis)}
+.scada-chart .recharts-brush-texts text{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}
 .scada-grad-a stop{stop-color:var(--am-series-a)}
 .scada-legend{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin:8px 24px 0;padding:12px 0;border-top:1px solid var(--am-hairline);font-size:12px;color:var(--am-muted)}
 .scada-legend .item{display:inline-flex;align-items:center;gap:8px;color:var(--am-text);font-weight:500}

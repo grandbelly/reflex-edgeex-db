@@ -30,9 +30,11 @@
   const unflipped = [...document.querySelectorAll('.scada-shell, .scada-shell *')]
     .filter(e => other.includes(cs(e).backgroundColor)).map(e => e.className).slice(0, 5);
   const curve = document.querySelector('.series-a .recharts-area-curve');
+  const tick = document.querySelector('.recharts-cartesian-axis-tick-value');
   return {mode, page: cs(document.querySelector('.scada-shell')).backgroundColor,
           card: cs(document.querySelector('.scada-panel:not(.raised)') || d).backgroundColor,
           finalStroke: curve ? cs(curve).stroke : 'no chart', unflipped,
+          axisText: tick ? [cs(tick).fill, cs(tick).fontSize] : 'no chart',
           inter: document.fonts.check('12px Inter'), jbMono: document.fonts.check('12px "JetBrains Mono"'),
           pageOverflow: d.scrollWidth - d.clientWidth, tableOverflow: Math.max(0, ...tables),
           numericNotRight: numeric,
@@ -48,6 +50,7 @@
 | `page` | `rgb(17, 18, 20)` | `rgb(245, 245, 247)` |
 | `card` | `rgb(24, 25, 27)` | `rgb(255, 255, 255)` |
 | `finalStroke`(트렌드) | `rgb(41, 151, 255)` | `rgb(0, 102, 204)` |
+| `axisText`(트렌드, 4차) | `["rgb(161, 161, 166)", "11px"]` | `["rgb(104, 104, 109)", "11px"]` |
 
 나머지 키는 두 모드 모두 같다:
 - `unflipped []`

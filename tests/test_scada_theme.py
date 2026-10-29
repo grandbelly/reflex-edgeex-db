@@ -4,6 +4,7 @@ import re
 import unittest
 from pathlib import Path
 from edgeex_app.pages import scada as pages
+from edgeex_app.views.scada_view import AXIS_TICK
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "assets/scada.css").read_text(encoding="utf-8")
@@ -116,6 +117,43 @@ class LightContrast(unittest.TestCase):
     def test_secondary_text_keeps_the_guide_order(self):
         light = tokens(LIGHT_SEL)
         self.assertGreater(contrast(light["muted"], "#ffffff"), contrast(light["muted-2"], "#ffffff"))
+
+
+class ChartText(unittest.TestCase):
+    # SVG tick/brush text is measured too (edge 031faff: alpha axis 2.84:1 at 10 px). Opaque tokens only, so
+    # the ratio does not depend on what the text is composited over.
+    RULES = re.findall(r"\.scada-chart [^{]*(?:tick-value|text)\{([^}]*)\}", CSS)
+    SURFACES = {LIGHT_SEL: LightContrast.SURFACES, DARK_SEL: ["#18191b", "#1e2022", "#151617", "#111214"]}
+
+    def test_chart_text_is_opaque_and_meets_aa(self):
+        self.assertEqual(len(self.RULES), 2)
+        fills = {re.search(r"fill:var\(--am-([\w-]+)\)", body).group(1) for body in self.RULES}
+        self.assertEqual(fills, {"axis-text"})
+        self.assertEqual(AXIS_TICK["fill"], "var(--am-axis-text)")
+        for sel, surfaces in self.SURFACES.items():
+            value = tokens(sel)["axis-text"]
+            self.assertRegex(value, r"^#[0-9a-f]{6}$")
+            for bg in surfaces:
+                with self.subTest(mode=sel, surface=bg):
+                    self.assertGreaterEqual(contrast(value, bg), 4.5)
+
+    def test_chart_text_is_at_least_11px(self):
+        for body in self.RULES:
+            self.assertGreaterEqual(int(re.search(r"font-size:(\d+)px", body).group(1)), 11)
+        self.assertGreaterEqual(AXIS_TICK["fontSize"], 11)
+
+
+class Markup(unittest.TestCase):
+    def test_no_unkeyed_array_children(self):
+        # A list passed as one child compiles to [jsx(...), ...] without keys: React logs console.error.
+        for name in PAGES:
+            with self.subTest(page=name):
+                self.assertNotIn("[(jsx(", str(getattr(pages, name)()))
+
+    def test_search_box_has_the_textbox_role(self):
+        for name in PAGES:
+            with self.subTest(page=name):
+                self.assertNotIn('type:"search"', str(getattr(pages, name)()))
 
 
 class ThemeSwitch(unittest.TestCase):

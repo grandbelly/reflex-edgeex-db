@@ -11,7 +11,7 @@ TIME_LABEL = "(value) => new Date(value).toLocaleString('ko-KR', {timeZone:'Asia
 # recharts classes so a mode change repaints without a re-render.
 C = dict(final="var(--am-series-a)", uncertain="var(--am-series-amber)", cond="var(--am-series-violet)",
          raw="var(--am-muted-2)", grid="var(--am-grid)", axis="var(--am-axis)", cursor="var(--am-accent)")
-AXIS_TICK = {"fill": C["axis"], "fontSize": 10, "fontFamily": "var(--am-font-mono)"}
+AXIS_TICK = {"fill": "var(--am-axis-text)", "fontSize": 11, "fontFamily": "var(--am-font-mono)"}
 
 
 def split(main, aside, wide=False):

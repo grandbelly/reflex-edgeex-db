@@ -11,10 +11,11 @@ PY = ["edgeex_app/views/scada_view.py", "edgeex_app/components/scada.py", "edgee
       "edgeex_app/edgeex_app.py", "rxconfig.py"]
 PAGES = ["overview", "process", "trend", "alarms", "flow", "communication"]
 
-# design_guide.md A.1 verbatim: light on :root, dark overrides.
+# design_guide.md A.1 verbatim: light on :root, dark overrides. One departure (PL D-1029-02): light
+# muted/muted-2 (#7a7a7a/#86868b) darkened in the same hue to reach WCAG AA, see LightContrast.
 GUIDE_LIGHT = {
     "page": "#f5f5f7", "card": "#ffffff", "card-2": "#ffffff", "header": "#fafafc", "row": "#fafafc",
-    "select": "#ffffff", "console": "#fafafc", "text": "#1d1d1f", "muted": "#7a7a7a", "muted-2": "#86868b",
+    "select": "#ffffff", "console": "#fafafc", "text": "#1d1d1f", "muted": "#636366", "muted-2": "#68686d",
     "faint": "rgba(0,0,0,.3)", "accent": "#0066cc", "accent-press": "#0071e3", "focus": "#0066cc",
     "border": "#e0e0e0", "border-strong": "#e0e0e0", "hairline": "#f0f0f0", "error": "#ef4444",
     "warning": "#f59e0b", "success": "#10b981", "info": "#0066cc", "series-a": "#0066cc",
@@ -89,6 +90,32 @@ class Tokens(unittest.TestCase):
         for name in PAGES:
             with self.subTest(page=name):
                 self.assertEqual(re.findall(r"#[0-9a-fA-F]{3,8}\b", str(getattr(pages, name)())), [])
+
+
+def contrast(fg, bg):
+    def lum(hex_):
+        c = [int(hex_[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        c = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted([lum(fg), lum(bg)], reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+class LightContrast(unittest.TestCase):
+    # Light surfaces muted text sits on: card, header/row, page/sub-nav, row hover (black 5% on
+    # #ffffff and #fafafc) and the selected row (accent #0066cc 10% on white).
+    SURFACES = ["#ffffff", "#fafafc", "#f5f5f7", "#f2f2f2", "#eeeeef", "#e6f0fa"]
+
+    def test_secondary_text_meets_aa(self):
+        light = tokens(LIGHT_SEL)
+        for name in ("text", "muted", "muted-2"):
+            for bg in self.SURFACES:
+                with self.subTest(token=name, surface=bg):
+                    self.assertGreaterEqual(contrast(light[name], bg), 4.5)
+
+    def test_secondary_text_keeps_the_guide_order(self):
+        light = tokens(LIGHT_SEL)
+        self.assertGreater(contrast(light["muted"], "#ffffff"), contrast(light["muted-2"], "#ffffff"))
 
 
 class ThemeSwitch(unittest.TestCase):

@@ -6,7 +6,9 @@
 :root{ /* LIGHT */
 --am-page:#f5f5f7;--am-card:#ffffff;--am-card-2:#ffffff;
 --am-header:#fafafc;--am-row:#fafafc;--am-select:#ffffff;--am-console:#fafafc;
---am-text:#1d1d1f;--am-muted:#7a7a7a;--am-muted-2:#86868b;--am-faint:rgba(0,0,0,.3);
+--am-text:#1d1d1f;--am-muted:#636366;--am-muted-2:#68686d;--am-faint:rgba(0,0,0,.3);
+/* muted/muted-2 depart from A.1 (#7a7a7a 3.83:1, #86868b 3.24:1 at worst): WCAG AA 4.5:1 on every light
+   surface incl. hover/selected rows (PL D-1029-02); tests/test_scada_theme.py measures it. */
 --am-accent:#0066cc;--am-accent-press:#0071e3;--am-focus:#0066cc;
 --am-border:#e0e0e0;--am-border-strong:#e0e0e0;--am-hairline:#f0f0f0;
 --am-error:#ef4444;--am-warning:#f59e0b;--am-success:#10b981;--am-info:#0066cc;

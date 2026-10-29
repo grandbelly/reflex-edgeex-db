@@ -35,6 +35,8 @@ test_no_table_scrolls_at_target_viewports (tests.test_scada_display.OverflowWidt
 test_screen_text_rules (tests.test_scada_display.Wording.test_screen_text_rules) ... ok
 test_detector_finds_known_bad_shape (tests.test_scada_render.NoBlockInsideParagraph.test_detector_finds_known_bad_shape) ... ok
 test_six_pages_have_no_block_inside_p (tests.test_scada_render.NoBlockInsideParagraph.test_six_pages_have_no_block_inside_p) ... ok
+test_secondary_text_keeps_the_guide_order (tests.test_scada_theme.LightContrast.test_secondary_text_keeps_the_guide_order) ... ok
+test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) ... ok
 test_dark_default_and_radix_follows_the_mode (tests.test_scada_theme.ThemeSwitch.test_dark_default_and_radix_follows_the_mode) ... ok
 test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) ... ok
 test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) ... ok

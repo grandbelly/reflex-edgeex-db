@@ -34,6 +34,17 @@ FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.t
 FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='communication')
 Ran 8 tests in 0.348s
 FAILED (failures=6)
+== M10 light muted back to guide #7a7a7a (AA contrast): assets/scada.css
+FAIL: test_guide_values_verbatim (tests.test_scada_theme.Tokens.test_guide_values_verbatim) (mode='light', token='muted')
+FAIL: test_secondary_text_keeps_the_guide_order (tests.test_scada_theme.LightContrast.test_secondary_text_keeps_the_guide_order)
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#e6f0fa')
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#eeeeef')
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#f2f2f2')
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#f5f5f7')
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#fafafc')
+FAIL: test_secondary_text_meets_aa (tests.test_scada_theme.LightContrast.test_secondary_text_meets_aa) (token='muted', surface='#ffffff')
+FAILED (failures=8)
+Ran 10 tests in 0.337s
 == restored, full suite
-Ran 45 tests in 0.409s
+Ran 47 tests in 0.430s
 OK

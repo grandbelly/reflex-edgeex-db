@@ -52,6 +52,8 @@
 | `finalStroke`(트렌드) | `rgb(41, 151, 255)` | `rgb(0, 102, 204)` |
 | `axisText`(트렌드, 4차) | `["rgb(161, 161, 166)", "11px"]` | `["rgb(104, 104, 109)", "11px"]` |
 
+brush 글자는 traveller를 끌 때만 보인다. light 트렌드에서 brush를 끄는 동안 `getComputedStyle(document.querySelector('.recharts-brush-texts text')).fill`을 읽는다. 기대값은 `axisText`와 같은 `rgb(104, 104, 109)`이다(Recharts가 `fill=stroke`를 속성으로 주지만 CSS가 이긴다).
+
 나머지 키는 두 모드 모두 같다:
 - `unflipped []`
 - `pageOverflow 0`, `tableOverflow 0`, `numericNotRight 0`

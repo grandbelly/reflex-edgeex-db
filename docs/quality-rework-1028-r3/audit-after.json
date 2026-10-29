@@ -1,0 +1,440 @@
+{
+  "audit_version": "1.0",
+  "targets": [
+    {
+      "target": "assets/scada.css",
+      "results": [
+        {
+          "id": "VIS-04",
+          "verdict": "실패",
+          "evidence": [
+            "font-size 8종: [10, 11, 12, 13, 14, 16, 21, 34]",
+            "border-radius 0단계: []",
+            "격자 이탈 간격: [2, 6, 10]"
+          ],
+          "routed_skills": [
+            "apply-consistent-spacing"
+          ]
+        },
+        {
+          "id": "VIS-02",
+          "verdict": "실패",
+          "evidence": [
+            "하드코딩 HEX 43건: ['#0066cc', '#0071e3', '#10b981', '#111214', '#151617', '#18191b']",
+            "역할 기반 토큰 참조 있음"
+          ],
+          "routed_skills": [
+            "build-color-palette",
+            "manage-color-contrast"
+          ]
+        },
+        {
+          "id": "VIS-03",
+          "verdict": "통과",
+          "evidence": [
+            "서체 스택: ['inherit', 'var(--am-font-mono)', 'var(--am-font-sans)']"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01",
+          "verdict": "통과",
+          "evidence": [
+            "면(카드/패널) 스타일 서명 47종"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01b",
+          "verdict": "통과",
+          "evidence": [
+            "면 배경 선언 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01c",
+          "verdict": "통과",
+          "evidence": [
+            "타입 스케일 폭 10→34px (배율 3.4)",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01d",
+          "verdict": "통과",
+          "evidence": [
+            "width:100% 선언 1건 · max-width 있음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-01",
+          "verdict": "실패",
+          "evidence": [
+            "첫 화면 KPI/결론 요소 없음",
+            "단계·여정 표식 없음",
+            "첫 화면 입력 컨트롤 0개"
+          ],
+          "routed_skills": [
+            "group-related-elements",
+            "design-button-hierarchy"
+          ]
+        },
+        {
+          "id": "CTL-01",
+          "verdict": "해당없음",
+          "evidence": [
+            "경로 입력 컨트롤 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "CTL-02",
+          "verdict": "통과",
+          "evidence": [
+            "선택지가 적은 드롭다운 없음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-02",
+          "verdict": "실패",
+          "evidence": [
+            "동일 수치 3회 이상 반복: {'600': 18, '700': 10, '500': 6, '0,0,0': 8, '05': 6, '12': 4, '24': 3, '255,255,255': 11, '10': 10, '20': 6, '100': 8, '0,': 13, '2,': 3}"
+          ],
+          "routed_skills": [
+            "eliminate-visual-clutter"
+          ]
+        },
+        {
+          "id": "DAT-02",
+          "verdict": "해당없음",
+          "evidence": [
+            "표 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "DAT-01",
+          "verdict": "부분",
+          "evidence": [
+            "차트/임베드 존재 — 히어로 인사이트 여부는 육안 판단 필요"
+          ],
+          "routed_skills": [
+            "establish-visual-hierarchy"
+          ]
+        },
+        {
+          "id": "DAT-03",
+          "verdict": "부분",
+          "evidence": [
+            "축 제목/레이블 힌트 있음"
+          ],
+          "routed_skills": [
+            "apply-typography-scale"
+          ]
+        },
+        {
+          "id": "DAT-04",
+          "verdict": "통과",
+          "evidence": [
+            "축약 레이블 없음"
+          ],
+          "routed_skills": []
+        }
+      ]
+    },
+    {
+      "target": "edgeex_app/components/scada.py",
+      "results": [
+        {
+          "id": "VIS-04",
+          "verdict": "통과",
+          "evidence": [
+            "font-size 0종: []",
+            "border-radius 0단계: []",
+            "격자 이탈 간격: 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-02",
+          "verdict": "실패",
+          "evidence": [
+            "하드코딩 HEX 0건",
+            "역할 기반 토큰 참조 없음"
+          ],
+          "routed_skills": [
+            "build-color-palette",
+            "manage-color-contrast"
+          ]
+        },
+        {
+          "id": "VIS-03",
+          "verdict": "통과",
+          "evidence": [
+            "서체 스택: 선언 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01",
+          "verdict": "부분",
+          "evidence": [
+            "면(카드/패널) 스타일 서명 0종",
+            "면 구분이 1종 — 위계 단서 부족"
+          ],
+          "routed_skills": [
+            "establish-visual-hierarchy",
+            "use-shadows-appropriately"
+          ]
+        },
+        {
+          "id": "VIS-01b",
+          "verdict": "통과",
+          "evidence": [
+            "면 배경 선언 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01d",
+          "verdict": "통과",
+          "evidence": [
+            "width:100% 선언 0건 · max-width 없음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-01",
+          "verdict": "실패",
+          "evidence": [
+            "첫 화면 KPI/결론 요소 없음",
+            "단계·여정 표식 없음",
+            "첫 화면 입력 컨트롤 0개"
+          ],
+          "routed_skills": [
+            "group-related-elements",
+            "design-button-hierarchy"
+          ]
+        },
+        {
+          "id": "CTL-01",
+          "verdict": "해당없음",
+          "evidence": [
+            "경로 입력 컨트롤 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "CTL-02",
+          "verdict": "통과",
+          "evidence": [
+            "선택지가 적은 드롭다운 없음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-02",
+          "verdict": "실패",
+          "evidence": [
+            "동일 수치 3회 이상 반복: {'16': 4, '14': 4}"
+          ],
+          "routed_skills": [
+            "eliminate-visual-clutter"
+          ]
+        },
+        {
+          "id": "DAT-02",
+          "verdict": "해당없음",
+          "evidence": [
+            "표 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "DAT-01",
+          "verdict": "해당없음",
+          "evidence": [
+            "차트 없음 — 설정/입력 화면"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "DAT-03",
+          "verdict": "해당없음",
+          "evidence": [
+            "차트 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "DAT-04",
+          "verdict": "통과",
+          "evidence": [
+            "축약 레이블 없음"
+          ],
+          "routed_skills": []
+        }
+      ]
+    },
+    {
+      "target": "edgeex_app/views/scada_view.py",
+      "results": [
+        {
+          "id": "VIS-04",
+          "verdict": "통과",
+          "evidence": [
+            "font-size 0종: []",
+            "border-radius 0단계: []",
+            "격자 이탈 간격: 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-02",
+          "verdict": "통과",
+          "evidence": [
+            "하드코딩 HEX 0건",
+            "역할 기반 토큰 참조 있음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-03",
+          "verdict": "통과",
+          "evidence": [
+            "서체 스택: 선언 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01",
+          "verdict": "부분",
+          "evidence": [
+            "면(카드/패널) 스타일 서명 0종",
+            "면 구분이 1종 — 위계 단서 부족"
+          ],
+          "routed_skills": [
+            "establish-visual-hierarchy",
+            "use-shadows-appropriately"
+          ]
+        },
+        {
+          "id": "VIS-01b",
+          "verdict": "통과",
+          "evidence": [
+            "면 배경 선언 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "VIS-01d",
+          "verdict": "통과",
+          "evidence": [
+            "width:100% 선언 0건 · max-width 없음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-01",
+          "verdict": "실패",
+          "evidence": [
+            "첫 화면 KPI/결론 요소 없음",
+            "단계·여정 표식 없음",
+            "첫 화면 입력 컨트롤 0개"
+          ],
+          "routed_skills": [
+            "group-related-elements",
+            "design-button-hierarchy"
+          ]
+        },
+        {
+          "id": "CTL-01",
+          "verdict": "해당없음",
+          "evidence": [
+            "경로 입력 컨트롤 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "CTL-02",
+          "verdict": "통과",
+          "evidence": [
+            "선택지가 적은 드롭다운 없음",
+            ""
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "IA-02",
+          "verdict": "실패",
+          "evidence": [
+            "동일 수치 3회 이상 반복: {'10': 4}"
+          ],
+          "routed_skills": [
+            "eliminate-visual-clutter"
+          ]
+        },
+        {
+          "id": "DAT-02",
+          "verdict": "해당없음",
+          "evidence": [
+            "표 없음"
+          ],
+          "routed_skills": []
+        },
+        {
+          "id": "DAT-01",
+          "verdict": "부분",
+          "evidence": [
+            "차트/임베드 존재 — 히어로 인사이트 여부는 육안 판단 필요"
+          ],
+          "routed_skills": [
+            "establish-visual-hierarchy"
+          ]
+        },
+        {
+          "id": "DAT-03",
+          "verdict": "부분",
+          "evidence": [
+            "축 제목/레이블 힌트 있음"
+          ],
+          "routed_skills": [
+            "apply-typography-scale"
+          ]
+        },
+        {
+          "id": "DAT-04",
+          "verdict": "통과",
+          "evidence": [
+            "축약 레이블 없음"
+          ],
+          "routed_skills": []
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "pass": 20,
+    "partial": 6,
+    "fail": 9,
+    "n/a": 8
+  },
+  "priority_plan": [
+    "P1: DAT-01",
+    "P1: IA-01",
+    "P1: VIS-01",
+    "P2: DAT-03",
+    "P3: IA-02",
+    "P3: VIS-02",
+    "P3: VIS-04"
+  ]
+}

@@ -1,0 +1,24 @@
+== M17: assets/scada.css 'text:last-child{text-anchor:end;transform:translateX(-12px)}' -> 'text:last-child{transform:translateX(-12px)}'
+FAIL: test_end_label_does_not_cover_its_traveller (tests.test_scada_theme.HeldBrush.test_end_label_does_not_cover_its_traveller)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=480, label='end', traveller=465)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=1200, label='end', traveller=1185)
+FAILED (failures=3)
+== M18: assets/scada.css 'text:last-child{text-anchor:end;transform:translateX(-12px)}' -> 'text:last-child{text-anchor:end}'
+FAIL: test_end_label_does_not_cover_its_traveller (tests.test_scada_theme.HeldBrush.test_end_label_does_not_cover_its_traveller)
+FAILED (failures=1)
+== M19: edgeex_app/views/scada_view.py 'traveller_width=BRUSH_TRAVELLER, key=S.site_id + S.tag + S.minutes,
+                          custom_attrs={"tickFormatter": rx.Var(_js_expr=BRUSH_TICK)}),' -> 'traveller_width=BRUSH_TRAVELLER, key=S.site_id + S.tag + S.minutes, tick_formatter=BRUSH_TICK),'
+FAIL: test_brush_labels_are_formatted_fixed_width (tests.test_scada_theme.HeldBrush.test_brush_labels_are_formatted_fixed_width)
+FAILED (failures=1)
+== M20: tests/test_scada_theme.py 'LABEL = len("00:00:00")' -> 'LABEL = len("1761710709000")'
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=480, label='start', traveller=64)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=480, label='end', traveller=64)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=1200, label='start', traveller=64)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=1200, label='end', traveller=64)
+FAILED (failures=4)
+== M21: edgeex_app/views/scada_view.py 'Y_AXIS_WIDTH, BRUSH_TRAVELLER = 64, 5' -> 'Y_AXIS_WIDTH, BRUSH_TRAVELLER = 40, 5'
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=480, label='start', traveller=40)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=480, label='end', traveller=40)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=1200, label='start', traveller=40)
+FAIL: test_held_labels_stay_inside_the_svg (tests.test_scada_theme.HeldBrush.test_held_labels_stay_inside_the_svg) (svg=1200, label='end', traveller=40)
+FAILED (failures=4)

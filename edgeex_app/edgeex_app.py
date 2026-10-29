@@ -9,7 +9,7 @@ if not scada_enabled():
 from .pages import scada  # noqa: F401, E402
 
 app = rx.App(
-    style={"font_family": "'Segoe UI', 'Malgun Gothic', sans-serif",
+    style={"font_family": "var(--am-font-sans)",
            "font_variant_numeric": "tabular-nums"},
     stylesheets=["/scada.css"],
 )

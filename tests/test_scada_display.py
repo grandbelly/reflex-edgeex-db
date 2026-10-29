@@ -13,9 +13,16 @@ NUMERIC_KEYS = {"count_d", "bad_d", "raw_d", "cond_d", "final_d", "level"}
 
 class OverflowWidth(unittest.TestCase):
     def test_model_reproduces_edge_measurement(self):
-        # Edge receipt 20261028T091746: 1366 aside clientWidth 427, table scrollWidth 500.
-        self.assertEqual(D.track_width(1366, 4), 427)
-        self.assertEqual(500 - D.track_width(1366, 4), 73)
+        # Edge receipt 20261028T091746 (303c995 layout: max 1600, 16 px gap): 1366 aside
+        # clientWidth 427, table scrollWidth 500. The same model now runs with the guide's 24 px gap.
+        old = dict(max_width=1600, pad=24, gap=16)
+        self.assertEqual(D.track_width(1366, 4, **old), 427)
+        self.assertEqual(500 - D.track_width(1366, 4, **old), 73)
+
+    def test_model_matches_stylesheet(self):
+        css = (ROOT / "assets/scada.css").read_text(encoding="utf-8")
+        self.assertIn(f".scada-workspace{{padding:{D.WORKSPACE_PAD}px;", css)
+        self.assertRegex(css, rf"\.scada-split\{{[^}}]*gap:{D.GAP}px")
 
     def test_no_table_scrolls_at_target_viewports(self):
         for viewport in (1366, 1920):

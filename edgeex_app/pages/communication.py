@@ -3,6 +3,9 @@ Communication success rate monitoring page - Light Mode Design
 Shows hourly data collection statistics as a heatmap with improved UI
 """
 
+from ..scada_config import scada_enabled
+from ..states.scada_state import ScadaState
+from ..views.scada_view import scada_view
 import reflex as rx
 from edgeex_app.states.communication_state import CommunicationState
 from edgeex_app.components.wrapped_heatmap import wrapped_grid_heatmap
@@ -86,9 +89,11 @@ def daily_trend_chart() -> rx.Component:
     )
 
 
-@rx.page(route="/comm", on_load=CommunicationState.initialize)
+@rx.page(route="/comm", on_load=ScadaState.initialize if scada_enabled() else CommunicationState.initialize)
 def communication_page() -> rx.Component:
     """Main communication monitoring page - Light Mode"""
+    if scada_enabled():
+        return shell(scada_view("communication"), active_route="/comm")
 
     return shell(
         rx.box(

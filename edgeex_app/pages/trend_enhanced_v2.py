@@ -1,4 +1,7 @@
 """개선된 트렌드 페이지 - Syncing Charts with Brush"""
+from ..scada_config import scada_enabled
+from ..states.scada_state import ScadaState
+from ..views.scada_view import scada_view
 import reflex as rx
 from ..states.trend_state import TrendState as T
 from ..components.layout import shell
@@ -421,9 +424,11 @@ def trend_chart_area() -> rx.Component:
     )
 
 
-@rx.page(route="/trend", title="Trend Analysis", on_load=T.load)
+@rx.page(route="/trend", title="Trend Analysis", on_load=ScadaState.initialize if scada_enabled() else T.load)
 def trend_page_enhanced_v2() -> rx.Component:
     """개선된 트렌드 페이지 v2"""
+    if scada_enabled():
+        return shell(scada_view("trend"), active_route="/trend")
     return shell(
         rx.vstack(
             # 상단 컨트롤 영역

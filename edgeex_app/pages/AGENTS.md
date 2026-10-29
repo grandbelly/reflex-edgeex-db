@@ -22,13 +22,11 @@ One module per route; multi-step flows become subpackages (e.g. `training_wizard
 
 ## Verification
 
-Navigate the route on `:14000` after a container restart (prod recompile).
+Verify the six routes in isolated localhost preview (`:3101`) using orca; production/container verification is separate.
 
-## Routes (current)
+## Active routes
 
-`/` dashboard · `/trend` trend_enhanced_v2 · `/alarms` + `/alarms_rt` + `/alarms_hist` (+ `_new` variants) ·
-`/forecast` · `/model-performance` · `/comm` · `/training-wizard` · `/viewer-tag` · `/workflow` ·
-`/scada-alarms` + `/scada-alarm-comparison` · `/ai` (guarded).
+`scada.py` registers `/`, `/workflow`, `/trend`, `/alarms`, `/edge-monitor`, `/comm` through `@rx.page` and the stock template decorator. Preserve the six menu concepts: dashboard, workflow, trend, alarms, communication status and Edge monitoring. `on_load=ScadaState.initialize` reads only when live or not loaded. Other page files are migration history and are not imported by the active app. Do not mount their write routes or dashboard schedulers.
 
 ## Child DOX Index
 

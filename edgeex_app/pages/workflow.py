@@ -4,6 +4,9 @@ frontend-design(Anthropic) 적용. 제어실 계기판 테마. 시각화 본문�
 SVG/CSS(스크립트 비의존)로 렌더 — 계측값은 운영 DB 실측 스냅샷.
 라이브 바인딩은 후속(State 연결)으로 확장 가능.
 """
+from ..scada_config import scada_enabled
+from ..states.scada_state import ScadaState
+from ..views.scada_view import scada_view
 import reflex as rx
 from ..components.layout import shell
 
@@ -208,9 +211,12 @@ _VIZ_HTML = r"""
 """
 
 
-@rx.page(route="/workflow", title="워크플로우 | edgeEX")
+@rx.page(route="/workflow", title="워크플로우 | edgeEX",
+         on_load=ScadaState.initialize if scada_enabled() else [])
 def workflow_page() -> rx.Component:
     """PLC 수집 → 시뮬레이션 → PLC 제어 전체 워크플로우 시각화."""
+    if scada_enabled():
+        return shell(scada_view("process"), active_route="/workflow")
     return shell(
         rx.box(
             rx.html(_VIZ_HTML),

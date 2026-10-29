@@ -4,6 +4,9 @@ Alarms Page - Unified rule-based alarm monitoring
 - RULE_BASE scenario alarms
 - Uses service pattern
 """
+from ..scada_config import scada_enabled
+from ..states.scada_state import ScadaState
+from ..views.scada_view import scada_view
 import reflex as rx
 from typing import Dict
 from ..states.alarms import AlarmsState
@@ -233,7 +236,7 @@ def history_alarms_view() -> rx.Component:
 @rx.page(
     route="/alarms",
     title="Alarms",
-    on_load=[AlarmsState.initialize, DashboardRealtimeState.start_streaming],
+    on_load=ScadaState.initialize if scada_enabled() else [AlarmsState.initialize, DashboardRealtimeState.start_streaming],
 )
 def alarms_page() -> rx.Component:
     """
@@ -241,6 +244,8 @@ def alarms_page() -> rx.Component:
 
     edgeEX Design: White background, black text throughout
     """
+    if scada_enabled():
+        return shell(scada_view("alarms"), active_route="/alarms")
     return shell(
         rx.vstack(
             # Header

@@ -1,3 +1,33 @@
+## 2026-10-28 04:05 KST — stock migration implemented, GUI acceptance blocked
+
+Owner approved continuation explicitly: “Pl한테 지시 요청해라 쉬지마 그리고 다 승인한다”. Renewed PL request is recorded at https://github.com/grandbelly/edgeex/pull/1076#issuecomment-6450633131; no new PL assignment or CR response is claimed. Continue the existing isolated read-only UI scope. The Company-style experiment was backed up to `C:/edgeex-it/cr277/refactor-run/continuation-wip-20261028T014335/` and deliberately superseded in the owned source files.
+
+The first stock implementation replaces repeated menu tables with attention/channel overview, unbound business workflow, numeric-time trend with historical sample inspector, alarm list/detail, connection-history capability/Health and delivery evidence. All six original routes remain. See `docs/reflex_template_source.md` for actual adaptations and deferred contracts. The shared State/query snapshot is retained; full purpose-specific query separation is deferred.
+
+Contract tests21/compile pass. Independent psycopg reference versus asyncpg app under the same exported read-only snapshot compared106 tags and269 historical samples with0 mismatches; all7 checker mutants were detected. Frozen checker SHA256 `91ed8e58ad05aa50eb2135f47ede2fa41cd55aac6418fb35ec2acdd2ade160d2`; raw `C:/edgeex-it/cr277/refactor-run/stock-independent.{txt,json}`. Final source SHA checks and receipt are being sealed.
+
+The isolated preview listens on127.0.0.1:3101 (wrapper16180/server8244 when observed). A dedicated Edge profile launch via Start-Process was rejected before execution by automatic approval review: `rejected: blocked by policy`. No bypass, owner-window interaction or Chrome9333 access followed. Actual GUI, keyboard, responsive and visual acceptance are NOT RUN; do not label compile/HTTP/SQL checks as UI acceptance. Health schema and workflow/connection history remain absent. Operating installations/channels/forwarder/Consumer/containers are unchanged.
+
+## Earlier continuity and design notes (superseded by the implementation status above)
+
+Owner explicitly objected to stopping after a design report. Continue within the PL assignment's completion criteria instead of closing on intermediate artifacts. A continuation request was posted to edgeEX PR#1076 comment6447732006 (https://github.com/grandbelly/edgeex/pull/1076#issuecomment-6447732006); no PL reply had been observed when this note was written. The local Orca terminal list has four edge tabs and no PL, saved remote environments are empty. Independent code/scope comparison continues; do not claim a new PL assignment was received before an actual reply. Keep all operating exclusions and the existing source experiments intact.
+
+Owner's full-template study/design is now documented: `docs/reflex_template_catalog.md` covers all 27 registered templates plus the repository-only dalle, with pinned sources and static inventory; `docs/mini_scada_component_layout_design.md` specifies six distinct layouts, component matching, data dependencies, interactions, partial/missing states and acceptance criteria; `docs/mini_scada_layout_board.html` is an offline six-menu design board, not a running SCADA or live-data screenshot. See `docs/template-study/inventory.json` for 359 Python-file fingerprints/definitions. No product UI acceptance or operating deployment is implied. Next implementation follows that design, starting with shared stock styling then real VQT trend/evidence. Preserve the uncommitted Company-style experiments until intentionally superseded.
+
+Latest owner steering: study GitHub templates first; use stock_market_dashboard layout and stock_graph_app live chart; define distinct visualization purposes for each original menu before implementation. Read `docs/mini_scada_visualization_contract.md` and `docs/reflex_template_study.md`. PR#2 is a technical baseline with UI revision ongoing. Do not report the existing common tables as completed UX. Current Company-style edits in components/scada.py, views/scada_view.py, states/scada_state.py, assets/scada.css and rxconfig.py are uncommitted experiments, not the chosen stock template implementation. The isolated preview was stopped for these edits; XG5000/SimCore/502 and operating services remain untouched.
+
+Owner: use Context7, latest Reflex, official template for the full mini SCADA. Branch `feat/mini-scada-data-contract`, base `pl/edge-monitor-candidate-20261027` dd958d7. Native six-route read-only profile is the new entry. See `docs/mini_scada_contract_plan.md` and `docs/reflex_template_source.md`.
+
+Dedicated venv `C:/edgeex-it/cr277/refactor-venv010`, separate Reflex/Bun cache `C:/edgeex-it/cr277/reflex-cache010`, localhost preview3101. Operating Consumer/Redis/channels/installations/containers and Chrome9333 untouched. Health table remains absent in the upper DB; display partial failure, do not create schema. No registry/process bindings/collection plan/authorized ACK contract supplied yet. Production deployment is separate.
+
+# Mini SCADA common-contract implementation — 2026-10-27
+
+- Owner approved full review then continuation. Isolated `upper-refactor`, branch `feat/mini-scada-data-contract`, base dd958d7. Existing upper-web dirty files and 3100/8100 left untouched.
+- Explicit edge_vqt read profile routes all six menus through a site-scoped read model. SQL read-only snapshot, partial optional-section errors, NULL/zero/quality/source-time semantics, bounded trends, one shared context/fixed-time mode. No inferred metadata/expected counts/PLC status. No ACK/control writes or in-app jobs.
+- Dedicated existing test venv `upper-web/.venv` is read for dependencies; source/outputs are in this worktree and `C:/edgeex-it/cr277/refactor-*`. New 3101/8101 candidate binds localhost only. Existing running XG-SIM/Consumer/forwarder/containers/config remain untouched.
+- 15 contract tests passed; four semantic mutants detected. Actual upper DB read: SY106 and 60-minute counts, Health missing reported separately, readonly on. Reflex compile passed after initializing the isolated .web directory. First compile failure (missing package.json) is preserved.
+- Next: freeze source, browser checks on all six pages/fixed-time context, independent SQL parity, evidence/PR. NOT overall mini-SCADA completion or operational deployment. Future units: definition/version sync, process bindings, scheduled-slot completeness, long-term aggregates, authenticated ACK ownership, load/rollout.
+
 # D-1027-20 엣지 웹 시연 인계 — 2026-10-27
 
 - 엣지 전용 worktree: `C:/edgeex-it/cr277/upper-web`, 후보 `pl/edge-monitor-candidate-20261027`.

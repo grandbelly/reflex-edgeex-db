@@ -1,0 +1,255 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* designs/design_guide.md "Grafana in Apple Mode", Appendix A `--am-*` tokens.
+   Colours exist only in the two token blocks below; every rule after them uses var(--am-*).
+   Reflex puts the color mode as a class on <html>; dark is the default, so dark applies unless
+   the class says light (no light flash before hydration). [data-theme] is the guide's selector. */
+:root{ /* LIGHT */
+--am-page:#f5f5f7;--am-card:#ffffff;--am-card-2:#ffffff;
+--am-header:#fafafc;--am-row:#fafafc;--am-select:#ffffff;--am-console:#fafafc;
+--am-text:#1d1d1f;--am-muted:#636366;--am-muted-2:#68686d;--am-faint:rgba(0,0,0,.3);
+/* muted/muted-2 depart from A.1 (#7a7a7a 3.83:1, #86868b 3.24:1 at worst): WCAG AA 4.5:1 on every light
+   surface incl. hover/selected rows (PL D-1029-02); tests/test_scada_theme.py measures it. */
+--am-accent:#0066cc;--am-accent-press:#0071e3;--am-focus:#0066cc;
+--am-border:#e0e0e0;--am-border-strong:#e0e0e0;--am-hairline:#f0f0f0;
+--am-error:#ef4444;--am-warning:#f59e0b;--am-success:#10b981;--am-info:#0066cc;
+--am-series-a:#0066cc;--am-series-violet:#a855f7;--am-series-emerald:#10b981;
+--am-series-amber:#f59e0b;--am-series-alarm:#ef4444;
+--am-grid:#f0f0f0;--am-axis:rgba(29,29,31,.45);
+/* Chart tick/brush text departs from §8 (axis 45% alpha, 2.84:1 measured at the edge): opaque, AA on
+   every chart surface in both modes; the 45% axis stays for axis lines only. */
+--am-axis-text:#68686d;
+--am-r-card:18px;--am-r-card-2:16px;--am-r-lg:8px;--am-r-input:6px;--am-r-sm:2px;--am-r-pill:9999px;
+--am-ease:cubic-bezier(.25,1,.5,1);--am-dur:.3s;
+--am-font-sans:"Inter",ui-sans-serif,system-ui,sans-serif;
+--am-font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;
+--am-brand:linear-gradient(to top right,#ff4a00,#ff7c00,#ffb800);
+/* Pairs the guide states outside A.1: §1.3 selection, §1.4 scrollbar, §6.1 shadow, §7.3 CTA, §9 hover,
+   App.tsx sub-nav bar. */
+--am-cta:#0066cc;--am-on-accent:#ffffff;--am-selection:rgba(0,102,204,.2);
+--am-hover:rgba(0,0,0,.05);--am-scrollbar:rgba(0,0,0,.12);--am-scrollbar-hover:rgba(0,0,0,.24);
+--am-subnav:#f5f5f7;--am-shadow:0 1px 2px rgba(0,0,0,.05);--am-shadow-tooltip:0 20px 25px -5px rgba(0,0,0,.1);
+--am-shadow-spike:rgba(239,68,68,.1) 0 10px 30px}
+:root:not(.light),[data-theme="dark"]{ /* DARK (default) */
+--am-page:#111214;--am-card:#18191b;--am-card-2:#1e2022;
+--am-header:#18191b;--am-row:#151617;--am-select:#222529;--am-console:rgba(0,0,0,.45);
+--am-text:#ffffff;--am-muted:rgba(255,255,255,.6);--am-muted-2:rgba(255,255,255,.4);
+--am-faint:rgba(255,255,255,.3);
+--am-accent:#2997ff;--am-info:#2997ff;
+--am-border:rgba(255,255,255,.05);--am-border-strong:rgba(255,255,255,.1);
+--am-hairline:rgba(255,255,255,.05);
+--am-series-a:#2997ff;--am-grid:rgba(255,255,255,.05);--am-axis:rgba(255,255,255,.3);--am-axis-text:#a1a1a6;
+--am-selection:rgba(0,102,204,.4);--am-hover:rgba(255,255,255,.05);
+--am-scrollbar:rgba(255,255,255,.16);--am-scrollbar-hover:rgba(255,255,255,.24);
+--am-subnav:#18191b;--am-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
+
+/* Radix Themes components read their own variables; point them at the tokens so table, slider and
+   link flip with the mode instead of keeping the Radix default look. (0,3,0) beats Radix's (0,2,0). */
+:root .radix-themes[data-accent-color]{
+--color-background:var(--am-page);--color-panel-solid:var(--am-card);--color-panel-translucent:var(--am-card);
+--color-surface:var(--am-select);--color-overlay:var(--am-faint);
+--default-font-family:var(--am-font-sans);--code-font-family:var(--am-font-mono);
+--heading-font-family:var(--am-font-sans);
+--accent-9:var(--am-accent);--accent-10:var(--am-accent-press);--accent-11:var(--am-accent);--accent-12:var(--am-text);
+--accent-contrast:var(--am-on-accent);--accent-surface:var(--am-hover);
+--accent-a3:color-mix(in srgb,var(--am-accent) 10%,transparent);
+--accent-a4:color-mix(in srgb,var(--am-accent) 15%,transparent);
+--accent-a5:color-mix(in srgb,var(--am-accent) 20%,transparent);
+--accent-a6:color-mix(in srgb,var(--am-accent) 30%,transparent);
+--accent-a11:var(--am-accent);--focus-8:var(--am-focus);
+--gray-1:var(--am-page);--gray-2:var(--am-card);--gray-a2:var(--am-hover);--gray-a3:var(--am-hover);
+--gray-a4:var(--am-hover);--gray-a5:var(--am-border-strong);--gray-a6:var(--am-border-strong);
+--gray-a7:var(--am-border-strong);--gray-a8:var(--am-faint);--gray-9:var(--am-muted-2);
+--gray-a9:var(--am-muted-2);--gray-a10:var(--am-muted-2);--gray-11:var(--am-muted);--gray-a11:var(--am-muted);
+--gray-12:var(--am-text);--gray-a12:var(--am-text);
+--radius-2:var(--am-r-input);--radius-3:var(--am-r-lg);--radius-4:var(--am-r-lg);--radius-full:var(--am-r-pill)}
+
+html,body{margin:0;min-height:100%;background:var(--am-page);color:var(--am-text);
+font-family:var(--am-font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+*{box-sizing:border-box}::selection{background:var(--am-selection)}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--am-scrollbar);border-radius:var(--am-r-pill)}
+::-webkit-scrollbar-thumb:hover{background:var(--am-scrollbar-hover)}
+.apple-transition,.scada-panel,.scada-kpi,.scada-btn,.scada-tab,.scada-input,.scada-select{transition:all var(--am-dur) var(--am-ease)}
+.scada-shell{min-height:100dvh;background:var(--am-page);color:var(--am-text);font-family:var(--am-font-sans);font-size:14px}
+.scada-mono,.scada-number,.scada-time{font-family:var(--am-font-mono);font-variant-numeric:tabular-nums}
+
+/* Header h-14 · variables row · sub-nav (App.tsx header / section / sub-navigation). */
+.scada-header{height:56px;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 24px;
+background:var(--am-header);border-bottom:1px solid var(--am-border)}
+.scada-brand{display:flex;align-items:center;gap:12px;color:inherit;text-decoration:none;min-width:0}
+.scada-logo{width:32px;height:32px;border-radius:var(--am-r-lg);background:var(--am-brand);display:flex;align-items:center;
+justify-content:center;color:var(--am-on-accent);flex-shrink:0;padding:6px}
+.scada-brand .name{font-size:13px;font-weight:700;letter-spacing:-.02em;color:var(--am-text);line-height:1.2}
+.scada-brand .sub{font-family:var(--am-font-mono);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--am-cta);line-height:1.2}
+.scada-crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--am-muted);min-width:0;white-space:nowrap}
+.scada-crumbs .here{font-weight:600;color:var(--am-text)}
+.scada-header-actions{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.scada-vars{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:12px 24px;background:var(--am-row);border-bottom:1px solid var(--am-border)}
+.scada-var{display:flex;align-items:center;gap:8px}
+.scada-var-label{font-family:var(--am-font-mono);font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--am-muted)}
+.scada-vars .divider{width:1px;height:16px;background:var(--am-border-strong)}
+.scada-vars .asof{margin-left:auto;font-family:var(--am-font-mono);font-size:11px;color:var(--am-muted);white-space:nowrap}
+.scada-subnav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 24px;background:var(--am-subnav);border-bottom:1px solid var(--am-border);overflow-x:auto}
+.scada-tabs{display:flex;gap:6px}
+.scada-tab{padding:6px 12px;border-radius:var(--am-r-pill);font-size:12px;font-weight:600;color:var(--am-muted);text-decoration:none;white-space:nowrap}
+.scada-tab:hover{background:var(--am-hover);color:var(--am-text)}
+.scada-tab.active{background:var(--am-cta);color:var(--am-on-accent)}
+
+/* Inputs §7.2 · buttons §7.3 · focus §9. */
+.scada-select{font-family:inherit;font-size:12px;font-weight:600;padding:4px 32px 4px 10px;border-radius:var(--am-r-input);
+border:1px solid var(--am-border-strong);background:var(--am-select);color:var(--am-text);appearance:none;outline:none;cursor:pointer}
+.scada-select-wrap{position:relative;display:inline-flex;align-items:center}
+.scada-select-wrap .chev{position:absolute;right:10px;pointer-events:none;opacity:.6;color:var(--am-text)}
+.scada-input{font-family:var(--am-font-mono);font-size:12px;padding:4px 10px;border-radius:var(--am-r-input);border:1px solid var(--am-border-strong);
+background:var(--am-select);color:var(--am-text);outline:none}
+.scada-search{position:relative;display:flex;align-items:center;width:100%;max-width:320px}
+.scada-search .icon{position:absolute;left:14px;color:var(--am-faint);pointer-events:none}
+.scada-search input{width:100%;border-radius:var(--am-r-pill);padding:10px 16px 10px 40px;font-family:var(--am-font-mono);font-size:12px;
+outline:none;border:1px solid var(--am-border-strong);background:var(--am-hover);color:var(--am-text)}
+.scada-search input::placeholder,.scada-input::placeholder{color:var(--am-faint)}
+.scada-select:focus,.scada-input:focus,.scada-search input:focus{border-color:var(--am-focus);box-shadow:0 0 0 1px var(--am-focus);background:var(--am-select)}
+.scada-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--am-r-pill);font-family:inherit;font-size:12px;
+font-weight:600;border:1px solid transparent;cursor:pointer;white-space:nowrap;line-height:1}
+.scada-btn:active{transform:scale(.95)}
+.scada-btn.primary{background:var(--am-cta);color:var(--am-on-accent)}.scada-btn.primary:hover{background:var(--am-accent-press)}
+.scada-btn.secondary{background:var(--am-select);border-color:var(--am-border-strong);color:var(--am-text)}.scada-btn.secondary:hover{background:var(--am-hover)}
+.scada-btn.small{padding:4px 12px}
+.scada-btn.live{background:color-mix(in srgb,var(--am-cta) 10%,transparent);border-color:var(--am-cta);color:var(--am-accent);font-weight:700}
+.scada-btn.paused{background:transparent;border-color:var(--am-border-strong);color:var(--am-muted);font-weight:700}
+.scada-icon-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px;border-radius:var(--am-r-pill);
+border:1px solid var(--am-border-strong);background:var(--am-select);color:var(--am-text);cursor:pointer}
+.scada-icon-btn:hover{background:var(--am-hover)}.scada-icon-btn:active{transform:scale(.95)}
+.scada-icon-btn.flat{border-color:transparent;background:transparent;padding:6px;color:var(--am-muted)}
+.scada-icon-btn:disabled{opacity:.4;cursor:default}
+.scada-segment{display:inline-flex;padding:2px;border-radius:var(--am-r-pill);background:var(--am-hover)}
+.scada-segment button{padding:4px 12px;border-radius:var(--am-r-pill);border:0;background:transparent;font-family:inherit;font-size:12px;
+font-weight:500;color:var(--am-muted);cursor:pointer}
+.scada-segment button:hover{color:var(--am-text)}
+.scada-segment button.on{background:var(--am-card);color:var(--am-text);box-shadow:var(--am-shadow)}
+.scada-shell :is(a,button,input,select):focus-visible{outline:2px solid var(--am-focus);outline-offset:2px}
+.scada-link{color:var(--am-accent);font-size:12px;font-weight:600;text-decoration:none}.scada-link:hover{text-decoration:underline}
+
+/* Body p-6 space-y-6, 12-fraction rows with gap-6 (states/scada_display.py models these numbers). */
+.scada-workspace{padding:24px;display:flex;flex-direction:column;gap:24px}
+.scada-page-title h1{font-size:21px;font-weight:600;letter-spacing:-.02em;margin:0;color:var(--am-text)}
+.scada-page-title p{font-size:12px;color:var(--am-muted);margin:4px 0 0}
+.scada-stack{display:flex;flex-direction:column;gap:24px;width:100%}
+.scada-split{display:grid;grid-template-columns:minmax(0,8fr) minmax(0,4fr);gap:24px;width:100%;align-items:start}
+.scada-split.wide{grid-template-columns:minmax(0,9fr) minmax(0,3fr)}
+
+/* Card §7 (r-card 18, p-6) · KPI tile §7.1. */
+.scada-panel{min-width:0;background:var(--am-card);border:1px solid var(--am-border);border-radius:var(--am-r-card);overflow:hidden;box-shadow:var(--am-shadow)}
+.scada-panel.raised{background:var(--am-card-2)}
+.scada-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:24px 24px 16px}
+.scada-section-head .title{font-size:16px;font-weight:600;letter-spacing:-.02em;color:var(--am-text);margin:0}
+.scada-section-head .note{font-size:12px;color:var(--am-muted);margin-top:2px}
+.scada-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;width:100%}
+.scada-kpi{position:relative;height:185px;padding:20px;border:1px solid var(--am-border);border-radius:var(--am-r-card);background:var(--am-card-2);
+display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;min-width:0}
+.scada-kpi .meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:var(--am-muted)}
+.scada-kpi .label{font-family:var(--am-font-mono);font-size:11px;font-weight:700;letter-spacing:-.01em;text-transform:uppercase}
+.scada-kpi .icon{opacity:.8;color:var(--am-accent)}
+.scada-kpi .value{font-family:var(--am-font-mono);font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums;color:var(--am-text)}
+.scada-kpi .desc{font-family:var(--am-font-mono);font-size:10px;color:var(--am-muted-2)}
+.scada-kpi.error{background:color-mix(in srgb,var(--am-error) 5%,var(--am-card-2));border-color:color-mix(in srgb,var(--am-error) 30%,transparent);box-shadow:var(--am-shadow-spike)}
+.scada-kpi.error .value{color:var(--am-error);font-weight:700}.scada-kpi.error .icon{color:var(--am-error)}
+.scada-kpis.pair{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 24px 24px}
+
+/* Status pill §2: 500-level colour + 10% fill / 20% border; tone names are SCADA quality words. */
+.scada-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--am-r-pill);font-size:10px;font-weight:700;
+letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;border:1px solid;line-height:1}
+.scada-pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tone-good{color:var(--am-success);background:color-mix(in srgb,var(--am-success) 10%,transparent);border-color:color-mix(in srgb,var(--am-success) 20%,transparent)}
+.tone-uncertain{color:var(--am-warning);background:color-mix(in srgb,var(--am-warning) 10%,transparent);border-color:color-mix(in srgb,var(--am-warning) 20%,transparent)}
+.tone-bad{color:var(--am-error);background:color-mix(in srgb,var(--am-error) 10%,transparent);border-color:color-mix(in srgb,var(--am-error) 20%,transparent)}
+.tone-info{color:var(--am-info);background:color-mix(in srgb,var(--am-info) 10%,transparent);border-color:color-mix(in srgb,var(--am-info) 20%,transparent)}
+.tone-neutral{color:var(--am-muted);background:var(--am-hover);border-color:var(--am-border-strong)}
+
+/* Rows, facts and one-line notes. */
+.scada-toolbar{display:flex;align-items:center;gap:12px;padding:0 24px 16px}
+.scada-toolbar.foot{padding:12px 24px;border-top:1px solid var(--am-hairline)}
+.scada-detail-body{padding:0 24px 16px}.scada-detail-body>*{max-width:100%}
+.scada-fact{display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid var(--am-hairline);font-size:12px}
+.scada-fact:last-child{border-bottom:0}.scada-fact .k{color:var(--am-muted)}
+.scada-fact .v{font-family:var(--am-font-mono);font-variant-numeric:tabular-nums;overflow-wrap:anywhere;min-width:0;color:var(--am-text)}
+.scada-note{padding:0 24px 24px;color:var(--am-muted);font-size:12px}
+.scada-note.foot{padding:12px 24px;border-top:1px solid var(--am-hairline);font-size:12px}
+.scada-wrap{overflow-wrap:anywhere;min-width:0}
+.scada-muted{color:var(--am-muted)}.scada-small{font-size:12px}
+.scada-banner{display:flex;gap:14px;align-items:flex-start;padding:20px;border-radius:var(--am-r-card);font-size:12px;color:var(--am-error);
+background:color-mix(in srgb,var(--am-error) 8%,var(--am-card));border:1px solid color-mix(in srgb,var(--am-error) 25%,transparent)}
+
+/* Tables: full-bleed inside the card, outer cells keep the 24 px card padding. Min width per table inline. */
+.scada-table-scroll{overflow-x:auto;width:100%;border-top:1px solid var(--am-hairline)}
+.scada-table-scroll .rt-TableRoot{border-radius:0;background:transparent;--table-row-box-shadow:inset 0 -1px var(--am-hairline)}
+.scada-table-scroll .rt-TableRootTable{background:transparent}
+.scada-table-scroll .rt-TableColumnHeaderCell{font-family:var(--am-font-mono);font-size:11px;font-weight:700;letter-spacing:-.01em;text-transform:uppercase;
+color:var(--am-muted);background:var(--am-row);white-space:nowrap}
+.scada-table-scroll .rt-TableCell,.scada-table-scroll .rt-TableRowHeaderCell,.scada-table-scroll .rt-TableColumnHeaderCell{padding-top:10px;padding-bottom:10px;
+font-size:12px;color:var(--am-text);vertical-align:middle}
+.scada-table-scroll :is(.rt-TableCell,.rt-TableRowHeaderCell,.rt-TableColumnHeaderCell):first-child{padding-left:24px}
+.scada-table-scroll :is(.rt-TableCell,.rt-TableRowHeaderCell,.rt-TableColumnHeaderCell):last-child{padding-right:24px}
+.scada-table-scroll .rt-TableRow:hover{background:var(--am-hover)}
+.scada-number{text-align:right!important;white-space:nowrap}
+.scada-time{white-space:nowrap;font-size:11px!important;color:var(--am-muted)!important}
+.scada-muted-cell{color:var(--am-muted)!important}
+.scada-row-button{font-family:inherit;font-size:12px;font-weight:600;color:var(--am-text);background:none;border:0;padding:0;cursor:pointer;text-align:left}
+.scada-row-button:hover{color:var(--am-accent)}
+.scada-row-button.wrap{white-space:normal;font-weight:500}
+.scada-sub{display:block;font-size:10px;font-family:var(--am-font-mono);color:var(--am-muted-2)}
+.scada-selected{background:color-mix(in srgb,var(--am-accent) 10%,transparent)!important;box-shadow:inset 2px 0 0 var(--am-accent)}
+.scada-attention-row{display:flex;align-items:center;gap:12px;padding:12px 24px;border-top:1px solid var(--am-hairline)}
+.scada-attention-row .scada-number{font-size:14px;font-weight:600}
+
+/* Stored-sample quality mix. */
+.scada-mix{padding:0 24px 24px;display:flex;flex-direction:column;gap:12px}
+.scada-mix-bar{display:flex;height:8px;border-radius:var(--am-r-pill);overflow:hidden;background:var(--am-hover)}
+.scada-mix-bar .good{background:var(--am-success)}.scada-mix-bar .uncertain{background:var(--am-warning)}.scada-mix-bar .bad{background:var(--am-error)}
+.scada-mix-row{display:flex;align-items:center;gap:12px;font-size:12px}
+.scada-mix-row .n{margin-left:auto;font-family:var(--am-font-mono);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* Charts §8: grid, axis, series and gradient read tokens, so a mode change needs no re-render. */
+.scada-signal-head{display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:24px 24px 16px}
+.scada-signal-head .tag{font-size:16px;font-weight:600;letter-spacing:-.02em}
+.scada-signal-value{font-family:var(--am-font-mono);font-size:34px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.scada-chart{padding:0 16px 0 0;min-width:0}
+.scada-chart .recharts-cartesian-grid line{stroke:var(--am-grid)}
+.scada-chart .recharts-cartesian-axis-tick-value{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}
+.scada-chart .series-a .recharts-area-curve{stroke:var(--am-series-a)}
+.scada-chart .series-amber .recharts-area-curve{stroke:var(--am-series-amber)}
+.scada-chart .series-violet .recharts-area-curve{stroke:var(--am-series-violet)}
+.scada-chart .series-raw .recharts-area-curve{stroke:var(--am-muted-2)}
+.scada-chart .recharts-brush rect:first-child{fill:var(--am-row);stroke:var(--am-border-strong)}
+.scada-chart .recharts-brush-texts text{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}
+/* Recharts draws the end label outside the end traveller (text-anchor start): at the right edge it runs
+   past the svg. Turn it inward, just left of the traveller (tests/test_scada_theme.py HeldBrush). */
+.scada-chart .recharts-brush-texts text:last-child{text-anchor:end;transform:translateX(-12px)}
+.scada-grad-a stop{stop-color:var(--am-series-a)}
+.scada-legend{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin:8px 24px 0;padding:12px 0;border-top:1px solid var(--am-hairline);font-size:12px;color:var(--am-muted)}
+.scada-legend .item{display:inline-flex;align-items:center;gap:8px;color:var(--am-text);font-weight:500}
+.scada-legend .dot{width:10px;height:10px;border-radius:50%}
+.scada-legend .dot.dash{background:transparent!important;border:2px dashed;width:12px;height:12px}
+.dot.series-a{background:var(--am-series-a);border-color:var(--am-series-a)}
+.dot.series-amber{background:var(--am-series-amber);border-color:var(--am-series-amber)}
+.dot.series-violet{background:var(--am-series-violet);border-color:var(--am-series-violet)}
+.dot.series-raw{background:var(--am-muted-2);border-color:var(--am-muted-2)}
+.scada-inspection-slider{padding:16px 24px 24px}
+
+/* Workflow steps and delivery path. */
+.scada-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;padding:0 24px 24px}
+.scada-step{padding:16px;border:1px solid var(--am-border);border-radius:var(--am-r-card-2);background:var(--am-row);display:flex;flex-direction:column;gap:8px;min-width:0}
+.scada-step .idx{font-family:var(--am-font-mono);font-size:10px;font-weight:700;color:var(--am-muted)}
+.scada-step .name{font-size:14px;font-weight:600}
+.scada-step .val{font-family:var(--am-font-mono);font-size:21px;font-weight:600;font-variant-numeric:tabular-nums}
+.scada-step .sub{font-size:12px;color:var(--am-muted)}
+.scada-step.off .val{color:var(--am-muted);font-family:inherit;font-size:12px;font-weight:500}
+.scada-path{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 24px 24px;font-size:12px;color:var(--am-muted)}
+.scada-path .hop{font-family:var(--am-font-mono);padding:6px 12px;border:1px solid var(--am-border-strong);border-radius:var(--am-r-pill);background:var(--am-row)}
+.scada-path .hop.on{border-color:var(--am-accent);color:var(--am-accent);background:color-mix(in srgb,var(--am-accent) 10%,transparent)}
+
+@media(max-width:1279px){.scada-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1100px){.scada-split,.scada-split.wide{grid-template-columns:minmax(0,1fr)}.scada-crumbs{display:none}
+.scada-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){.scada-header{padding:0 16px}.scada-vars,.scada-subnav{padding-left:16px;padding-right:16px}.scada-workspace{padding:16px}
+.scada-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.scada-kpis{grid-template-columns:minmax(0,1fr)}.scada-kpi{height:auto;gap:12px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto;animation:none!important;transition:none!important}}

@@ -7,6 +7,7 @@ import logging
 import asyncpg
 from typing import Any
 from edgeex_app.utils.logger import get_logger, log_function
+from .scada_config import scada_server_settings
 
 # Initialize logger for this module
 logger = get_logger(__name__)
@@ -68,6 +69,7 @@ async def get_pool() -> asyncpg.Pool:
                         max_size=10,
                         timeout=60.0,
                         command_timeout=60.0,
+                        server_settings=scada_server_settings(),
                     )
                     _POOL_LOOP = current_loop
                     logger.info(f"Global pool created successfully (PID: {pid})")
@@ -106,7 +108,7 @@ async def q(sql: str, params: tuple | dict = (), timeout: float = 60.0):
     except asyncio.TimeoutError as e:
         logger.warning(f"Pool timeout, using direct connection: {str(e)}")
         try:
-            conn = await asyncpg.connect(_dsn())
+            conn = await asyncpg.connect(_dsn(), server_settings=scada_server_settings())
             try:
                 results = await conn.fetch(normalized_sql, *params, timeout=timeout)
                 results = [dict(row) for row in results]
@@ -148,7 +150,7 @@ async def execute_query(sql: str, params: tuple | dict = (), timeout: float = 60
     except asyncio.TimeoutError as e:
         logger.warning(f"Pool timeout, using direct connection for execute: {str(e)}")
         try:
-            conn = await asyncpg.connect(_dsn())
+            conn = await asyncpg.connect(_dsn(), server_settings=scada_server_settings())
             try:
                 await conn.execute(normalized_sql, *params, timeout=timeout)
                 elapsed = asyncio.get_running_loop().time() - start_time

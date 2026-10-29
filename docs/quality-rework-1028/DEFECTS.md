@@ -1,0 +1,52 @@
+# 303c995 화면 결함 목록과 조치
+
+근거:
+- 전 캡처 12장. 엣지 영수증 `fable/receipts/acceptance/20261028T091746+0900__d1028-06-mini-scada-edge-accept/screenshots/menu-*-{1920,1366}.png`, SY 실데이터.
+- `audit-before.json`(dashboard-ui-audit 정적 판정).
+
+조치는 화면 계층에서만 했다. 서비스·쿼리·DB·Kafka 계약은 바꾸지 않았다.
+
+| ID | 결함 | 근거 | 조치 | 시험 |
+|---|---|---|---|---|
+| Q-01 | 대시보드 채널 표 숫자 좌정렬(수용 #4 FAIL) | 범용 `table()`이 숫자를 일반 글자로 출력 | `scada_display.TABLES`에 숫자 열을 명시해 우정렬·고정폭 숫자로 표시. 같은 행의 원시·처리·최종값은 소수 자리를 0으로 채움(반올림 없음) | `NumericAlignment` |
+| Q-02 | 1366 표 넘침 73 px(수용 #5 FAIL) | 전역 `.rt-TableRoot{min-width:500px}`이 폭 427 px짜리 4열 옆 칸에도 걸림 | 전역 최소폭 제거, 표마다 최소폭 지정, 12분할 트랙에서 픽셀 최소폭 제거 | `OverflowWidth`(측정값 427·73 재현) |
+| Q-03 | Health 표 부재 원인 없음(수용 #7 FAIL) | "채널 Health를 확인할 수 없습니다"만 표시 | `SCHEMA_MISSING`을 원인과 다음 단계 한 줄로 표시 | `test_health_absence_states_cause_in_one_line` |
+| Q-04 | 아이콘 빈 상자(최소 높이 190 px), 호출 14곳 | 워크플로우·통신·Edge 캡처 | 사실 한 줄(`note`)로 바꿈. 값이 있는 단계(측정·판단)는 실제 수치 표시 | 캡처 대기 |
+| Q-05 | 군말 각주·면책 footer | "…과 구별", footer 고지 | 삭제. 화면 문자열은 80자 이하, 금칙어 없음 | `Wording` |
+| Q-06 | 원시 ISO 마이크로초 시각 | 표·조회 기준·상세 | 표는 `10-28 09:27:02`. 상세는 `10-28 09:27:02.038037`(자릿수 유지, `T`·오프셋 제거) | `test_precise_time_keeps_every_digit` |
+| Q-07 | 영문 품질어 `UNCERTAIN`, `GOOD/BAD` | 경보 메시지·품질 배지 | 표시 단계에서 양호/불확실/불량으로 바꿈 | `test_alarm_text_uses_ds017_terms` |
+| Q-08 | 처리 사유 `["EWMA_APPLIED"]` 원문 | Edge 선택 태그 | `EWMA_APPLIED`로 표시. 빈 목록이면 행 생략 | `test_reasons_and_times_are_readable` |
+| Q-09 | 값 없는 상세 행(`—`) 나열, 빈 단위 칸 | 선택 태그·표본·사건 상세 | `facts()`가 모르는 값을 생략. 단위가 없으면 `—`(DS-017) | `test_unknown_values_are_omitted` |
+| Q-10 | 토큰이 DS-017과 다름(#0b1018, 파랑 강조) | `audit-before` VIS-02 | DS-017 §11.2·§11.31 토큰. leaf는 선택·초점에만, 정상은 무채색, 불량은 q-bad(0건이면 무채색) | 캡처 대기 |
+| Q-11 | 트렌드 품질 계열 구분 약함, 범례 없음 | 트렌드 캡처 | 양호 최종값은 leaf 실선, 불확실은 회색 점선과 점, 원시·처리는 비교 모드에서만. 범례는 카드 하단 | 캡처 대기 |
+| Q-12 | 메뉴명 "알람"(DS-017 용어는 경보) | 상단 탐색 | "경보". 경로 `/alarms`는 유지 | `Wording` |
+| Q-13 | 경보 표 원천 우선순위(값 `3`) 좌정렬(10095cc 재수용 #4 FAIL) | 엣지 영수증 `20261029T042529+0900__mini-scada-reaccept-10095cc` | 숫자인 코드 열도 예외 없이 숫자 열로 지정 | `NumericAlignment`(M5) |
+| Q-14 | `<p>` 안 `<p>` console.error 2건(재수용 #9 FAIL) | 같은 영수증 `raw/console-defect.json`: 대시보드 "저장 표본 품질" 머리의 note | `section_title`이 컴포넌트 note를 `rx.text`로 다시 감싸지 않음 | `test_scada_render`: 6메뉴 컴포넌트 트리에 `<p>` 안 블록 요소 0(M4) |
+
+## 설계 해석 지점
+
+- **색.** `designs/`는 배치·밀도·카드·알약 모양만 따른다. emerald "정상"과 파란 강조색은 DS-017 §11.12와 충돌해 쓰지 않는다.
+- **경보 우선순위 색.** 원천 `level`을 P1–P3로 대응시킨 계약을 찾지 못했다(시각화 계약·배치 설계 문서 확인). 그래서 경보 알약은 무채색으로 두고 우선순위는 글자로만 보인다. 대응표가 정해지면 `alarm_row`에서 tone만 바꾼다.
+- **글자 크기 7종.** VIS-04 FAIL이지만 DS-017 글자 단계(12/13/14/16/20/28/32)를 우선했다. 감사 임계값 6과 상충한다.
+- **VIS-02 HEX.** `:root` 토큰 정의와 Recharts SVG 선 색이 잡힌 것이다. SVG 속성은 CSS 변수를 안정적으로 해석하지 못해 `views/scada_view.py`의 `C`에 같은 값을 둔다.
+
+## 감사 전후(dashboard-ui-audit)
+
+- before: pass 20 / partial 7 / fail 8 → after: pass 21 / partial 6 / fail 8.
+- 남은 FAIL은 위 해석 지점(VIS-04, VIS-02)과 정적 판정의 한계다. IA-01·DAT-01은 Reflex Python을 정규식으로 읽어서 생기며, 화면 확인은 캡처로 한다.
+- 4/8 px 격자 이탈: before 있음 → after 0.
+
+## design-review 자체 점검(정적, 라이브 미실행)
+
+gstack design-review는 라이브 URL과 브라우저가 필요하다. 오너 PC 실행 금지(`AGENTS.md`)로 이 PC에서는 체크리스트만 소스에 적용했다. 라이브 판정은 엣지 재수용 캡처로 넘긴다.
+
+- **App UI 규칙**: 장식 카드 격자·아이콘 원형 장식·중앙 정렬 없음. 카드는 표·목록·차트를 담는 경우에만 쓴다.
+- **AI slop 목록**:
+  - 보라 그라데이션·이모지·카드 왼쪽 색 테두리 없음.
+  - 선택 행의 leaf 안쪽 선은 카드가 아니라 선택 표시다.
+- **숫자 열**: `tabular-nums`·우정렬. 시각 열은 고정폭.
+- **남은 항목(라이브 확인 필요)**:
+  - 본문 14 px. DS-017 글자 단계를 우선했고, design-review의 16 px 권고와는 다르다.
+  - 기본 서체 스택은 Radix 기본값이다. DS-017 서체 지정은 미확인이라 바꾸지 않았다.
+  - ghost 버튼 높이가 44 px 미만이다(데스크톱 운전 화면).
+  - 대비비는 실측하지 않았다.

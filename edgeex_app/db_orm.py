@@ -112,6 +112,8 @@ class EngineManager:
                 "application_name": "reflex_app",
                 "jit": "off",
             }
+            from .scada_config import scada_server_settings
+            server_settings.update(scada_server_settings())
             if STATEMENT_TIMEOUT_MS > 0:
                 # asyncpg uses str values for server_settings
                 server_settings["statement_timeout"] = str(STATEMENT_TIMEOUT_MS)

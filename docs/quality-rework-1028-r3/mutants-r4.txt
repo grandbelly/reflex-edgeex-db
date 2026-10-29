@@ -1,0 +1,31 @@
+== M11: assets/scada.css '--am-axis-text:#68686d;' -> '--am-axis-text:rgba(29,29,31,.45);'
+FAIL: test_chart_text_is_opaque_and_meets_aa (tests.test_scada_theme.ChartText.test_chart_text_is_opaque_and_meets_aa)
+FAILED (failures=1)
+== M12: assets/scada.css 'tick-value{fill:var(--am-axis-text)' -> 'tick-value{fill:var(--am-axis)'
+FAIL: test_chart_text_is_opaque_and_meets_aa (tests.test_scada_theme.ChartText.test_chart_text_is_opaque_and_meets_aa)
+FAILED (failures=1)
+== M13: assets/scada.css 'brush-texts text{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}' -> 'brush-texts text{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:10px}'
+FAIL: test_chart_text_is_at_least_11px (tests.test_scada_theme.ChartText.test_chart_text_is_at_least_11px)
+FAILED (failures=1)
+== M14: edgeex_app/views/scada_view.py '"fontSize": 11' -> '"fontSize": 10'
+FAIL: test_chart_text_is_at_least_11px (tests.test_scada_theme.ChartText.test_chart_text_is_at_least_11px)
+FAILED (failures=1)
+== M15: edgeex_app/components/scada.py 'rx.el.select(*items' -> 'rx.el.select(items'
+ERROR: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='trend')
+ERROR: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='flow')
+ERROR: test_search_box_has_the_textbox_role (tests.test_scada_theme.Markup.test_search_box_has_the_textbox_role) (page='trend')
+ERROR: test_search_box_has_the_textbox_role (tests.test_scada_theme.Markup.test_search_box_has_the_textbox_role) (page='flow')
+ERROR: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='trend')
+ERROR: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='flow')
+ERROR: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='trend')
+ERROR: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='flow')
+ERROR: test_rendered_pages_carry_no_colour_literal (tests.test_scada_theme.Tokens.test_rendered_pages_carry_no_colour_literal) (page='trend')
+ERROR: test_rendered_pages_carry_no_colour_literal (tests.test_scada_theme.Tokens.test_rendered_pages_carry_no_colour_literal) (page='flow')
+FAIL: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='overview')
+FAIL: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='process')
+FAIL: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='alarms')
+FAIL: test_no_unkeyed_array_children (tests.test_scada_theme.Markup.test_no_unkeyed_array_children) (page='communication')
+FAILED (failures=4, errors=10)
+== M16: edgeex_app/components/scada.py 'type="text"), debounce_timeout' -> 'type="search"), debounce_timeout'
+FAIL: test_search_box_has_the_textbox_role (tests.test_scada_theme.Markup.test_search_box_has_the_textbox_role) (page='flow')
+FAILED (failures=1)

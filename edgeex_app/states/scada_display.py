@@ -4,12 +4,14 @@ import json
 import re
 
 QUALITY_KO = {"GOOD": "양호", "UNCERTAIN": "불확실", "BAD": "불량"}
-QUALITY_TONE = {"GOOD": "neutral", "UNCERTAIN": "uncertain", "BAD": "bad"}
+# design_guide §2: good = success, uncertain = warning, bad = error (assets/scada.css .tone-*).
+QUALITY_TONE = {"GOOD": "good", "UNCERTAIN": "uncertain", "BAD": "bad"}
 EMPTY = {"", "—", "[]", "None", None}
 
-# Layout model of assets/scada.css: workspace max 1600 px, 24 px padding, one 16 px gap
-# between 12-fraction tracks, 1 px panel borders, and a 15 px page scrollbar.
-WORKSPACE_MAX, WORKSPACE_PAD, GAP, BORDER, SCROLLBAR = 1600, 24, 16, 1, 15
+# Layout model of assets/scada.css (design_guide §5.3 body p-6, chart grid gap-6): full-width
+# workspace, 24 px padding, one 24 px gap between 12-fraction tracks, 1 px card borders, 15 px
+# page scrollbar. Tables bleed to the card edge, so a table gets the card's inner width.
+WORKSPACE_MAX, WORKSPACE_PAD, GAP, BORDER, SCROLLBAR = None, 24, 24, 1, 15
 
 # Every table: (key, label, min px, numeric). Numeric columns are right-aligned.
 TABLES = {
@@ -34,12 +36,12 @@ PLACEMENT = {"channels": 4, "recent_alarms": 8, "alarms": 8, "points": 8, "healt
              "channel_latest": 4}
 
 
-def track_width(viewport: int, share: int) -> float:
+def track_width(viewport: int, share: int, max_width=WORKSPACE_MAX, pad=WORKSPACE_PAD, gap=GAP) -> float:
     """Inner width of a panel spanning `share`/12 of a two-track row."""
-    content = min(viewport - SCROLLBAR, WORKSPACE_MAX) - 2 * WORKSPACE_PAD
+    content = min(viewport - SCROLLBAR, max_width or viewport) - 2 * pad
     if share == 12:
         return content - 2 * BORDER
-    return (content - GAP) * share / 12 - 2 * BORDER
+    return (content - gap) * share / 12 - 2 * BORDER
 
 
 def table_min_width(name: str) -> int:

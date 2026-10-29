@@ -91,7 +91,7 @@ class ScadaState(rx.State):
         total = self.good + self.uncertain + self.bad
         return [{"label": label, "count_d": D.group(str(n)), "tone": tone,
                  "width": f"{100 * n / total:.2f}%" if total else "0%"}
-                for label, n, tone in [("양호", self.good, "neutral"),
+                for label, n, tone in [("양호", self.good, "good"),
                                        ("불확실", self.uncertain, "uncertain"),
                                        ("불량", self.bad, "bad")]]
 

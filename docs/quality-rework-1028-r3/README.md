@@ -1,0 +1,107 @@
+# D-1029-02 3차 재작업 — design_guide.md(부록 A) Reflex 적용
+
+오너 판정(83c4d86 화면): "reflex를 쓴 게 맞나? reflex 컴포넌트를 하나도 안 쓴 것 같다". 기능 수용은 10/10이었다. 그러나 Radix 기본 외관 그대로였고, 기준 문서 `designs/design_guide.md`("Grafana in Apple Mode")와 참조 구현 `designs/metrics-dashboard`의 디자인 시스템이 적용되지 않았다.
+
+이번에도 화면 계층만 바꿨다. 서비스·쿼리·DB·Kafka 계약은 바꾸지 않았다(`git diff 54028ff -- edgeex_app/queries edgeex_app/services migrations` 빈 출력).
+
+## 절별 적용
+
+| 가이드 절 | 구현 |
+|---|---|
+| §0 테마 모델 | 기본은 dark, 헤더 버튼(해·달 아이콘)으로 light 전환. `rxconfig.py`에 `default_color_mode="dark"`와 Radix `appearance="inherit"`를 둔다. 토큰은 `<html>` 클래스 하나로 모두 뒤집힌다. 컴포넌트는 색을 모른다 |
+| §1.1–1.4 표면·텍스트·강조·경계 | `assets/scada.css`의 두 토큰 블록. 부록 A.1 값 그대로이고, 시험이 문서 값과 글자 단위로 대조한다 |
+| §2 상태 | 알약 = 500 레벨 색 + 채움 10% + 테두리 20%, `color-mix`. 10 px bold uppercase, 앞에 점 |
+| §3·§8 차트 | 그리드 `3 3` 점선(가로만), 축 10 px mono(축선·눈금선 없음), 사용자 정의 툴팁 상자, 최종값 면적 그라데이션(5%→95%, 0.2→0), `monotone` 2 px, 범례는 카드 하단 수동 점 |
+| §4 서체 | Inter + JetBrains Mono(Google Fonts `@import`). 숫자·시각·ID는 mono `tabular-nums` |
+| §5 지오메트리 | 카드 18 px, 단계 카드 16, 툴팁 8, 입력 6, 알약 9999. 본문 `p-6`, 카드 간격 24, KPI 간격 20, KPI 높이 185 |
+| §6 모션 | `apple-transition`(0.3 s `cubic-bezier(.25,1,.5,1)`), 누르면 `scale(.95)`. `prefers-reduced-motion`이면 끈다 |
+| §7.1 KPI | mono 대문자 라벨 + 아이콘, 34 px 값 + 단위, 하단 설명. 불량 태그가 있으면 error 변형(값 빨강, spike 그림자) |
+| §7.2 입력 | 검색은 알약형(돋보기, mono), 셀렉트는 네이티브 `select` + chevron. 포커스 시 `#0066cc` 링 |
+| §7.3 버튼 | Primary CTA("지금 조회"), Secondary("적용"), 아이콘 버튼, 알약 세그먼트(5/15/60분, 최종값/비교) |
+| §9 상태 | hover `--am-hover`, 선택 행은 강조색 10% + 안쪽 선, 포커스 링 공통 |
+| App.tsx 구성 | 헤더 h-14(로고·위치·조회 상태·실시간·밝기) → 변수 행(현장·태그·범위) → 서브내비 탭(6메뉴 + CTA) → 본문(제목, KPI 행, 차트·표 카드) |
+
+Radix 컴포넌트(표·슬라이더·링크)는 Radix 변수(`--accent-*`, `--gray-*`, `--color-panel-solid`, 반경, 서체)를 `--am-*`로 다시 가리키는 블록 하나로 같이 뒤집힌다.
+
+## 설계 해석(CM 기록 대상) — DS-017과 충돌 시 design_guide 우선
+
+1. **강조색.** leaf(`#b8e35c`)를 쓰지 않는다. 선택·포커스·활성 탭·최종값 계열은 accent(dark `#2997ff` / light `#0066cc`)다.
+2. **품질 색.** 양호=success, 불확실=warning, 불량=error(§2). DS-017의 "정상 무채색"과 q-bad·q-uncertain 보라는 쓰지 않는다.
+3. **경보 알약은 무채색.** 원천 `level`→P1–P3 대응 계약이 아직 없다. 경보색은 운전 우선순위를 단정하므로 neutral 토큰으로 둔다(2차와 같음).
+4. **트렌드 계열.** 최종값 양호는 Series A 면적. 불확실은 amber 점선과 점, 범례에 따로 표시. 비교 모드의 처리값은 violet 점선, 원시값은 muted-2 실선이다. 불량·결측은 선을 잇지 않는다.
+5. **사이드바 생략.** §7.4 사이드바 대신 App.tsx의 서브내비 탭에 6메뉴를 둔다. 이전 오너 결정(상단 탐색, components AGENTS)과 1366 폭을 지키기 위해서다. 배정 (2)의 구성 목록(헤더·KPI 행·차트 카드·표)에도 사이드바는 없다.
+6. **dark 선택자.** 부록 A.1은 `[data-theme="dark"]`인데, Reflex는 `<html>`에 `dark`/`light` 클래스를 붙인다. 그래서 `:root:not(.light),[data-theme="dark"]`로 둔다. 하이드레이션 전에도 dark라 흰 화면이 번쩍이지 않는다.
+7. **A.1 밖의 짝 토큰.** 가이드 본문에 짝이 적힌 색만 추가했다: selection(§1.3), scrollbar(§1.4), shadow(§6.1), CTA·on-accent(§7.3), hover(§9), 서브내비 배경(App.tsx). 짝이 같은 값(테마 중립)인 토큰은 시험의 `NEUTRAL` 목록에 고정했다.
+8. **KPI 값 서체.** §7.1 레시피는 font-sans지만 §4 숫자 규칙("반드시 JetBrains Mono")을 따른다.
+9. **스파크라인 생략.** KPI 하단 스파크라인은 넣지 않았다. 집계값(관측 태그 수 등)의 이력이 상태에 없어서, 그리면 지어낸 선이 된다.
+10. **해·달 아이콘 색.** 가이드 참조의 `text-yellow-400`는 토큰 짝이 없어 text 색으로 둔다.
+11. **라이트 보조 글자 대비.** `#7a7a7a`/`#ffffff`는 약 4.3:1, `#86868b`는 약 3.6:1로 WCAG AA 4.5:1에 못 미친다. 가이드 값을 그대로 쓰고, muted-2는 메타·설명에만 쓴다.
+
+## 이전 브라우저의 `theme=system`
+
+이전 빌드는 브라우저 `localStorage`에 `theme=system`을 남겼다. 그러면 OS가 라이트일 때 dark 기본이 깨진다. 오너 브라우저도 해당된다.
+
+토글은 light/dark만 저장하므로, 남아 있는 `system`은 이전 빌드가 남긴 값이다. 그래서 각 페이지 본문 맨 앞의 인라인 스크립트가 HTML 파싱 중(하이드레이션 전)에 이 값을 `dark`로 바꾸고 클래스도 고친다.
+
+`head_components`로는 안 된다. Helmet이 마운트 뒤에 넣어서 Reflex 테마 제공자보다 늦다. 빌드 산출 HTML 6개에서 이 스크립트가 셸보다 앞에 있는 것을 확인했다.
+
+## 감사 전후(dashboard-ui-audit, 정적)
+
+**전체:** before 21/6/8 → after 20/6/9(pass/partial/fail).
+
+| 검사 | 전 | 후 | 판단 |
+|---|---|---|---|
+| views VIS-02 | FAIL(HEX 9) | PASS(HEX 0) | 개선 |
+| components VIS-02 | PASS | FAIL("토큰 참조 없음") | 컴포넌트가 색을 전혀 이름 붙이지 않고 클래스만 쓴 결과다. 감사 규칙이 이를 FAIL로 읽는다 |
+| components IA-02 | PASS | FAIL(14·16 반복) | 아이콘 크기 반복을 데이터 중복으로 센 것이다 |
+| css VIS-02 | FAIL(HEX) | FAIL(HEX 43) | 모두 부록 A.1 토큰 블록 안의 값이다. 블록 밖 색 0건은 시험이 고정한다 |
+| css VIS-04 | 7종 | 8종 | §4 글자 단계(10·11·12·13·14·16·21·34) 그대로 |
+
+감사 수치를 맞추려고 코드를 바꾸지는 않았다. 원본: `audit-before.json`, `audit-after.json`.
+
+## design-review 자체 점검(정적, 라이브 미실행)
+
+오너 PC 실행 금지로 체크리스트만 소스에 적용했다. 라이브 판정은 엣지 재수용 캡처로 넘긴다.
+
+- 보라 그라데이션 없음. 브랜드 그라데이션은 가이드 §7.4 로고 하나다.
+- 이모지 없음. 카드 왼쪽 색 테두리 없음(선택 행 안쪽 선은 선택 표시).
+- 카드는 표·목록·차트를 담을 때만 쓴다.
+- 숫자 열은 우정렬·고정폭. 빈 상태는 사실 한 줄.
+- 포커스 링 2 px. 버튼은 모두 네이티브 `button`이고 이름이 있다.
+- 남은 확인(라이브): 글자 10–12 px 가독성, 라이트 대비(해석 11), 차트 `var()` 획 적용, Google Fonts 접근 가능 여부(엣지망 차단 시 시스템 서체로 대체).
+
+## 시험
+
+- 45건 OK(`tests.txt`): 기존 36 + 테마 8 + 배치 모델-CSS 일치 1.
+- `tests/test_scada_theme.py`:
+  1. 부록 A.1 값 대조.
+  2. 사용 토큰은 모두 정의돼 있다.
+  3. 테마 토큰은 모두 dark 짝이 있다.
+  4. 토큰 블록 밖 CSS, 화면 Python, 렌더 결과에 색 리터럴 0.
+  5. `color_scheme` 0.
+  6. dark 기본 + Radix inherit.
+  7. 6메뉴 모두 토글.
+  8. `system` 재설정 스크립트.
+- 변이(`mutants.txt`)는 모두 시험이 잡고, 원복 뒤 45 OK:
+
+| 변이 | 바꾼 것 |
+|---|---|
+| M6 | 사용 중인 토큰 제거 |
+| M7 | dark 짝 제거(라이트 전환 누락) |
+| M7b | Radix를 dark로 고정 |
+| M7c | 토글 제거 |
+| M8 | 뷰에 색 리터럴 |
+
+- **빌드:**
+  - `reflex compile`은 exit 0.
+  - `reflex export --frontend-only` 첫 시도는 `/` 사전 렌더링이 시간 초과로 끝났다(exit 1, 2차와 같은 증상). 재시도는 exit 0이었다.
+  - 스크립트를 본문으로 옮긴 뒤 다시 빌드했고, 첫 시도에 exit 0이었다.
+  - 빌드된 HTML 6개 모두 `<p>` 안 블록 요소 0.
+- `reflex.lock`이 compile 중 `react-debounce-input`을 뺐지만, 생성 파일이라 되돌렸다.
+
+## 미검증(엣지 재수용으로 넘김)
+
+- 6경로 × 1920·1366 × dark·light 캡처 24장과 수용 기준 10 판정. 절차는 `CAPTURE_CHECKLIST.md`.
+- 콘솔 오류 0, 숫자 열 우정렬, 넘침 0의 실측(1·2차 FAIL 회귀 확인).
+- 차트 획·그라데이션이 모드에 따라 바뀌는지.
+- Google Fonts 로드.

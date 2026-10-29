@@ -1,0 +1,30 @@
+== M6 token removed (light :root --am-hover, used by tables/pills): assets/scada.css  '--am-hover:rgba(0,0,0,.05);' -> ''
+FAIL: test_every_themed_token_has_a_dark_pair (tests.test_scada_theme.Tokens.test_every_themed_token_has_a_dark_pair)
+FAIL: test_every_used_token_is_defined (tests.test_scada_theme.Tokens.test_every_used_token_is_defined)
+Ran 8 tests in 0.328s
+FAILED (failures=2)
+== M7 light switch omitted (dark --am-hover removed: light value stays in dark): assets/scada.css  '--am-selection:rgba(0,102,204,.4);--am-hover:rgba(255,255,255,.05);' -> '--am-selection:rgba(0,102,204,.4);'
+FAIL: test_every_themed_token_has_a_dark_pair (tests.test_scada_theme.Tokens.test_every_themed_token_has_a_dark_pair)
+Ran 8 tests in 0.329s
+FAILED (failures=1)
+== M7b light switch omitted (Radix appearance pinned dark): rxconfig.py  'appearance="inherit"' -> 'appearance="dark"'
+FAIL: test_dark_default_and_radix_follows_the_mode (tests.test_scada_theme.ThemeSwitch.test_dark_default_and_radix_follows_the_mode)
+Ran 8 tests in 0.360s
+FAILED (failures=1)
+== M7c light switch omitted (toggle removed from header): edgeex_app/components/scada.py  '               theme_toggle(), class_name' -> '               class_name'
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='overview')
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='process')
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='trend')
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='alarms')
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='flow')
+FAIL: test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) (page='communication')
+Ran 8 tests in 0.322s
+FAILED (failures=6)
+== M8 colour literal in a view: edgeex_app/views/scada_view.py  'raw="var(--am-muted-2)"' -> 'raw="#86868b"'
+FAIL: test_no_colour_outside_token_blocks (tests.test_scada_theme.Tokens.test_no_colour_outside_token_blocks) (path='edgeex_app/views/scada_view.py')
+FAIL: test_rendered_pages_carry_no_colour_literal (tests.test_scada_theme.Tokens.test_rendered_pages_carry_no_colour_literal) (page='trend')
+Ran 8 tests in 0.372s
+FAILED (failures=2)
+== restored, full suite
+Ran 45 tests in 0.502s
+OK

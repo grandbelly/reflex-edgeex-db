@@ -7,7 +7,7 @@ import unittest
 from reflex_base.components.component import Component
 from edgeex_app.pages import scada as pages
 
-PAGES = ["overview", "process", "trend", "alarms", "flow", "communication"]
+PAGES = ["overview", "trend", "alarms", "flow", "communication"]
 BLOCK_TAGS = {"Box", "Flex", "Grid", "div", "p", "Table.Root", "Callout.Root"}
 
 

@@ -6,7 +6,7 @@ import reflex as rx
 from ..states.scada_state import ScadaState as S
 from ..states.scada_display import TABLES, table_min_width
 
-NAV = [("대시보드", "/"), ("워크플로우", "/workflow"), ("트렌드", "/trend"),
+NAV = [("대시보드", "/"), ("트렌드", "/trend"),
        ("경보", "/alarms"), ("통신 상태", "/comm"), ("Edge 관제", "/edge-monitor")]
 
 

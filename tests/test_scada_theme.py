@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "assets/scada.css").read_text(encoding="utf-8")
 PY = ["edgeex_app/views/scada_view.py", "edgeex_app/components/scada.py", "edgeex_app/pages/scada.py",
       "edgeex_app/edgeex_app.py", "rxconfig.py"]
-PAGES = ["overview", "process", "trend", "alarms", "flow", "communication"]
+PAGES = ["overview", "trend", "alarms", "flow", "communication"]
 
 # design_guide.md A.1 verbatim: light on :root, dark overrides. One departure (PL D-1029-02): light
 # muted/muted-2 (#7a7a7a/#86868b) darkened in the same hue to reach WCAG AA, see LightContrast.

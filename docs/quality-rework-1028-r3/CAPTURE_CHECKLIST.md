@@ -54,6 +54,14 @@
 
 brush 글자는 traveller를 끌 때만 보인다. light 트렌드에서 brush를 끄는 동안 `getComputedStyle(document.querySelector('.recharts-brush-texts text')).fill`을 읽는다. 기대값은 `axisText`와 같은 `rgb(104, 104, 109)`이다(Recharts가 `fill=stroke`를 속성으로 주지만 CSS가 이긴다).
 
+brush 잘림(5차): 트렌드에서 오른쪽 traveller를 잡아 오른쪽 끝까지, 왼쪽 traveller를 왼쪽 끝까지 끈 채로 아래를 실행한다. 두 라벨 모두 `HH:MM:SS` 8자이고 `inside`가 모두 true여야 한다.
+
+```js
+(() => { const svg = document.querySelector('.scada-chart svg.recharts-surface'), s = svg.getBoundingClientRect();
+  return [...document.querySelectorAll('.recharts-brush-texts text')].map(t => { const b = t.getBoundingClientRect();
+    return {text: t.textContent, left: b.left - s.left, right: s.right - b.right, inside: b.left >= s.left && b.right <= s.right}; }); })()
+```
+
 나머지 키는 두 모드 모두 같다:
 - `unflipped []`
 - `pageOverflow 0`, `tableOverflow 0`, `numericNotRight 0`

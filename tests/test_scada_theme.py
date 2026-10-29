@@ -4,7 +4,7 @@ import re
 import unittest
 from pathlib import Path
 from edgeex_app.pages import scada as pages
-from edgeex_app.views.scada_view import AXIS_TICK
+from edgeex_app.views.scada_view import AXIS_TICK, BRUSH_TRAVELLER, CHART_MARGIN, Y_AXIS_WIDTH
 
 ROOT = Path(__file__).resolve().parents[1]
 CSS = (ROOT / "assets/scada.css").read_text(encoding="utf-8")
@@ -141,6 +141,61 @@ class ChartText(unittest.TestCase):
         for body in self.RULES:
             self.assertGreaterEqual(int(re.search(r"font-size:(\d+)px", body).group(1)), 11)
         self.assertGreaterEqual(AXIS_TICK["fontSize"], 11)
+
+
+class HeldBrush(unittest.TestCase):
+    """A dragged brush shows two time labels (Recharts 3 Brush.renderText): the start label ends 5 px left of
+    the left traveller (anchor end), the end label starts 5 px right of the right traveller (anchor start).
+    The brush spans the plot: y-axis edge to svg width minus the right margin. Labels are JetBrains Mono,
+    0.6 em per character. Edge 5ef941d: 13-digit label at the right edge, 80.8 px past the svg."""
+    LABEL = len("00:00:00")
+    WIDTHS = (480, 1200)  # the bound is relative to the svg edges, so any track width gives the same result
+
+    def end_rule(self):
+        m = re.search(r"\.recharts-brush-texts text:last-child\{([^}]*)\}", CSS)
+        body = m.group(1) if m else ""
+        anchor = re.search(r"text-anchor:(\w+)", body)
+        shift = re.search(r"translateX\((-?\d+)px\)", body)
+        return (anchor.group(1) if anchor else "start"), (int(shift.group(1)) if shift else 0)
+
+    def boxes(self, svg_width, chars, anchor, shift):
+        size = int(re.search(r"brush-texts text\{[^}]*font-size:(\d+)px", CSS).group(1))
+        width = chars * size * 0.6
+        left = CHART_MARGIN["left"] + Y_AXIS_WIDTH
+        right = svg_width - CHART_MARGIN["right"]
+        for traveller in (left, right - BRUSH_TRAVELLER):  # both extremes of the drag
+            yield "start", traveller, (traveller - 5 - width, traveller - 5)
+            x = traveller + BRUSH_TRAVELLER + 5 + shift
+            yield "end", traveller, ((x, x + width) if anchor == "start" else (x - width, x))
+
+    def test_model_reproduces_the_edge_reading(self):
+        worst = max(hi for _, _, (_, hi) in self.boxes(1000, 13, "start", 0)) - 1000
+        self.assertAlmostEqual(worst, 80.8, places=1)
+
+    def test_held_labels_stay_inside_the_svg(self):
+        anchor, shift = self.end_rule()
+        for svg_width in self.WIDTHS:
+            for label, traveller, (lo, hi) in self.boxes(svg_width, self.LABEL, anchor, shift):
+                with self.subTest(svg=svg_width, label=label, traveller=traveller):
+                    self.assertGreaterEqual(lo, 0)
+                    self.assertLessEqual(hi, svg_width)
+
+    def test_end_label_does_not_cover_its_traveller(self):
+        anchor, shift = self.end_rule()
+        for label, traveller, (lo, hi) in self.boxes(1200, self.LABEL, anchor, shift):
+            if label == "end":
+                self.assertLessEqual(hi, traveller)
+
+    def test_brush_labels_are_formatted_fixed_width(self):
+        # Reflex's brush has no tick_formatter prop; passed by name it lands in wrapperStyle and the brush
+        # shows raw epoch ms (13 digits).
+        page = str(pages.trend())
+        brush = page[page.index("jsx(RechartsBrush,"):]
+        brush = brush[:brush.index("},)")]
+        self.assertIn("tickFormatter:(value) =>", brush)
+        self.assertIn("hourCycle:'h23'", brush)
+        self.assertEqual(brush.count("'2-digit'"), 3)
+        self.assertNotIn('"tickFormatter"', brush)
 
 
 class Markup(unittest.TestCase):

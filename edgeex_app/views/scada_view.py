@@ -7,6 +7,11 @@ from ..components.scada import (card, section_title, pill, quality_pill, kpi, no
 
 TIME_TICK = "(value) => new Date(value).toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul', hour12:false})"
 TIME_LABEL = "(value) => new Date(value).toLocaleString('ko-KR', {timeZone:'Asia/Seoul', hour12:false})"
+# Brush labels are fixed width (always HH:MM:SS) so tests can bound them inside the svg.
+BRUSH_TICK = ("(value) => new Date(value).toLocaleTimeString('en-GB', {timeZone:'Asia/Seoul', hourCycle:'h23', "
+              "hour:'2-digit', minute:'2-digit', second:'2-digit'})")
+CHART_MARGIN = {"top": 10, "right": 10, "left": 0, "bottom": 0}
+Y_AXIS_WIDTH, BRUSH_TRAVELLER = 64, 5
 # design_guide §3/§8 series and chart chrome as tokens; assets/scada.css repeats them on the
 # recharts classes so a mode change repaints without a re-render.
 C = dict(final="var(--am-series-a)", uncertain="var(--am-series-amber)", cond="var(--am-series-violet)",
@@ -90,7 +95,7 @@ def signal_chart():
             tick_formatter=TIME_TICK, axis_line=False, tick_line=False, min_tick_gap=64,
             tick=AXIS_TICK, stroke=C["axis"], dy=10, height=32),
         rx.recharts.y_axis(domain=["auto", "auto"], axis_line=False, tick_line=False,
-            tick=AXIS_TICK, stroke=C["axis"], dx=-5, width=64, allow_decimals=True),
+            tick=AXIS_TICK, stroke=C["axis"], dx=-5, width=Y_AXIS_WIDTH, allow_decimals=True),
         rx.recharts.tooltip(content_style={"backgroundColor": "var(--am-card)",
             "border": "1px solid var(--am-border-strong)", "borderRadius": "var(--am-r-lg)",
             "boxShadow": "var(--am-shadow-tooltip)", "fontSize": "12px", "padding": "12px",
@@ -103,9 +108,11 @@ def signal_chart():
         line("final_good", "최종값 · 양호", C["final"], "series-a", fill=True),
         line("final_uncertain", "최종값 · 불확실", C["uncertain"], "series-amber", width=1.5, dash="5 4", dot=True),
         rx.recharts.reference_line(x=S.cursor_time, stroke=C["cursor"], stroke_dasharray="3 4"),
+        # rx.recharts.brush has no tick_formatter prop (it lands in wrapperStyle, raw epoch ms shows).
         rx.recharts.brush(data_key="epoch_ms", height=24, stroke="var(--am-border-strong)", fill="var(--am-row)",
-                          tick_formatter=TIME_TICK, key=S.site_id + S.tag + S.minutes),
-        data=S.series, height=360, margin={"top": 10, "right": 10, "left": 0, "bottom": 0})
+                          traveller_width=BRUSH_TRAVELLER, key=S.site_id + S.tag + S.minutes,
+                          custom_attrs={"tickFormatter": rx.Var(_js_expr=BRUSH_TICK)}),
+        data=S.series, height=360, margin=CHART_MARGIN)
     return card(
         rx.box(rx.box(rx.el.div(S.tag, class_name="tag scada-wrap"),
                       rx.el.div("원천 최신 ", S.selected["observed_d"], class_name="scada-mono scada-muted scada-small")),

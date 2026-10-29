@@ -221,6 +221,9 @@ font-size:12px;color:var(--am-text);vertical-align:middle}
 .scada-chart .series-raw .recharts-area-curve{stroke:var(--am-muted-2)}
 .scada-chart .recharts-brush rect:first-child{fill:var(--am-row);stroke:var(--am-border-strong)}
 .scada-chart .recharts-brush-texts text{fill:var(--am-axis-text);font-family:var(--am-font-mono);font-size:11px}
+/* Recharts draws the end label outside the end traveller (text-anchor start): at the right edge it runs
+   past the svg. Turn it inward, just left of the traveller (tests/test_scada_theme.py HeldBrush). */
+.scada-chart .recharts-brush-texts text:last-child{text-anchor:end;transform:translateX(-12px)}
 .scada-grad-a stop{stop-color:var(--am-series-a)}
 .scada-legend{display:flex;flex-wrap:wrap;align-items:center;gap:24px;margin:8px 24px 0;padding:12px 0;border-top:1px solid var(--am-hairline);font-size:12px;color:var(--am-muted)}
 .scada-legend .item{display:inline-flex;align-items:center;gap:8px;color:var(--am-text);font-weight:500}

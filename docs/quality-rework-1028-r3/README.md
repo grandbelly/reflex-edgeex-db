@@ -149,6 +149,37 @@ prod 빌드로 띄울 때만 남은 `system`이 그대로 쓰인다. 캡처 절�
 - 빌드: `reflex compile` exit 0. `reflex export --frontend-only`는 첫 시도에 `/` 사전 렌더 시간 초과(exit 1, 2·3차와 같은 증상), 재시도 exit 0. 빌드 CSS에 `--am-axis-text`가 있고 빌드 결과에 `type="search"` 0.
 - key 경고가 정적 검사로 잡히는 범위는 "목록을 자식 하나로 넘기는" 형태다. 다른 React 콘솔 경고는 엣지 실측으로 확인한다.
 
+## 5차 수정(엣지 5ef941d 재수용 FAIL 1: brush 라벨 잘림)
+
+영수증: edgeex #1177. 트렌드 brush를 잡고 끌 때 오른쪽 끝 라벨이 svg 밖으로 80.8 px 나가 잘렸다(두 해상도).
+
+**원인 두 가지:**
+- **형식기 누락:** `rx.recharts.brush`에는 `tick_formatter` 속성이 없다. 이름으로 넘긴 형식기가 `wrapperStyle` 안으로 들어가 brush가 epoch ms 원값(13자리)을 그렸다. 엣지가 본 "13자리 시각 라벨"이 이것이다.
+- **바깥쪽 앵커:** Recharts 3 `Brush.renderText`는 끝 라벨을 오른쪽 traveller 바깥 +10 px에서 `text-anchor:start`로 그린다. traveller가 오른쪽 끝에 있으면 라벨이 차트 오른쪽 여백(10 px)을 넘는다. 계산: 5 + 13자 × 6.6 px(11 px × 0.6 em) − 10 = **80.8 px**. 엣지 실측과 같다.
+
+**수정(가이드 §8 Recharts 설정 범위 안):**
+- 형식기를 `custom_attrs={"tickFormatter": …}`로 JS 함수로 넘긴다. brush 라벨은 고정폭 `HH:MM:SS`(`en-GB`, `hourCycle:'h23'`, 2자리 3필드, Asia/Seoul)다. 축 tick 형식(ko-KR)은 그대로 뒀다.
+- CSS로 끝 라벨을 안쪽으로 돌렸다: `.recharts-brush-texts text:last-child{text-anchor:end;transform:translateX(-12px)}`. 라벨이 오른쪽 traveller 바로 왼쪽에서 끝난다. 시작 라벨은 왼쪽 y축 폭(64 px) 안에 들어가므로 Recharts 기본을 유지했다.
+- 위치 계산에 쓰는 값(`CHART_MARGIN`, `Y_AXIS_WIDTH` 64, `BRUSH_TRAVELLER` 5)은 `scada_view.py` 상수로 빼서 차트와 시험이 같은 값을 쓴다.
+
+**잡은 상태(끄는 중) 모델 시험 `HeldBrush`(4건):**
+1. 모델이 이전 상태(13자, 바깥 앵커)에서 엣지 실측 80.8 px를 재현한다.
+2. 두 traveller가 왼쪽 끝·오른쪽 끝일 때 라벨 두 개의 bbox가 모두 svg [0, 폭] 안이다. 최악 여유는 왼쪽 6.2 px, 오른쪽 12 px.
+3. 끝 라벨이 자기 traveller를 덮지 않는다.
+4. 컴파일된 brush에 `tickFormatter`가 JS 함수로 있고 `wrapperStyle`에 없다. 형식은 고정폭이다.
+
+| 변이 | 바꾼 것 | 결과 |
+|---|---|---|
+| M17 | 끝 라벨 `text-anchor:end` 제거(앵커 복원) | 실패 3 |
+| M18 | 안쪽 이동 `translateX` 제거 | 실패 1(traveller 덮음) |
+| M19 | 형식기를 `tick_formatter=`로 되돌림 | 실패 1 |
+| M20 | 라벨 길이를 13자리로 | 실패 4 |
+| M21 | y축 폭 64 → 40 | 실패 4 |
+
+- 시험 55 OK(`tests-r5.txt`). 변이 결과는 `mutants-r5.txt`.
+- `reflex compile` exit 0. `reflex export --frontend-only`는 첫 시도 `/` 사전 렌더 시간 초과(기존 증상), 재시도 exit 0. 빌드 CSS에 안쪽 규칙(축약형 `translate(-12px)`)이 있다.
+- 모델은 JetBrains Mono 0.6 em 기준이다. 시스템 고정폭 대체 서체는 그보다 좁아 여유가 커진다. 실측은 엣지 캡처 절차의 brush 항목으로 확인한다.
+
 ## 미검증(엣지 재수용으로 넘김)
 
 - 6경로 × 1920·1366 × dark·light 캡처 24장과 수용 기준 10 판정. 절차는 `CAPTURE_CHECKLIST.md`.

@@ -41,9 +41,13 @@ Radix 컴포넌트(표·슬라이더·링크)는 Radix 변수(`--accent-*`, `--g
 
 이전 빌드는 브라우저 `localStorage`에 `theme=system`을 남겼다. 그러면 OS가 라이트일 때 dark 기본이 깨진다. 오너 브라우저도 해당된다.
 
-토글은 light/dark만 저장하므로, 남아 있는 `system`은 이전 빌드가 남긴 값이다. 그래서 각 페이지 본문 맨 앞의 인라인 스크립트가 HTML 파싱 중(하이드레이션 전)에 이 값을 `dark`로 바꾸고 클래스도 고친다.
+별도 코드는 넣지 않았다. 이유는 셋이다.
 
-`head_components`로는 안 된다. Helmet이 마운트 뒤에 넣어서 Reflex 테마 제공자보다 늦다. 빌드 산출 HTML 6개에서 이 스크립트가 셸보다 앞에 있는 것을 확인했다.
+- **dev 모드(엣지 3100 운전 방식):** Reflex 0.10.1 테마 제공자에 이미 처리가 있다. 컴파일된 기본값이 바뀌면(`last_compiled_theme` `system` → `dark`) 처음 한 번 dark로 덮어쓴다. 소스는 `react-theme.js`의 `isDevMode` 분기다.
+- **페이지 안 `<script>`:** React 19 dev가 클라이언트 렌더 때 `console.error("Encountered a script tag …")`를 낸다. 수용 #9(콘솔 오류 0)를 깨므로 시도했다가 뺐다. 시험이 페이지 트리의 `<script>` 0을 고정한다(M9).
+- **`head_components`:** Helmet이 마운트 뒤에 넣어서 테마 제공자보다 늦다.
+
+prod 빌드로 띄울 때만 남은 `system`이 그대로 쓰인다. 캡처 절차 1번에서 `localStorage.getItem('theme')` 값을 기록해 확인한다.
 
 ## 감사 전후(dashboard-ui-audit, 정적)
 
@@ -81,7 +85,7 @@ Radix 컴포넌트(표·슬라이더·링크)는 Radix 변수(`--accent-*`, `--g
   5. `color_scheme` 0.
   6. dark 기본 + Radix inherit.
   7. 6메뉴 모두 토글.
-  8. `system` 재설정 스크립트.
+  8. 페이지 트리에 `<script>` 0.
 - 변이(`mutants.txt`)는 모두 시험이 잡고, 원복 뒤 45 OK:
 
 | 변이 | 바꾼 것 |
@@ -91,13 +95,14 @@ Radix 컴포넌트(표·슬라이더·링크)는 Radix 변수(`--accent-*`, `--g
 | M7b | Radix를 dark로 고정 |
 | M7c | 토글 제거 |
 | M8 | 뷰에 색 리터럴 |
+| M9 | 페이지 트리에 `<script>` |
 
 - **빌드:**
-  - `reflex compile`은 exit 0.
-  - `reflex export --frontend-only` 첫 시도는 `/` 사전 렌더링이 시간 초과로 끝났다(exit 1, 2차와 같은 증상). 재시도는 exit 0이었다.
-  - 스크립트를 본문으로 옮긴 뒤 다시 빌드했고, 첫 시도에 exit 0이었다.
+  - `reflex compile`은 exit 0(최종 코드).
+  - `reflex export --frontend-only`(본문 스크립트가 있던 중간 코드)는 첫 시도에 `/` 사전 렌더링이 시간 초과로 끝났다(exit 1, 2차와 같은 증상). 재시도는 exit 0이었다.
   - 빌드된 HTML 6개 모두 `<p>` 안 블록 요소 0.
-- `reflex.lock`이 compile 중 `react-debounce-input`을 뺐지만, 생성 파일이라 되돌렸다.
+  - 빌드 CSS 첫 문장이 Google Fonts `@import`임을 확인했다. 뒤에 오면 무시된다.
+- 검색창은 `rx.debounce_input`(300 ms)으로 감쌌다. Radix `rx.input`에서 바꾸면서 debounce가 빠져 글자마다 서버를 왕복하던 것을 되돌린 것이다. `reflex.lock`은 생성 파일이라 커밋하지 않는다.
 
 ## 미검증(엣지 재수용으로 넘김)
 

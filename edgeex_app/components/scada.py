@@ -6,13 +6,6 @@ import reflex as rx
 from ..states.scada_state import ScadaState as S
 from ..states.scada_display import TABLES, table_min_width
 
-# Builds before D-1029-02 left localStorage theme="system", which opens light on a light OS; the
-# toggle only stores light/dark, so "system" is stale. Reflex's head script has already applied it
-# and head_components arrive after mount via Helmet, so this runs inline at the top of the
-# prerendered body, before hydration reads the key.
-THEME_RESET = ("try{if(localStorage.getItem('theme')==='system'){localStorage.setItem('theme','dark');"
-               "var c=document.documentElement.classList;c.remove('light');c.add('dark')}}catch(e){}")
-
 NAV = [("대시보드", "/"), ("워크플로우", "/workflow"), ("트렌드", "/trend"),
        ("경보", "/alarms"), ("통신 상태", "/comm"), ("Edge 관제", "/edge-monitor")]
 
@@ -93,8 +86,8 @@ def select(name, options, value, label):
 
 def search(value, on_change, placeholder):
     return rx.box(rx.icon("search", size=16, class_name="icon"),
-                  rx.el.input(value=value, on_change=on_change, placeholder=placeholder,
-                              aria_label=placeholder, type="search"),
+                  rx.debounce_input(rx.el.input(value=value, on_change=on_change, placeholder=placeholder,
+                                                aria_label=placeholder, type="search"), debounce_timeout=300),
                   class_name="scada-search")
 
 
@@ -185,7 +178,7 @@ def template(current: str, title: str, description: str):
         @wraps(content)
         def page():
             return rx.box(
-                rx.el.script(THEME_RESET), header(title), scope_bar(current), subnav(current),
+                header(title), scope_bar(current), subnav(current),
                 rx.el.main(
                     rx.box(rx.el.h1(title), rx.el.p(description), class_name="scada-page-title"),
                     rx.cond(S.error_message != "",

@@ -25,6 +25,15 @@ FAIL: test_no_colour_outside_token_blocks (tests.test_scada_theme.Tokens.test_no
 FAIL: test_rendered_pages_carry_no_colour_literal (tests.test_scada_theme.Tokens.test_rendered_pages_carry_no_colour_literal) (page='trend')
 Ran 8 tests in 0.372s
 FAILED (failures=2)
+== M9 <script> rendered in the page tree (React dev console.error): edgeex_app/components/scada.py
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='overview')
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='process')
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='trend')
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='alarms')
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='flow')
+FAIL: test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) (page='communication')
+Ran 8 tests in 0.348s
+FAILED (failures=6)
 == restored, full suite
-Ran 45 tests in 0.502s
+Ran 45 tests in 0.409s
 OK

@@ -37,7 +37,7 @@ test_detector_finds_known_bad_shape (tests.test_scada_render.NoBlockInsideParagr
 test_six_pages_have_no_block_inside_p (tests.test_scada_render.NoBlockInsideParagraph.test_six_pages_have_no_block_inside_p) ... ok
 test_dark_default_and_radix_follows_the_mode (tests.test_scada_theme.ThemeSwitch.test_dark_default_and_radix_follows_the_mode) ... ok
 test_every_page_has_the_toggle (tests.test_scada_theme.ThemeSwitch.test_every_page_has_the_toggle) ... ok
-test_stale_system_mode_is_reset_before_hydration (tests.test_scada_theme.ThemeSwitch.test_stale_system_mode_is_reset_before_hydration) ... ok
+test_no_script_element_in_page_trees (tests.test_scada_theme.ThemeSwitch.test_no_script_element_in_page_trees) ... ok
 test_every_themed_token_has_a_dark_pair (tests.test_scada_theme.Tokens.test_every_themed_token_has_a_dark_pair) ... ok
 test_every_used_token_is_defined (tests.test_scada_theme.Tokens.test_every_used_token_is_defined) ... ok
 test_guide_values_verbatim (tests.test_scada_theme.Tokens.test_guide_values_verbatim) ... ok

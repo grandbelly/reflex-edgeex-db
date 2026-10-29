@@ -103,12 +103,11 @@ class ThemeSwitch(unittest.TestCase):
             with self.subTest(page=name):
                 self.assertIn("toggleColorMode", str(getattr(pages, name)()))
 
-    def test_stale_system_mode_is_reset_before_hydration(self):
-        from edgeex_app.components.scada import THEME_RESET
-        self.assertIn("'system'", THEME_RESET)
+    def test_no_script_element_in_page_trees(self):
+        # React 19 dev logs console.error for a <script> rendered on the client (acceptance #9).
         for name in PAGES:
             with self.subTest(page=name):
-                self.assertIn("setItem('theme','dark')", str(getattr(pages, name)()))
+                self.assertNotIn('jsx("script"', str(getattr(pages, name)()))
 
 
 if __name__ == "__main__":

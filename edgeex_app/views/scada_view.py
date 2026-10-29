@@ -194,20 +194,6 @@ def overview():
                            note("선택 기간 저장 표본 없음")))))
 
 
-def workflow():
-    def step(idx, name, value, sub, off=False):
-        return rx.box(rx.el.span(idx, class_name="idx"), rx.el.span(name, class_name="name"),
-                      rx.el.span(value, class_name="val"), rx.el.span(sub, class_name="sub"),
-                      class_name="scada-step off" if off else "scada-step")
-    return stack(card(section_title("업무·제어 흐름", "현장 업무 모델 미등록"),
-        rx.box(step("01", "측정", known(S.observed_tags), "관측 태그"),
-               step("02", "판단", known(S.attention_rows.length()), "확인 대상"),
-               step("03", "시뮬레이션·승인", "미연결", "승인 기록 없음", True),
-               step("04", "조치·피드백", "미연결", "조치 기록 없음", True),
-               class_name="scada-steps"),
-        note("실행 이력은 업무 모델과 실행 기록이 연결된 뒤 표시됩니다", foot=True)))
-
-
 def trend():
     return split(signal_chart(), sample_detail(), wide=True)
 
@@ -263,5 +249,5 @@ def flow():
 
 
 def scada_view(kind):
-    return {"overview": overview, "process": workflow, "trend": trend,
+    return {"overview": overview, "trend": trend,
             "alarms": alarms, "flow": flow, "communication": communication}[kind]()

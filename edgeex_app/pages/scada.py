@@ -1,4 +1,4 @@
-"""Six thin routes using the official stock template adaptation."""
+"""Five thin routes using the official stock template adaptation."""
 import reflex as rx
 from ..components.scada import template
 from ..states.scada_state import ScadaState as S
@@ -9,12 +9,6 @@ from ..views.scada_view import scada_view
 @template("/", "대시보드", "선택 현장의 최신 표본 품질과 확인할 태그")
 def overview():
     return scada_view("overview")
-
-
-@rx.page(route="/workflow", title="워크플로우 · edgeEX", on_load=S.initialize)
-@template("/workflow", "워크플로우", "측정·판단·승인·조치 단계별 기록")
-def process():
-    return scada_view("process")
 
 
 @rx.page(route="/trend", title="트렌드 · edgeEX", on_load=S.initialize)
